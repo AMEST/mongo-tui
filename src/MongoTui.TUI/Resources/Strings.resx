@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App.Title" xml:space="preserve"><value>MongoTui</value></data>
+  <data name="Status.Ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="Status.Hint" xml:space="preserve"><value>F5 Run · Ctrl+T New tab · Ctrl+W Close · Ctrl+O Connections · Ctrl+Q Quit</value></data>
+  <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Common.Error" xml:space="preserve"><value>Error</value></data>
+  <data name="Menu.File" xml:space="preserve"><value>File</value></data>
+  <data name="Menu.File.Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Menu.Connection" xml:space="preserve"><value>Connection</value></data>
+  <data name="Menu.Connection.Manage" xml:space="preserve"><value>Manage connections...</value></data>
+  <data name="Menu.Connection.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Menu.Query" xml:space="preserve"><value>Query</value></data>
+  <data name="Menu.Query.New" xml:space="preserve"><value>New tab</value></data>
+  <data name="Menu.Query.Run" xml:space="preserve"><value>Run (F5)</value></data>
+  <data name="Menu.Query.Close" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Menu.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Menu.Document.Insert" xml:space="preserve"><value>Insert document...</value></data>
+  <data name="Menu.Document.Edit" xml:space="preserve"><value>Edit document...</value></data>
+  <data name="Menu.Document.Delete" xml:space="preserve"><value>Delete document...</value></data>
+  <data name="Menu.Collection" xml:space="preserve"><value>Collection</value></data>
+  <data name="Menu.Collection.Indexes" xml:space="preserve"><value>Indexes...</value></data>
+  <data name="Connections.Title" xml:space="preserve"><value>Connections</value></data>
+  <data name="Connections.New" xml:space="preserve"><value>New</value></data>
+  <data name="Connections.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Connections.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Connections.Test" xml:space="preserve"><value>Test</value></data>
+  <data name="Connections.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Connections.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Connections.Field.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Connections.Field.Uri" xml:space="preserve"><value>Connection string</value></data>
+  <data name="Connections.Field.Auth" xml:space="preserve"><value>Authentication</value></data>
+  <data name="Connections.Field.Username" xml:space="preserve"><value>Username</value></data>
+  <data name="Connections.Field.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Connections.Field.AuthDatabase" xml:space="preserve"><value>Auth database</value></data>
+  <data name="Connections.FromUri" xml:space="preserve"><value>From URI</value></data>
+  <data name="Connections.ConfirmDelete" xml:space="preserve"><value>Delete connection "{0}"?</value></data>
+  <data name="Connections.Saved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Connection succeeded.</value></data>
+  <data name="Connections.Empty" xml:space="preserve"><value>No saved connections.</value></data>
+  <data name="Documents.Title" xml:space="preserve"><value>Document</value></data>
+  <data name="Documents.Field.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Documents.Saved" xml:space="preserve"><value>Document saved.</value></data>
+  <data name="Documents.Deleted" xml:space="preserve"><value>Document deleted.</value></data>
+  <data name="Documents.NoContext" xml:space="preserve"><value>Select a collection-backed query tab first.</value></data>
+  <data name="Indexes.Title" xml:space="preserve"><value>Indexes</value></data>
+  <data name="Indexes.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Indexes.Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Indexes.Drop" xml:space="preserve"><value>Drop</value></data>
+  <data name="Indexes.Field.Keys" xml:space="preserve"><value>Keys (JSON)</value></data>
+  <data name="Indexes.Field.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Unique (y/n)</value></data>
+  <data name="Stats.Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="Stats.Indexes" xml:space="preserve"><value>Indexes</value></data>
+  <data name="Error.NameRequired" xml:space="preserve"><value>Name is required.</value></data>
+  <data name="Error.InvalidUri" xml:space="preserve"><value>Connection string must use mongodb:// or mongodb+srv://.</value></data>
+  <data name="Error.NotFound" xml:space="preserve"><value>Connection not found.</value></data>
+  <data name="Error.Locked" xml:space="preserve"><value>Secrets are locked. Unlock with the master password.</value></data>
+  <data name="Tree.Databases" xml:space="preserve"><value>Databases</value></data>
+  <data name="Tree.Loading" xml:space="preserve"><value>Loading...</value></data>
+  <data name="Tree.Active" xml:space="preserve"><value>Active connections</value></data>
+  <data name="Tree.Empty" xml:space="preserve"><value>No active connections.</value></data>
+  <data name="Connections.Connect" xml:space="preserve"><value>Connect</value></data>
+  <data name="Menu.Collection.Export" xml:space="preserve"><value>Export...</value></data>
+  <data name="Menu.Collection.Import" xml:space="preserve"><value>Import...</value></data>
+  <data name="Export.Title" xml:space="preserve"><value>Export collection</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Import collection</value></data>
+  <data name="Export.Field.Output" xml:space="preserve"><value>Output file</value></data>
+  <data name="Export.Field.Filter" xml:space="preserve"><value>Filter (JSON)</value></data>
+  <data name="Export.Field.Limit" xml:space="preserve"><value>Limit</value></data>
+  <data name="Import.Field.Input" xml:space="preserve"><value>Input file</value></data>
+  <data name="Import.Field.Drop" xml:space="preserve"><value>Drop first (y/n)</value></data>
+  <data name="Transfer.Field.Format" xml:space="preserve"><value>Format</value></data>
+  <data name="Transfer.Field.Mode" xml:space="preserve"><value>Mode</value></data>
+  <data name="Transfer.Run" xml:space="preserve"><value>Run</value></data>
+  <data name="Transfer.Done" xml:space="preserve"><value>Done.</value></data>
+  <data name="Menu.Query.Ai" xml:space="preserve"><value>AI assistant...</value></data>
+  <data name="Ai.Title" xml:space="preserve"><value>AI assistant</value></data>
+  <data name="Ai.Field.Prompt" xml:space="preserve"><value>Ask</value></data>
+  <data name="Ai.Ask" xml:space="preserve"><value>Ask</value></data>
+  <data name="Ai.NoContext" xml:space="preserve"><value>Select a collection-backed query tab first.</value></data>
+  <data name="Menu.Query.History" xml:space="preserve"><value>History...</value></data>
+  <data name="History.Title" xml:space="preserve"><value>Query history</value></data>
+  <data name="History.Empty" xml:space="preserve"><value>No history yet.</value></data>
+  <data name="Menu.Connection.Unlock" xml:space="preserve"><value>Unlock secrets...</value></data>
+  <data name="MasterPassword.Title" xml:space="preserve"><value>Master password</value></data>
+  <data name="MasterPassword.Field" xml:space="preserve"><value>Master password</value></data>
+  <data name="MasterPassword.Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Menu.Query.Translate" xml:space="preserve"><value>Translate...</value></data>
+  <data name="Translate.Title" xml:space="preserve"><value>Translate query</value></data>
+  <data name="Translate.Field.Source" xml:space="preserve"><value>Source query</value></data>
+  <data name="Translate.Field.Target" xml:space="preserve"><value>Target</value></data>
+  <data name="Translate.Run" xml:space="preserve"><value>Translate</value></data>
+  <data name="Status.ActiveConnections" xml:space="preserve"><value>Active: {0}</value></data>
+  <data name="Status.Connected" xml:space="preserve"><value>Connected: {0} ({1} databases)</value></data>
+  <data name="Menu.Connection.ChangePassword" xml:space="preserve"><value>Change master password...</value></data>
+  <data name="ChangePassword.Title" xml:space="preserve"><value>Change master password</value></data>
+  <data name="ChangePassword.Field" xml:space="preserve"><value>New master password</value></data>
+  <data name="ChangePassword.Change" xml:space="preserve"><value>Change</value></data>
+  <data name="ChangePassword.Changed" xml:space="preserve"><value>Master password changed.</value></data>
+  <data name="Database.Empty" xml:space="preserve"><value>(empty)</value></data>
+  <data name="Query.Pane" xml:space="preserve"><value>Query  (F5: run, Ctrl+W: close)</value></data>
+  <data name="Query.Result" xml:space="preserve"><value>Result</value></data>
+</root>

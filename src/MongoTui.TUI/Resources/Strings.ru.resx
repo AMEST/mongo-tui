@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App.Title" xml:space="preserve"><value>MongoTui</value></data>
+  <data name="Status.Ready" xml:space="preserve"><value>Готово</value></data>
+  <data name="Status.Hint" xml:space="preserve"><value>F5 Выполнить · Ctrl+T Новая вкладка · Ctrl+W Закрыть · Ctrl+O Подключения · Ctrl+Q Выход</value></data>
+  <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Common.Error" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="Menu.File" xml:space="preserve"><value>Файл</value></data>
+  <data name="Menu.File.Exit" xml:space="preserve"><value>Выход</value></data>
+  <data name="Menu.Connection" xml:space="preserve"><value>Подключение</value></data>
+  <data name="Menu.Connection.Manage" xml:space="preserve"><value>Менеджер подключений...</value></data>
+  <data name="Menu.Connection.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Menu.Query" xml:space="preserve"><value>Запрос</value></data>
+  <data name="Menu.Query.New" xml:space="preserve"><value>Новая вкладка</value></data>
+  <data name="Menu.Query.Run" xml:space="preserve"><value>Выполнить (F5)</value></data>
+  <data name="Menu.Query.Close" xml:space="preserve"><value>Закрыть вкладку</value></data>
+  <data name="Menu.Document" xml:space="preserve"><value>Документ</value></data>
+  <data name="Menu.Document.Insert" xml:space="preserve"><value>Добавить документ...</value></data>
+  <data name="Menu.Document.Edit" xml:space="preserve"><value>Изменить документ...</value></data>
+  <data name="Menu.Document.Delete" xml:space="preserve"><value>Удалить документ...</value></data>
+  <data name="Menu.Collection" xml:space="preserve"><value>Коллекция</value></data>
+  <data name="Menu.Collection.Indexes" xml:space="preserve"><value>Индексы...</value></data>
+  <data name="Connections.Title" xml:space="preserve"><value>Подключения</value></data>
+  <data name="Connections.New" xml:space="preserve"><value>Новое</value></data>
+  <data name="Connections.Edit" xml:space="preserve"><value>Изменить</value></data>
+  <data name="Connections.Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Connections.Test" xml:space="preserve"><value>Проверить</value></data>
+  <data name="Connections.Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Connections.Cancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="Connections.Field.Name" xml:space="preserve"><value>Имя</value></data>
+  <data name="Connections.Field.Uri" xml:space="preserve"><value>Строка подключения</value></data>
+  <data name="Connections.Field.Auth" xml:space="preserve"><value>Аутентификация</value></data>
+  <data name="Connections.Field.Username" xml:space="preserve"><value>Пользователь</value></data>
+  <data name="Connections.Field.Password" xml:space="preserve"><value>Пароль</value></data>
+  <data name="Connections.Field.AuthDatabase" xml:space="preserve"><value>База аутентификации</value></data>
+  <data name="Connections.FromUri" xml:space="preserve"><value>Из URI</value></data>
+  <data name="Connections.ConfirmDelete" xml:space="preserve"><value>Удалить подключение "{0}"?</value></data>
+  <data name="Connections.Saved" xml:space="preserve"><value>Сохранено.</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Подключение успешно.</value></data>
+  <data name="Connections.Empty" xml:space="preserve"><value>Нет сохранённых подключений.</value></data>
+  <data name="Documents.Title" xml:space="preserve"><value>Документ</value></data>
+  <data name="Documents.Field.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Documents.Saved" xml:space="preserve"><value>Документ сохранён.</value></data>
+  <data name="Documents.Deleted" xml:space="preserve"><value>Документ удалён.</value></data>
+  <data name="Documents.NoContext" xml:space="preserve"><value>Сначала выберите вкладку запроса с коллекцией.</value></data>
+  <data name="Indexes.Title" xml:space="preserve"><value>Индексы</value></data>
+  <data name="Indexes.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Indexes.Create" xml:space="preserve"><value>Создать</value></data>
+  <data name="Indexes.Drop" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Indexes.Field.Keys" xml:space="preserve"><value>Ключи (JSON)</value></data>
+  <data name="Indexes.Field.Name" xml:space="preserve"><value>Имя</value></data>
+  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Уникальный (д/н)</value></data>
+  <data name="Stats.Documents" xml:space="preserve"><value>Документов</value></data>
+  <data name="Stats.Indexes" xml:space="preserve"><value>Индексов</value></data>
+  <data name="Error.NameRequired" xml:space="preserve"><value>Имя обязательно.</value></data>
+  <data name="Error.InvalidUri" xml:space="preserve"><value>Строка подключения должна начинаться с mongodb:// или mongodb+srv://.</value></data>
+  <data name="Error.NotFound" xml:space="preserve"><value>Подключение не найдено.</value></data>
+  <data name="Error.Locked" xml:space="preserve"><value>Секреты заблокированы. Разблокируйте мастер-паролем.</value></data>
+  <data name="Tree.Databases" xml:space="preserve"><value>Базы данных</value></data>
+  <data name="Tree.Loading" xml:space="preserve"><value>Загрузка...</value></data>
+  <data name="Tree.Active" xml:space="preserve"><value>Активные подключения</value></data>
+  <data name="Tree.Empty" xml:space="preserve"><value>Нет активных подключений.</value></data>
+  <data name="Connections.Connect" xml:space="preserve"><value>Подключить</value></data>
+  <data name="Menu.Collection.Export" xml:space="preserve"><value>Экспорт...</value></data>
+  <data name="Menu.Collection.Import" xml:space="preserve"><value>Импорт...</value></data>
+  <data name="Export.Title" xml:space="preserve"><value>Экспорт коллекции</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Импорт коллекции</value></data>
+  <data name="Export.Field.Output" xml:space="preserve"><value>Файл вывода</value></data>
+  <data name="Export.Field.Filter" xml:space="preserve"><value>Фильтр (JSON)</value></data>
+  <data name="Export.Field.Limit" xml:space="preserve"><value>Лимит</value></data>
+  <data name="Import.Field.Input" xml:space="preserve"><value>Входной файл</value></data>
+  <data name="Import.Field.Drop" xml:space="preserve"><value>Очистить перед импортом (д/н)</value></data>
+  <data name="Transfer.Field.Format" xml:space="preserve"><value>Формат</value></data>
+  <data name="Transfer.Field.Mode" xml:space="preserve"><value>Режим</value></data>
+  <data name="Transfer.Run" xml:space="preserve"><value>Выполнить</value></data>
+  <data name="Transfer.Done" xml:space="preserve"><value>Готово.</value></data>
+  <data name="Menu.Query.Ai" xml:space="preserve"><value>ИИ-помощник...</value></data>
+  <data name="Ai.Title" xml:space="preserve"><value>ИИ-помощник</value></data>
+  <data name="Ai.Field.Prompt" xml:space="preserve"><value>Запрос</value></data>
+  <data name="Ai.Ask" xml:space="preserve"><value>Спросить</value></data>
+  <data name="Ai.NoContext" xml:space="preserve"><value>Сначала выберите вкладку запроса с коллекцией.</value></data>
+  <data name="Menu.Query.History" xml:space="preserve"><value>История...</value></data>
+  <data name="History.Title" xml:space="preserve"><value>История запросов</value></data>
+  <data name="History.Empty" xml:space="preserve"><value>История пуста.</value></data>
+  <data name="Menu.Connection.Unlock" xml:space="preserve"><value>Разблокировать секреты...</value></data>
+  <data name="MasterPassword.Title" xml:space="preserve"><value>Мастер-пароль</value></data>
+  <data name="MasterPassword.Field" xml:space="preserve"><value>Мастер-пароль</value></data>
+  <data name="MasterPassword.Unlock" xml:space="preserve"><value>Разблокировать</value></data>
+  <data name="Menu.Query.Translate" xml:space="preserve"><value>Перевести...</value></data>
+  <data name="Translate.Title" xml:space="preserve"><value>Перевод запроса</value></data>
+  <data name="Translate.Field.Source" xml:space="preserve"><value>Исходный запрос</value></data>
+  <data name="Translate.Field.Target" xml:space="preserve"><value>Цель</value></data>
+  <data name="Translate.Run" xml:space="preserve"><value>Перевести</value></data>
+  <data name="Status.ActiveConnections" xml:space="preserve"><value>Активных: {0}</value></data>
+  <data name="Status.Connected" xml:space="preserve"><value>Подключено: {0} ({1} БД)</value></data>
+  <data name="Menu.Connection.ChangePassword" xml:space="preserve"><value>Сменить мастер-пароль...</value></data>
+  <data name="ChangePassword.Title" xml:space="preserve"><value>Смена мастер-пароля</value></data>
+  <data name="ChangePassword.Field" xml:space="preserve"><value>Новый мастер-пароль</value></data>
+  <data name="ChangePassword.Change" xml:space="preserve"><value>Сменить</value></data>
+  <data name="ChangePassword.Changed" xml:space="preserve"><value>Мастер-пароль изменён.</value></data>
+  <data name="Database.Empty" xml:space="preserve"><value>(пустая)</value></data>
+  <data name="Query.Pane" xml:space="preserve"><value>Запрос  (F5: выполнить, Ctrl+W: закрыть)</value></data>
+  <data name="Query.Result" xml:space="preserve"><value>Результат</value></data>
+</root>

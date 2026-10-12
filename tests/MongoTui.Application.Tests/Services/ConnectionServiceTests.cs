@@ -1,0 +1,212 @@
+using System.Text;
+using AwesomeAssertions;
+using FakeItEasy;
+using MongoTui.Application.Abstractions.Mongo;
+using MongoTui.Application.Abstractions.Persistence;
+using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Models;
+using MongoTui.Application.Services;
+using MongoTui.Domain.Connections;
+using MongoTui.Domain.Exceptions;
+using MongoTui.Domain.Primitives;
+
+namespace MongoTui.Application.Tests.Services;
+
+public sealed class ConnectionServiceTests
+{
+    private readonly IConnectionRepository _repository = A.Fake<IConnectionRepository>();
+    private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
+    private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
+    private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
+    private readonly ConnectionService _sut;
+
+    public ConnectionServiceTests()
+    {
+        _sut = new ConnectionService(_repository, _crypto, _keyProvider, _gateway);
+        A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
+            .Returns((StoredConnection?)null);
+    }
+
+    [Fact]
+    public async Task Should_EncryptSecret_When_UnlockedAndSecretProvided()
+    {
+        await UnlockAsync();
+        StoredConnection? saved = null;
+        var nonce = new byte[] { 1, 2, 3 };
+        A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out nonce)).Returns([9, 9]);
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._))
+            .Invokes((StoredConnection value, CancellationToken _) => saved = value);
+
+        await _sut.SaveAsync(NewProfile(), "s3cr3t", CancellationToken.None);
+
+        saved!.Secret.Should().NotBeNull();
+        saved.Secret!.CipherText.Should().Equal(9, 9);
+    }
+
+    [Fact]
+    public async Task ShouldThrow_DomainException_When_SavingSecretWhileLocked()
+    {
+        var act = async () => await _sut.SaveAsync(NewProfile(), "s3cr3t", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Should_UpdateExisting_When_ProfileAlreadyStored()
+    {
+        var profile = NewProfile();
+        A.CallTo(() => _repository.GetAsync(profile.Id, A<CancellationToken>._))
+            .Returns(new StoredConnection(profile, null));
+
+        await _sut.SaveAsync(profile, null, CancellationToken.None);
+
+        A.CallTo(() => _repository.UpdateAsync(A<StoredConnection>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_ResolveTargetWithCredentials_When_SecretStored()
+    {
+        await UnlockAsync();
+        var profile = ConnectionProfile.Create(
+            ConnectionId.New(),
+            "secure",
+            "mongodb://localhost:27017",
+            new AuthOptions { Kind = AuthKind.ScramSha256, Username = "bob" });
+        A.CallTo(() => _repository.GetAsync(profile.Id, A<CancellationToken>._))
+            .Returns(new StoredConnection(profile, new EncryptedSecret(new byte[12], new byte[8])));
+        A.CallTo(() => _crypto.Decrypt(A<byte[]>._, A<byte[]>._, A<byte[]>._))
+            .Returns(Encoding.UTF8.GetBytes("pw"));
+
+        var target = await _sut.ResolveTargetAsync(profile.Id, CancellationToken.None);
+
+        target.ConnectionString.Should().Be("mongodb://bob:pw@localhost:27017");
+    }
+
+    [Fact]
+    public void Should_ReturnBareUri_When_NoAuthentication()
+    {
+        var profile = NewProfile();
+
+        var connectionString = ConnectionService.BuildConnectionString(profile, null);
+
+        connectionString.Should().Be("mongodb://localhost:27017");
+    }
+
+    [Fact]
+    public void Should_AppendAuthSource_When_AuthDatabaseProvided()
+    {
+        var profile = ConnectionProfile.Create(
+            ConnectionId.New(),
+            "secure",
+            "mongodb://localhost:27017",
+            new AuthOptions { Kind = AuthKind.ScramSha256, Username = "bob", AuthDatabase = "admin" });
+
+        var connectionString = ConnectionService.BuildConnectionString(profile, "pw");
+
+        connectionString.Should().Be("mongodb://bob:pw@localhost:27017?authSource=admin");
+    }
+
+    [Fact]
+    public async Task Should_TestConnection_When_GatewaySucceeds()
+    {
+        var act = async () => await _sut.TestConnectionAsync(NewProfile(), null, CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+        A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task ShouldThrow_DomainException_When_ResolvingUnknownConnection()
+    {
+        A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
+            .Returns((StoredConnection?)null);
+
+        var act = async () => await _sut.ResolveTargetAsync(ConnectionId.New(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Should_AutoUnlockFromKeyring_When_KeyringAvailable()
+    {
+        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(true);
+        A.CallTo(() => _keyProvider.GetOrCreateKekAsync(A<CancellationToken>._)).Returns(new byte[32]);
+
+        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
+
+        unlocked.Should().BeTrue();
+        _sut.IsUnlocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Should_RequireMasterPassword_When_KeyringUnavailable()
+    {
+        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(false);
+
+        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
+
+        unlocked.Should().BeFalse();
+        _sut.IsUnlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Should_ReturnTrueWithoutKeyring_When_AlreadyUnlocked()
+    {
+        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(false);
+        await UnlockAsync();
+
+        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
+
+        unlocked.Should().BeTrue();
+        A.CallTo(() => _keyProvider.GetOrCreateKekAsync(A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_ReEncryptSecrets_When_ChangingMasterPassword()
+    {
+        await UnlockAsync();
+        var profile = NewProfile();
+        StoredConnection? updated = null;
+        var newNonce = new byte[] { 7, 7, 7 };
+        A.CallTo(() => _keyProvider.ChangeMasterPasswordAsync("new-master", A<CancellationToken>._))
+            .Returns(new byte[32]);
+        A.CallTo(() => _repository.GetAllAsync(A<CancellationToken>._))
+            .Returns(new List<StoredConnection>
+            {
+                new(profile, new EncryptedSecret(new byte[12], new byte[8])),
+            });
+        A.CallTo(() => _crypto.Decrypt(A<byte[]>._, A<byte[]>._, A<byte[]>._)).Returns(System.Text.Encoding.UTF8.GetBytes("pw"));
+        A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out newNonce)).Returns([9, 9]);
+        A.CallTo(() => _repository.UpdateAsync(A<StoredConnection>._, A<CancellationToken>._))
+            .Invokes((StoredConnection value, CancellationToken _) => updated = value);
+
+        await _sut.ChangeMasterPasswordAsync("new-master", CancellationToken.None);
+
+        updated.Should().NotBeNull();
+        updated!.Secret!.CipherText.Should().Equal(9, 9);
+        A.CallTo(() => _keyProvider.ChangeMasterPasswordAsync("new-master", A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task ShouldThrow_DomainException_When_ChangingPasswordWhileLocked()
+    {
+        var act = async () => await _sut.ChangeMasterPasswordAsync("new-master", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    private async Task UnlockAsync()
+    {
+        A.CallTo(() => _keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._))
+            .Returns(new byte[32]);
+        await _sut.UnlockAsync("master", CancellationToken.None);
+    }
+
+    private static ConnectionProfile NewProfile() =>
+        ConnectionProfile.Create(ConnectionId.New(), "local", "mongodb://localhost:27017");
+}
