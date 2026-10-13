@@ -18,8 +18,8 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 ## Features
 
 - **Connection manager** — SQLite-backed profiles; secrets encrypted with AES-256-GCM.
-- **Secrets** — KEK from the OS keyring, falling back to a master password derived with Argon2id.
-- **Query tabs** — query scripts run through `mongosh --eval` as Extended JSON, run with `F5`.
+- **Master password** — unlocks the secrets; the key is derived with Argon2id.
+- **Query tabs** — query scripts run through `mongosh --eval` as Extended JSON, run with `F5` or `Ctrl+Enter`.
 - **Result pane** — table, tree and JSON views with elapsed time and error reporting.
 - **Documents** — insert / edit / delete as JSON.
 - **Indexes & stats** — list, create and drop indexes; collection document/index counts.
@@ -35,8 +35,6 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 - **MongoDB Database Tools** — `mongosh`, `mongoexport`, `mongoimport`, `mongodump`, `mongorestore`.
   They must be on the `PATH`, or their directory can be configured in the settings
   (`MongoToolsOptions.Directory`).
-- **Optional OS keyring** — libsecret (Linux), Keychain (macOS), Credential Manager (Windows).
-  When unavailable, the app uses a master password instead.
 
 ## Installation
 
@@ -51,6 +49,8 @@ launch. Clear the quarantine attribute before running:
 
 ```bash
 xattr -d com.apple.quarantine ./mongo-tui
+xattr -d com.apple.quarantine ./libe_sqlite3.dylib
+xattr -d com.apple.quarantine ./libonigwrap.dylib
 chmod +x ./mongo-tui
 ./mongo-tui
 ```
@@ -114,8 +114,8 @@ point the app at their directory through `MongoToolsOptions.Directory`.
 
 ## Usage
 
-1. Launch the app. If secrets are locked, the master-password dialog opens first (or the KEK
-   is taken from the OS keyring automatically when available); then the connection manager opens.
+1. Launch the app. If secrets are locked, the master-password dialog opens first; then the
+   connection manager opens.
 2. **Connection → Manage connections…** — add or edit a connection. Paste a full connection
    string (with credentials) and press **From URI** to auto-fill the fields; credentials are
    moved into the username/password fields and the auth database/mechanism are parsed.
@@ -125,7 +125,7 @@ point the app at their directory through `MongoToolsOptions.Directory`.
 3. **Double-click** in the tree (or press **Enter**): on a connection to collapse/expand it,
    on a database to load and show its collections, on a collection to open a query tab with a
    ready `find` script.
-4. Write a JavaScript query (e.g. `db.users.find({})`) and press **F5** to run it.
+4. Write a JavaScript query (e.g. `db.users.find({})`) and press **F5** or **Ctrl+Enter** to run it.
 5. Inspect the result in the table/tree/JSON pane; the status bar shows the elapsed time and the
    number of returned documents.
 6. **Right-click** a tree node (or press **Ctrl+Space**) to open its context menu: connection —
@@ -138,7 +138,7 @@ Menu overview:
 |---|---|
 | File | Exit (Ctrl+Q) |
 | Connection | Manage connections… (Ctrl+O), Refresh (F9), Unlock secrets… (F8), Change master password… (Ctrl+P) |
-| Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
+| Query | New tab (Ctrl+T), Run (F5/Ctrl+Enter), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
 | Settings | Result view (Table / Tree / JSON), Language (English / Русский), AI settings… |

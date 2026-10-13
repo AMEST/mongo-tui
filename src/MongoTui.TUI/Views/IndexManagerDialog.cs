@@ -86,10 +86,7 @@ public sealed class IndexManagerDialog : ThemedDialog
         var closeButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(refreshButton);
-        AddButton(createButton);
-        AddButton(dropButton);
-        AddButton(closeButton);
+        this.AddButtons(refreshButton, createButton, dropButton, closeButton);
     }
 
     public async Task LoadAsync()

@@ -26,6 +26,6 @@ public sealed class ErrorDialog : ThemedDialog
 
         var okButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
         okButton.OnAccept(() => application.RequestStop(this));
-        AddButton(okButton);
+        this.AddButtons(okButton);
     }
 }

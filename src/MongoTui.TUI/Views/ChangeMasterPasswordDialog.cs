@@ -40,8 +40,7 @@ public sealed class ChangeMasterPasswordDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => application.RequestStop(this));
 
-        AddButton(changeButton);
-        AddButton(cancelButton);
+        this.AddButtons(changeButton, cancelButton);
     }
 
     public bool Changed { get; private set; }

@@ -56,8 +56,7 @@ public sealed class AiSettingsDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(saveButton);
-        AddButton(cancelButton);
+        this.AddButtons(saveButton, cancelButton);
     }
 
     public bool Saved { get; private set; }

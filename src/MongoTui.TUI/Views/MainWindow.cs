@@ -277,6 +277,9 @@ public sealed class MainWindow : Window
         static MenuItem Choice(string text, bool selected, Action action) =>
             new((selected ? "\u2022 " : "   ") + text, string.Empty, action);
 
+        var runQuery = () => Safe(RunActiveQueryAsync);
+        _shortcuts[Ctrl(KeyCode.Enter)] = runQuery;
+
         return
         [
             new MenuBarItem(localizer.Get("Menu.File"),
@@ -294,7 +297,7 @@ public sealed class MainWindow : Window
             new MenuBarItem(localizer.Get("Menu.Query"),
             [
                 Item(localizer.Get("Menu.Query.New"), Ctrl(KeyCode.T), NewTab),
-                Item(localizer.Get("Menu.Query.Run"), Key.F5, () => Safe(RunActiveQueryAsync)),
+                Item(localizer.Get("Menu.Query.Run"), Key.F5, runQuery),
                 Item(localizer.Get("Menu.Query.Close"), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
                 Item(localizer.Get("Menu.Query.Ai"), Key.F6, OpenAiAssistant, _aiConfigured),
                 Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate, _aiConfigured),
@@ -749,7 +752,22 @@ public sealed class MainWindow : Window
             : ResultViewMode.Table;
 
         _queryTabs.SetResultViewMode(_resultViewMode);
+        ApplyLocalization();
+    }
+
+    // Re-applies every localized string that is not refreshed by a dedicated component.
+    private void ApplyLocalization()
+    {
+        Title = _localizer.Get("App.Title");
+
+        if (_treeFrame is not null)
+        {
+            _treeFrame.Title = _localizer.Get("Tree.Active");
+        }
+
+        _queryTabs.RefreshLocalization();
         RefreshMenuBar();
+        SetStatus();
     }
 
     private async Task SetResultViewModeAsync(ResultViewMode mode)
@@ -768,13 +786,7 @@ public sealed class MainWindow : Window
         _localizer.SetLanguage(language);
         await _settings.SetLanguageAsync(language, CancellationToken.None);
 
-        if (_treeFrame is not null)
-        {
-            _treeFrame.Title = _localizer.Get("Tree.Active");
-        }
-
-        _queryTabs.RefreshLocalization();
-        RefreshMenuBar();
+        ApplyLocalization();
         SetStatus(_localizer.Format("Status.Language", language == "ru" ? "Русский" : "English"));
     }
 

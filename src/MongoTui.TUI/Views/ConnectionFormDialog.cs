@@ -100,10 +100,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(fromUriButton);
-        AddButton(saveButton);
-        AddButton(testButton);
-        AddButton(cancelButton);
+        this.AddButtons(fromUriButton, saveButton, testButton, cancelButton);
     }
 
     /// <summary>Whether the profile was saved before the dialog closed.</summary>

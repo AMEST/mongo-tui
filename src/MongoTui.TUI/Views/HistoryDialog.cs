@@ -40,7 +40,7 @@ public sealed class HistoryDialog : ThemedDialog
 
         var closeButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
         closeButton.OnAccept(() => _application.RequestStop(this));
-        AddButton(closeButton);
+        this.AddButtons(closeButton);
     }
 
     public async Task LoadAsync()

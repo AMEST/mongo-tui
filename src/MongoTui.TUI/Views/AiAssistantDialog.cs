@@ -57,8 +57,7 @@ public sealed class AiAssistantDialog : ThemedDialog
         var closeButton = new Button { Text = localizer.Get("Connections.Cancel") };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(askButton);
-        AddButton(closeButton);
+        this.AddButtons(askButton, closeButton);
     }
 
     private async Task AskAsync()

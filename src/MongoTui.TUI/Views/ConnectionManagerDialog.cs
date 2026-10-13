@@ -53,11 +53,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         var closeButton = new Button { Text = localizer.Get("Common.Ok") };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(connectButton);
-        AddButton(newButton);
-        AddButton(editButton);
-        AddButton(deleteButton);
-        AddButton(closeButton);
+        this.AddButtons(connectButton, newButton, editButton, deleteButton, closeButton);
     }
 
     /// <summary>The profile chosen for connection, if any.</summary>

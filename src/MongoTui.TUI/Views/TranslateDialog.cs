@@ -62,8 +62,7 @@ public sealed class TranslateDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(translateButton);
-        AddButton(cancelButton);
+        this.AddButtons(translateButton, cancelButton);
     }
 
     private async Task TranslateAsync()

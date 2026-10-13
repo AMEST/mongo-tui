@@ -19,8 +19,8 @@ OpenAI-совместимого API.
 ## Возможности
 
 - **Менеджер подключений** — профили в SQLite; секреты шифруются AES-256-GCM.
-- **Секреты** — KEK из OS keyring, при недоступности — мастер-пароль (Argon2id).
-- **Вкладки запросов** — запросы выполняются через `mongosh --eval` с выводом Extended JSON, запуск по `F5`.
+- **Мастер-пароль** — разблокирует секреты; ключ выводится через Argon2id.
+- **Вкладки запросов** — запросы выполняются через `mongosh --eval` с выводом Extended JSON, запуск по `F5` или `Ctrl+Enter`.
 - **Панель результатов** — режимы таблицы, дерева и JSON, время выполнения и ошибки.
 - **Документы** — добавление / изменение / удаление в формате JSON.
 - **Индексы и статистика** — список, создание и удаление индексов; счётчики документов/индексов.
@@ -35,8 +35,6 @@ OpenAI-совместимого API.
 - **Сервер MongoDB**, к которому выполняется подключение.
 - **MongoDB Database Tools** — `mongosh`, `mongoexport`, `mongoimport`, `mongodump`, `mongorestore`.
   Должны быть в `PATH`, либо каталог задаётся в настройках (`MongoToolsOptions.Directory`).
-- **Опционально OS keyring** — libsecret (Linux), Keychain (macOS), Credential Manager (Windows).
-  Если недоступен, используется мастер-пароль.
 
 ## Установка
 
@@ -51,6 +49,8 @@ OpenAI-совместимого API.
 
 ```bash
 xattr -d com.apple.quarantine ./mongo-tui
+xattr -d com.apple.quarantine ./libe_sqlite3.dylib
+xattr -d com.apple.quarantine ./libonigwrap.dylib
 chmod +x ./mongo-tui
 ./mongo-tui
 ```
@@ -114,9 +114,8 @@ npm install -g mongosh
 
 ## Как пользоваться
 
-1. Запустите приложение. Если секреты заблокированы, сначала откроется окно ввода мастер-пароля
-   (либо KEK автоматически берётся из OS keyring, если он доступен); затем открывается диспетчер
-   подключений.
+1. Запустите приложение. Если секреты заблокированы, сначала откроется окно ввода мастер-пароля;
+   затем открывается диспетчер подключений.
 2. **Connection → Manage connections…** — добавьте или отредактируйте подключение. Вставьте
    полную строку подключения (с учётными данными) и нажмите **Из URI**, чтобы заполнить поля
    автоматически: логин/пароль переносятся в отдельные поля, а база и механизм аутентификации
@@ -125,7 +124,7 @@ npm install -g mongosh
 3. **Двойной клик** по узлу дерева (или **Enter**): по подключению — свернуть/развернуть,
    по базе — загрузить и показать коллекции, по коллекции — открыть вкладку запроса с готовым
    скриптом `find`.
-4. Напишите JavaScript-запрос (например `db.users.find({})`) и нажмите **F5**.
+4. Напишите JavaScript-запрос (например `db.users.find({})`) и нажмите **F5** или **Ctrl+Enter**.
 5. Смотрите результат в панели таблицы/дерева/JSON; в статус-баре — время выполнения и число
    возвращённых документов.
 6. **Правый клик** по узлу дерева (или **Ctrl+Space**) открывает контекстное меню: для
@@ -138,7 +137,7 @@ npm install -g mongosh
 |---|---|
 | File | Exit (выход) (Ctrl+Q) |
 | Connection | Manage connections… (Ctrl+O), Refresh (F9), Unlock secrets… (F8), Сменить мастер-пароль… (Ctrl+P) |
-| Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
+| Query | New tab (Ctrl+T), Run (F5/Ctrl+Enter), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
 | Настройки | Вид результата (Таблица / Дерево / JSON), Язык (English / Русский), Настройки ИИ… |

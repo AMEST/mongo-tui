@@ -26,8 +26,7 @@ public sealed class ConfirmDialog : ThemedDialog
         var noButton = new Button { Text = localizer.Get("Common.No") };
         noButton.OnAccept(() => application.RequestStop(this));
 
-        AddButton(yesButton);
-        AddButton(noButton);
+        this.AddButtons(yesButton, noButton);
     }
 
     public bool Confirmed { get; private set; }

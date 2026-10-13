@@ -83,9 +83,7 @@ public sealed class DocumentEditDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(saveButton);
-        AddButton(_deleteButton);
-        AddButton(cancelButton);
+        this.AddButtons(saveButton, _deleteButton, cancelButton);
 
         if (_viewModel.IsNew)
         {

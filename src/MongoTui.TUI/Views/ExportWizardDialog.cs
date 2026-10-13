@@ -80,8 +80,7 @@ public sealed class ExportWizardDialog : ThemedDialog
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        AddButton(runButton);
-        AddButton(cancelButton);
+        this.AddButtons(runButton, cancelButton);
     }
 
     public bool Completed { get; private set; }
