@@ -180,11 +180,66 @@ public sealed class MainWindow : Window
             return;
         }
 
+        if (key == new Key(KeyCode.Tab | KeyCode.CtrlMask))
+        {
+            key.Handled = true;
+            InsertTabInActiveEditor();
+            return;
+        }
+
+        if (key == new Key(KeyCode.Tab))
+        {
+            key.Handled = CyclePaneFocus(forward: true);
+            return;
+        }
+
+        if (key == new Key(KeyCode.Tab | KeyCode.ShiftMask))
+        {
+            key.Handled = CyclePaneFocus(forward: false);
+            return;
+        }
+
         if (_shortcuts.TryGetValue(key, out var action))
         {
             Log.Debug("Shortcut {Key} invoked", key);
             key.Handled = true;
             action();
+        }
+    }
+
+    private bool CyclePaneFocus(bool forward)
+    {
+        if (Application?.Popovers?.GetActivePopover() is not null)
+        {
+            return false;
+        }
+
+        var panes = new List<View> { _treeList };
+
+        if (_queryTabs.ActiveEditorView is { } editor)
+        {
+            panes.Add(editor);
+        }
+
+        if (_queryTabs.ActiveResultView is { } result)
+        {
+            panes.Add(result);
+        }
+
+        if (PaneFocusCycle.Resolve(MostFocused, panes, _queryTabs, forward) is not { } target)
+        {
+            return false;
+        }
+
+        target.SetFocus();
+        return true;
+    }
+
+    private void InsertTabInActiveEditor()
+    {
+        if (_queryTabs.ActiveEditorView is { HasFocus: true } editor)
+        {
+            editor.InsertText("\t");
         }
     }
 
