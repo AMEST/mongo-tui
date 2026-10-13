@@ -31,6 +31,9 @@ public sealed class DocumentEditDialog : ThemedDialog
         _application = application;
         _localizer = localizer;
 
+        _filter.TrackContents();
+        _editor.TrackContents();
+
         Title = localizer.Get("Documents.Title");
         Width = 76;
         Height = 24;

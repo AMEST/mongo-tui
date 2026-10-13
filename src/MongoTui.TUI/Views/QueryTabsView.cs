@@ -179,7 +179,7 @@ public sealed class QueryTabsView : View
             Editor = new TextView { Multiline = true, Width = Dim.Fill(), Height = Dim.Fill(), Text = model.Script };
             _result = new TextView { Multiline = true, ReadOnly = true, WordWrap = false, Width = Dim.Fill(), Height = Dim.Fill() };
 
-            Editor.ContentsChanged += (_, _) => Model.Script = Editor.Text ?? string.Empty;
+            Editor.TrackContents(() => Model.Script = Editor.Text ?? string.Empty);
             _editorFrame.Add(Editor);
 
             _resultFrame = new FrameView

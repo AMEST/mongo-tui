@@ -26,6 +26,8 @@ public sealed class TranslateDialog : ThemedDialog
         _translate = translate;
         _application = application;
 
+        _source.TrackContents();
+
         Title = localizer.Get("Translate.Title");
         Width = 76;
         Height = 24;
