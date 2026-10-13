@@ -95,6 +95,43 @@ public sealed class ResultViewModel : ObservableObject
         Rebuild();
     }
 
+    /// <summary>
+    /// Resolves the document whose rendered lines contain <paramref name="row"/>,
+    /// or <see langword="null"/> when the row is not on a document (for example a table header).
+    /// </summary>
+    public int? DocumentIndexAtRow(int row)
+    {
+        if (row < 0 || Documents.Count == 0)
+        {
+            return null;
+        }
+
+        if (Mode == ResultViewMode.Table)
+        {
+            var index = row - 2;
+            return index >= 0 && index < Documents.Count ? index : null;
+        }
+
+        int? found = null;
+        var start = 0;
+
+        for (var index = 0; index < Documents.Count; index++)
+        {
+            var length = LineCount(Documents[index]);
+
+            if (row >= start && row < start + length)
+            {
+                found = index;
+            }
+
+            // Tree documents are separated by a newline; JSON array elements share
+            // their boundary line (for example "  }, {") with the following document.
+            start += Mode == ResultViewMode.Tree ? length : length - 1;
+        }
+
+        return found;
+    }
+
     /// <summary>Renders the current result using <see cref="Mode"/>.</summary>
     public string Render()
     {
@@ -151,6 +188,9 @@ public sealed class ResultViewModel : ObservableObject
 
         Json = new BsonArray(Documents).ToJson(IndentedJson);
     }
+
+    private static int LineCount(BsonDocument document) =>
+        document.ToJson(IndentedJson).Count(character => character == '\n') + 1;
 
     private static string FormatValue(BsonDocument document, string column)
     {

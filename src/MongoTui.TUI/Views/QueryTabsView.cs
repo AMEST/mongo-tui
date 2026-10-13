@@ -36,9 +36,27 @@ public sealed class QueryTabsView : View
         Add(_tabs);
     }
 
+    /// <summary>Raised when the user requests running the active query from its editor context menu.</summary>
+    public event EventHandler? RunRequested;
+
+    /// <summary>Raised when the user requests exporting the active result from its context menu.</summary>
+    public event EventHandler? ExportRequested;
+
+    /// <summary>Raised when the user requests editing the document under the result cursor.</summary>
+    public event EventHandler? EditDocumentRequested;
+
+    /// <summary>Raised when the user requests deleting the document under the result cursor.</summary>
+    public event EventHandler? DeleteDocumentRequested;
+
     public int TabCount => _panes.Count;
 
     public QueryTabViewModel? ActiveTab => CurrentPane()?.Model;
+
+    /// <summary>Active tab's editor text view (exposed for tests).</summary>
+    internal TextView? ActiveEditorView => CurrentPane()?.Editor;
+
+    /// <summary>Active tab's result text view (exposed for tests).</summary>
+    internal TextView? ActiveResultView => CurrentPane()?.ResultView;
 
     /// <summary>JSON of the result document at the cursor, or the first one when not applicable.</summary>
     public string? SelectedDocumentJson => CurrentPane()?.SelectedDocumentJson();
@@ -54,7 +72,7 @@ public sealed class QueryTabsView : View
         var model = new QueryTabViewModel(_queryService, connectionId, target, $"Query {_counter}", database, collection, script);
         model.Result.Mode = _resultViewMode;
 
-        var pane = new TabPane(model, _localizer);
+        var pane = new TabPane(this, model, _localizer);
         _panes.Add(pane.Container, pane);
 
         _tabs.Add(pane.Container);
@@ -131,6 +149,14 @@ public sealed class QueryTabsView : View
         pane.Container.Dispose();
     }
 
+    private void RaiseRunRequested() => RunRequested?.Invoke(this, EventArgs.Empty);
+
+    private void RaiseExportRequested() => ExportRequested?.Invoke(this, EventArgs.Empty);
+
+    private void RaiseEditDocumentRequested() => EditDocumentRequested?.Invoke(this, EventArgs.Empty);
+
+    private void RaiseDeleteDocumentRequested() => DeleteDocumentRequested?.Invoke(this, EventArgs.Empty);
+
     private TabPane? CurrentPane()
     {
         if (_tabs.Value is View view && _panes.TryGetValue(view, out var pane))
@@ -151,12 +177,15 @@ public sealed class QueryTabsView : View
 
     private sealed class TabPane
     {
-        private readonly TextView _result;
+        private readonly QueryTabsView _owner;
+        private readonly ResultTextView _result;
         private readonly FrameView _editorFrame;
         private readonly FrameView _resultFrame;
+        private bool _menuBuilt;
 
-        public TabPane(QueryTabViewModel model, ILocalizer localizer)
+        public TabPane(QueryTabsView owner, QueryTabViewModel model, ILocalizer localizer)
         {
+            _owner = owner;
             Model = model;
             Container = new View
             {
@@ -177,7 +206,7 @@ public sealed class QueryTabsView : View
             };
 
             Editor = new TextView { Multiline = true, Width = Dim.Fill(), Height = Dim.Fill(), Text = model.Script };
-            _result = new TextView { Multiline = true, ReadOnly = true, WordWrap = false, Width = Dim.Fill(), Height = Dim.Fill() };
+            _result = new ResultTextView { Multiline = true, ReadOnly = true, WordWrap = false, Width = Dim.Fill(), Height = Dim.Fill() };
 
             Editor.TrackContents(() => Model.Script = Editor.Text ?? string.Empty);
             _editorFrame.Add(Editor);
@@ -194,6 +223,8 @@ public sealed class QueryTabsView : View
 
             Container.Add(_editorFrame);
             Container.Add(_resultFrame);
+
+            Container.Initialized += (_, _) => BuildContextMenus(localizer);
         }
 
         public QueryTabViewModel Model { get; }
@@ -202,6 +233,9 @@ public sealed class QueryTabsView : View
 
         public TextView Editor { get; }
 
+        /// <summary>Result text view (exposed for tests).</summary>
+        internal TextView ResultView => _result;
+
         public void ShowResult() => _result.Text = Model.Result.Render();
 
         public void FocusResult() => _result.SetFocus();
@@ -209,24 +243,66 @@ public sealed class QueryTabsView : View
         // In table mode documents start below the header (column names + separator).
         public string? SelectedDocumentJson()
         {
-            var documents = Model.Result.Documents;
-
-            if (documents.Count == 0)
+            if (Model.Result.DocumentIndexAtRow(_result.DocumentRow) is not { } index)
             {
                 return null;
             }
 
-            var index = Model.Result.Mode == ResultViewMode.Table
-                ? Math.Clamp(_result.CurrentRow - 2, 0, documents.Count - 1)
-                : 0;
-
-            return documents[index].ToJson();
+            return Model.Result.Documents[index].ToJson();
         }
 
         public void RefreshLocalization(ILocalizer localizer)
         {
             _editorFrame.Title = localizer.Get("Query.Pane");
             _resultFrame.Title = localizer.Get("Query.Result");
+        }
+
+        private void BuildContextMenus(ILocalizer localizer)
+        {
+            if (_menuBuilt)
+            {
+                return;
+            }
+
+            _menuBuilt = true;
+            BuildEditorContextMenu(localizer);
+            BuildResultContextMenu(localizer);
+        }
+
+        private void BuildEditorContextMenu(ILocalizer localizer)
+        {
+            if (Editor.ContextMenu?.Root is not { } root)
+            {
+                return;
+            }
+
+            root.Add(new Line());
+            root.Add(new MenuItem(localizer.Get("Menu.Query.Run"), string.Empty, _owner.RaiseRunRequested));
+        }
+
+        private void BuildResultContextMenu(ILocalizer localizer)
+        {
+            if (_result.ContextMenu?.Root is not { } root)
+            {
+                return;
+            }
+
+            root.Add(new Line());
+            root.Add(new MenuItem(localizer.Get("Result.CopyAll"), string.Empty, CopyAll));
+            root.Add(new MenuItem(localizer.Get("Result.CopyDocument"), string.Empty, CopySelectedDocument));
+            root.Add(new MenuItem(localizer.Get("Result.Export"), string.Empty, _owner.RaiseExportRequested));
+            root.Add(new MenuItem(localizer.Get("Menu.Document.Edit"), string.Empty, _owner.RaiseEditDocumentRequested));
+            root.Add(new MenuItem(localizer.Get("Menu.Document.Delete"), string.Empty, _owner.RaiseDeleteDocumentRequested));
+        }
+
+        private void CopyAll() => _result.App?.Clipboard?.SetClipboardData(_result.Text ?? string.Empty);
+
+        private void CopySelectedDocument()
+        {
+            if (SelectedDocumentJson() is { } json)
+            {
+                _result.App?.Clipboard?.SetClipboardData(json);
+            }
         }
     }
 }

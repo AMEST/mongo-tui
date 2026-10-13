@@ -84,6 +84,10 @@ public sealed class MainWindow : Window
         _gateway = gateway;
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = new QueryTabsView(queryService, localizer);
+        _queryTabs.RunRequested += (_, _) => Safe(RunActiveQueryAsync);
+        _queryTabs.ExportRequested += (_, _) => OpenExport();
+        _queryTabs.EditDocumentRequested += (_, _) => EditDocument();
+        _queryTabs.DeleteDocumentRequested += (_, _) => DeleteDocument();
 
         Title = localizer.Get("App.Title");
         X = 0;
@@ -868,6 +872,46 @@ public sealed class MainWindow : Window
         else if (dialog.Saved)
         {
             SetStatus(_localizer.Get("Documents.Saved"));
+        }
+    }
+
+    private void DeleteDocument()
+    {
+        if (ResolveContext() is not { } context)
+        {
+            return;
+        }
+
+        if (_queryTabs.SelectedDocumentJson is not { } documentJson)
+        {
+            SetStatus(_localizer.Get("Documents.NoDocument"));
+            return;
+        }
+
+        var filter = DocumentService.BuildIdFilter(documentJson);
+        var confirm = new ConfirmDialog(
+            _localizer,
+            Application!,
+            _localizer.Get("Menu.Document.Delete"),
+            _localizer.Format("Documents.DeleteCondition", filter));
+        Application!.Run(confirm);
+
+        if (confirm.Confirmed)
+        {
+            Safe(() => DeleteDocumentAsync(context, filter));
+        }
+    }
+
+    private async Task DeleteDocumentAsync((MongoConnectionTarget Target, CollectionRef Collection) context, string filter)
+    {
+        try
+        {
+            await _documents.DeleteAsync(context.Target, context.Collection, filter, CancellationToken.None);
+            SetStatus(_localizer.Get("Documents.Deleted"));
+        }
+        catch (DomainException exception)
+        {
+            SetStatus(exception.Message);
         }
     }
 

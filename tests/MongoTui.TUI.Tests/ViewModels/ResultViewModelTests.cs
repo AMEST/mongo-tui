@@ -104,4 +104,72 @@ public sealed class ResultViewModelTests
 
         _sut.Render().Should().Be("boom");
     }
+
+    [Fact]
+    public void Should_ResolveDocument_When_TableRowIsOnDocument()
+    {
+        LoadTwoDocuments();
+        _sut.Mode = ResultViewMode.Table;
+
+        _sut.DocumentIndexAtRow(2).Should().Be(0);
+        _sut.DocumentIndexAtRow(3).Should().Be(1);
+    }
+
+    [Fact]
+    public void Should_ReturnNull_When_TableRowIsHeaderOrOutOfRange()
+    {
+        LoadTwoDocuments();
+        _sut.Mode = ResultViewMode.Table;
+
+        _sut.DocumentIndexAtRow(0).Should().BeNull();
+        _sut.DocumentIndexAtRow(1).Should().BeNull();
+        _sut.DocumentIndexAtRow(4).Should().BeNull();
+    }
+
+    [Fact]
+    public void Should_ResolveDocument_When_TreeRowIsInsideBlock()
+    {
+        LoadTwoDocuments();
+        _sut.Mode = ResultViewMode.Tree;
+
+        var lines = _sut.Render().Split('\n');
+
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 1")).Should().Be(0);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 2")).Should().Be(1);
+    }
+
+    [Fact]
+    public void Should_ResolveDocument_When_JsonRowIsInsideArrayElement()
+    {
+        LoadTwoDocuments();
+        _sut.Mode = ResultViewMode.Json;
+
+        var lines = _sut.Render().Split('\n');
+
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 1")).Should().Be(0);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 2")).Should().Be(1);
+    }
+
+    [Fact]
+    public void Should_ReturnNull_When_NoDocuments()
+    {
+        _sut.Load(new QueryResult { Kind = QueryResultKind.Scalar, Documents = [] });
+
+        _sut.DocumentIndexAtRow(-1).Should().BeNull();
+        _sut.DocumentIndexAtRow(0).Should().BeNull();
+    }
+
+    private void LoadTwoDocuments() =>
+        _sut.Load(new QueryResult
+        {
+            Kind = QueryResultKind.Documents,
+            Documents =
+            [
+                BsonDocument.Parse("{ \"_id\": 1, \"name\": \"a\" }"),
+                BsonDocument.Parse("{ \"_id\": 2, \"name\": \"b\" }"),
+            ],
+        });
+
+    private static int RowContaining(string[] lines, string text) =>
+        Array.FindIndex(lines, line => line.Contains(text, StringComparison.Ordinal));
 }
