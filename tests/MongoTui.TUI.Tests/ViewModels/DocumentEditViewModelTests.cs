@@ -1,10 +1,12 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 using MongoTui.TUI.ViewModels;
 
 namespace MongoTui.TUI.Tests.ViewModels;
@@ -77,5 +79,57 @@ public sealed class DocumentEditViewModelTests
         deleted.Should().BeTrue();
         A.CallTo(() => _gateway.DeleteOneAsync(Target, Collection, A<string>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public void Should_DefaultFilterToIdAndIndentJson_When_EditingExisting()
+    {
+        var viewModel = new DocumentEditViewModel(_documents, Target, Collection, "{ \"_id\": 7, \"v\": 1 }");
+
+        viewModel.IsNew.Should().BeFalse();
+        viewModel.Filter.Should().Contain("_id").And.Contain("7");
+        viewModel.Json.Should().Contain("\n");
+    }
+
+    [Fact]
+    public async Task Should_LoadDocument_When_FilterMatches()
+    {
+        A.CallTo(() => _gateway.FindAsync(
+                Target,
+                Collection,
+                A<string>._,
+                A<QueryExecutionOptions>._,
+                A<CancellationToken>._))
+            .Returns(new QueryResult
+            {
+                Kind = QueryResultKind.Documents,
+                Documents = [BsonDocument.Parse("{ \"_id\": 9, \"name\": \"z\" }")],
+            });
+
+        var viewModel = new DocumentEditViewModel(_documents, Target, Collection) { Filter = "{ \"_id\": 9 }" };
+
+        var loaded = await viewModel.LoadAsync(CancellationToken.None);
+
+        loaded.Should().BeTrue();
+        viewModel.Json.Should().Contain("9");
+    }
+
+    [Fact]
+    public async Task Should_ReturnFalse_When_LoadFindsNothing()
+    {
+        A.CallTo(() => _gateway.FindAsync(
+                Target,
+                Collection,
+                A<string>._,
+                A<QueryExecutionOptions>._,
+                A<CancellationToken>._))
+            .Returns(QueryResult.Empty(QueryResultKind.Documents));
+
+        var viewModel = new DocumentEditViewModel(_documents, Target, Collection) { Filter = "{ \"_id\": 404 }" };
+
+        var loaded = await viewModel.LoadAsync(CancellationToken.None);
+
+        loaded.Should().BeFalse();
+        viewModel.ValidationError.Should().BeNull();
     }
 }

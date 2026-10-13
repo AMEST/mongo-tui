@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using Serilog;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
@@ -19,6 +20,7 @@ public sealed class QueryTabsView : View
     private readonly Tabs _tabs = new();
     private readonly Dictionary<View, TabPane> _panes = [];
     private int _counter;
+    private ResultViewMode _resultViewMode = ResultViewMode.Table;
 
     public QueryTabsView(QueryService queryService, ILocalizer localizer)
     {
@@ -38,6 +40,9 @@ public sealed class QueryTabsView : View
 
     public QueryTabViewModel? ActiveTab => CurrentPane()?.Model;
 
+    /// <summary>JSON of the result document at the cursor, or the first one when not applicable.</summary>
+    public string? SelectedDocumentJson => CurrentPane()?.SelectedDocumentJson();
+
     public QueryTabViewModel AddTab(
         ConnectionId connectionId,
         MongoConnectionTarget target,
@@ -47,6 +52,7 @@ public sealed class QueryTabsView : View
     {
         _counter++;
         var model = new QueryTabViewModel(_queryService, connectionId, target, $"Query {_counter}", database, collection, script);
+        model.Result.Mode = _resultViewMode;
 
         var pane = new TabPane(model, _localizer);
         _panes.Add(pane.Container, pane);
@@ -56,6 +62,25 @@ public sealed class QueryTabsView : View
         pane.Editor.SetFocus();
 
         return model;
+    }
+
+    public void SetResultViewMode(ResultViewMode mode)
+    {
+        _resultViewMode = mode;
+
+        foreach (var pane in _panes.Values)
+        {
+            pane.Model.Result.Mode = mode;
+            pane.ShowResult();
+        }
+    }
+
+    public void RefreshLocalization()
+    {
+        foreach (var pane in _panes.Values)
+        {
+            pane.RefreshLocalization(_localizer);
+        }
     }
 
     public async Task RunActiveAsync()
@@ -123,6 +148,8 @@ public sealed class QueryTabsView : View
     private sealed class TabPane
     {
         private readonly TextView _result;
+        private readonly FrameView _editorFrame;
+        private readonly FrameView _resultFrame;
 
         public TabPane(QueryTabViewModel model, ILocalizer localizer)
         {
@@ -136,7 +163,7 @@ public sealed class QueryTabsView : View
                 Height = Dim.Fill(),
             };
 
-            var editorFrame = new FrameView
+            _editorFrame = new FrameView
             {
                 Title = localizer.Get("Query.Pane"),
                 X = 0,
@@ -146,23 +173,23 @@ public sealed class QueryTabsView : View
             };
 
             Editor = new TextView { Multiline = true, Width = Dim.Fill(), Height = Dim.Fill(), Text = model.Script };
-            _result = new TextView { Multiline = true, ReadOnly = true, Width = Dim.Fill(), Height = Dim.Fill() };
+            _result = new TextView { Multiline = true, ReadOnly = true, WordWrap = false, Width = Dim.Fill(), Height = Dim.Fill() };
 
             Editor.ContentsChanged += (_, _) => Model.Script = Editor.Text ?? string.Empty;
-            editorFrame.Add(Editor);
+            _editorFrame.Add(Editor);
 
-            var resultFrame = new FrameView
+            _resultFrame = new FrameView
             {
                 Title = localizer.Get("Query.Result"),
                 X = 0,
-                Y = Pos.Bottom(editorFrame),
+                Y = Pos.Bottom(_editorFrame),
                 Width = Dim.Fill(),
                 Height = Dim.Fill(),
             };
-            resultFrame.Add(_result);
+            _resultFrame.Add(_result);
 
-            Container.Add(editorFrame);
-            Container.Add(resultFrame);
+            Container.Add(_editorFrame);
+            Container.Add(_resultFrame);
         }
 
         public QueryTabViewModel Model { get; }
@@ -174,5 +201,28 @@ public sealed class QueryTabsView : View
         public void ShowResult() => _result.Text = Model.Result.Render();
 
         public void FocusResult() => _result.SetFocus();
+
+        // In table mode documents start below the header (column names + separator).
+        public string? SelectedDocumentJson()
+        {
+            var documents = Model.Result.Documents;
+
+            if (documents.Count == 0)
+            {
+                return null;
+            }
+
+            var index = Model.Result.Mode == ResultViewMode.Table
+                ? Math.Clamp(_result.CurrentRow - 2, 0, documents.Count - 1)
+                : 0;
+
+            return documents[index].ToJson();
+        }
+
+        public void RefreshLocalization(ILocalizer localizer)
+        {
+            _editorFrame.Title = localizer.Get("Query.Pane");
+            _resultFrame.Title = localizer.Get("Query.Result");
+        }
     }
 }

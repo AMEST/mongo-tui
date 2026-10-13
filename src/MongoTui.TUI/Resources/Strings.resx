@@ -56,6 +56,11 @@
   <data name="Documents.Saved" xml:space="preserve"><value>Document saved.</value></data>
   <data name="Documents.Deleted" xml:space="preserve"><value>Document deleted.</value></data>
   <data name="Documents.NoContext" xml:space="preserve"><value>Select a collection-backed query tab first.</value></data>
+  <data name="Documents.NoDocument" xml:space="preserve"><value>No document selected. Run a query first.</value></data>
+  <data name="Documents.Filter" xml:space="preserve"><value>Find filter</value></data>
+  <data name="Documents.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Documents.Load" xml:space="preserve"><value>Find</value></data>
+  <data name="Documents.NotFound" xml:space="preserve"><value>No document matches the filter.</value></data>
   <data name="Indexes.Title" xml:space="preserve"><value>Indexes</value></data>
   <data name="Indexes.Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Indexes.Create" xml:space="preserve"><value>Create</value></data>
@@ -76,6 +81,9 @@
   <data name="Connections.Connect" xml:space="preserve"><value>Connect</value></data>
   <data name="Menu.Collection.Export" xml:space="preserve"><value>Export...</value></data>
   <data name="Menu.Collection.Import" xml:space="preserve"><value>Import...</value></data>
+  <data name="Menu.Settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Menu.Settings.Display" xml:space="preserve"><value>Result view</value></data>
+  <data name="Menu.Settings.Language" xml:space="preserve"><value>Language</value></data>
   <data name="Export.Title" xml:space="preserve"><value>Export collection</value></data>
   <data name="Import.Title" xml:space="preserve"><value>Import collection</value></data>
   <data name="Export.Field.Output" xml:space="preserve"><value>Output file</value></data>
@@ -107,6 +115,8 @@
   <data name="Status.ActiveConnections" xml:space="preserve"><value>Active: {0}</value></data>
   <data name="Status.Connected" xml:space="preserve"><value>Connected: {0} ({1} databases)</value></data>
   <data name="Status.Disconnected" xml:space="preserve"><value>Disconnected: {0}</value></data>
+  <data name="Status.DisplayMode" xml:space="preserve"><value>Result view: {0}</value></data>
+  <data name="Status.Language" xml:space="preserve"><value>Language: {0}</value></data>
   <data name="Menu.Connection.ChangePassword" xml:space="preserve"><value>Change master password...</value></data>
   <data name="ChangePassword.Title" xml:space="preserve"><value>Change master password</value></data>
   <data name="ChangePassword.Field" xml:space="preserve"><value>New master password</value></data>
@@ -115,4 +125,7 @@
   <data name="Database.Empty" xml:space="preserve"><value>(empty)</value></data>
   <data name="Query.Pane" xml:space="preserve"><value>Query  (F5: run, Ctrl+W: close)</value></data>
   <data name="Query.Result" xml:space="preserve"><value>Result</value></data>
+  <data name="Result.Table" xml:space="preserve"><value>Table</value></data>
+  <data name="Result.Tree" xml:space="preserve"><value>Tree</value></data>
+  <data name="Result.Json" xml:space="preserve"><value>JSON</value></data>
 </root>

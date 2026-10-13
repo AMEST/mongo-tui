@@ -1,11 +1,13 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 
 namespace MongoTui.Application.Tests.Services;
 
@@ -78,5 +80,50 @@ public sealed class DocumentServiceTests
 
         A.CallTo(() => _gateway.DeleteOneAsync(Target, Collection, "{ \"_id\": 1 }", A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_ReturnIndentedDocument_When_FindOneMatches()
+    {
+        A.CallTo(() => _gateway.FindAsync(
+                Target,
+                Collection,
+                "{ \"_id\": 1 }",
+                A<QueryExecutionOptions>._,
+                A<CancellationToken>._))
+            .Returns(new QueryResult
+            {
+                Kind = QueryResultKind.Documents,
+                Documents = [BsonDocument.Parse("{ \"_id\": 1 }")],
+            });
+
+        var document = await _sut.FindOneAsync(Target, Collection, "{ \"_id\": 1 }", CancellationToken.None);
+
+        document.Should().NotBeNull();
+        document.Should().Contain("\n");
+    }
+
+    [Fact]
+    public async Task Should_ReturnNull_When_FindOneHasNoMatch()
+    {
+        A.CallTo(() => _gateway.FindAsync(
+                Target,
+                Collection,
+                A<string>._,
+                A<QueryExecutionOptions>._,
+                A<CancellationToken>._))
+            .Returns(QueryResult.Empty(QueryResultKind.Documents));
+
+        var document = await _sut.FindOneAsync(Target, Collection, "{ \"_id\": 404 }", CancellationToken.None);
+
+        document.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ShouldThrow_DomainException_When_FilterInvalid()
+    {
+        var act = async () => await _sut.FindOneAsync(Target, Collection, "oops", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
     }
 }

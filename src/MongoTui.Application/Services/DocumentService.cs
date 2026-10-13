@@ -1,17 +1,40 @@
 using MongoDB.Bson;
+using MongoDB.Bson.IO;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
+using MongoTui.Domain.Queries;
 
 namespace MongoTui.Application.Services;
 
 /// <summary>Document-level CRUD over the Mongo gateway.</summary>
 public sealed class DocumentService
 {
+    private static readonly JsonWriterSettings IndentedJson = new() { Indent = true };
+
     private readonly IMongoGateway _gateway;
 
     public DocumentService(IMongoGateway gateway) => _gateway = gateway;
+
+    /// <summary>Loads the first document matching <paramref name="filterJson"/>, or <see langword="null"/>.</summary>
+    public async Task<string?> FindOneAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        string filterJson,
+        CancellationToken cancellationToken)
+    {
+        Parse(filterJson);
+
+        var result = await _gateway.FindAsync(
+            target,
+            collection,
+            filterJson,
+            new QueryExecutionOptions { Limit = 1 },
+            cancellationToken);
+
+        return result.Documents.Count == 0 ? null : result.Documents[0].ToJson(IndentedJson);
+    }
 
     public Task InsertAsync(
         MongoConnectionTarget target,

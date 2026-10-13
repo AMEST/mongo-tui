@@ -63,6 +63,7 @@ Menu overview:
 | Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
+| Settings | Result view (Table / Tree / JSON), Language (English / Русский) |
 
 ## Settings and data
 

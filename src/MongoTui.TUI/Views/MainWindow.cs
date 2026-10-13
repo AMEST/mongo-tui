@@ -33,6 +33,7 @@ public sealed class MainWindow : Window
     private readonly IAiAssistant _assistant;
     private readonly IQueryHistoryRepository _history;
     private readonly TranslateQueryService _translate;
+    private readonly SettingsService _settings;
     private readonly IMongoGateway _gateway;
     private readonly ListView _treeList = new();
     private readonly TreeViewModel _tree;
@@ -40,6 +41,10 @@ public sealed class MainWindow : Window
     private readonly Dictionary<Key, Action> _shortcuts = [];
     private readonly QueryTabsView _queryTabs;
     private readonly Label _status;
+    private MenuBar? _menuBar;
+    private FrameView? _treeFrame;
+    private ResultViewMode _resultViewMode = ResultViewMode.Table;
+    private string? _language;
 
     public MainWindow(
         ILocalizer localizer,
@@ -52,6 +57,7 @@ public sealed class MainWindow : Window
         IAiAssistant assistant,
         IQueryHistoryRepository history,
         TranslateQueryService translate,
+        SettingsService settings,
         IMongoGateway gateway)
     {
         _localizer = localizer;
@@ -63,6 +69,7 @@ public sealed class MainWindow : Window
         _assistant = assistant;
         _history = history;
         _translate = translate;
+        _settings = settings;
         _gateway = gateway;
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = new QueryTabsView(queryService, localizer);
@@ -73,7 +80,9 @@ public sealed class MainWindow : Window
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        Add(BuildMenuBar(localizer));
+        var menuBar = BuildMenuBar(localizer);
+        _menuBar = menuBar;
+        Add(menuBar);
 
         var treeFrame = new FrameView
         {
@@ -83,6 +92,7 @@ public sealed class MainWindow : Window
             Width = Dim.Percent(30),
             Height = Dim.Fill(),
         };
+        _treeFrame = treeFrame;
 
         _treeList.X = 0;
         _treeList.Y = 0;
@@ -168,6 +178,8 @@ public sealed class MainWindow : Window
     {
         try
         {
+            await LoadSettingsAsync();
+
             if (!await _connections.TryAutoUnlockAsync(CancellationToken.None))
             {
                 UnlockSecrets();
@@ -215,7 +227,15 @@ public sealed class MainWindow : Window
         }
     }
 
-    private MenuBar BuildMenuBar(ILocalizer localizer)
+    private MenuBar BuildMenuBar(ILocalizer localizer) =>
+        new(BuildMenuItems(localizer))
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+        };
+
+    private MenuBarItem[] BuildMenuItems(ILocalizer localizer)
     {
         static Key Ctrl(KeyCode code) => new(code | KeyCode.CtrlMask);
 
@@ -232,7 +252,10 @@ public sealed class MainWindow : Window
             return new MenuItem(text, string.Empty, action, key);
         }
 
-        return new MenuBar(
+        static MenuItem Choice(string text, bool selected, Action action) =>
+            new((selected ? "\u2022 " : "   ") + text, string.Empty, action);
+
+        return
         [
             new MenuBarItem(localizer.Get("Menu.File"),
             [
@@ -267,13 +290,32 @@ public sealed class MainWindow : Window
                 Item(localizer.Get("Menu.Collection.Export"), Key.F2, OpenExport),
                 Item(localizer.Get("Menu.Collection.Import"), Key.F3, OpenImport),
             ]),
-        ])
-        {
-            X = 0,
-            Y = 0,
-            Width = Dim.Fill(),
-        };
+            new MenuBarItem(localizer.Get("Menu.Settings"),
+            [
+                new MenuItem
+                {
+                    Title = localizer.Get("Menu.Settings.Display"),
+                    SubMenu = new Menu(
+                    [
+                        Choice(localizer.Get("Result.Table"), _resultViewMode == ResultViewMode.Table, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Table))),
+                        Choice(localizer.Get("Result.Tree"), _resultViewMode == ResultViewMode.Tree, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Tree))),
+                        Choice(localizer.Get("Result.Json"), _resultViewMode == ResultViewMode.Json, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Json))),
+                    ]),
+                },
+                new MenuItem
+                {
+                    Title = localizer.Get("Menu.Settings.Language"),
+                    SubMenu = new Menu(
+                    [
+                        Choice("English", CurrentLanguage == "en", () => Safe(() => SetLanguageAsync("en"))),
+                        Choice("Русский", CurrentLanguage == "ru", () => Safe(() => SetLanguageAsync("ru"))),
+                    ]),
+                },
+            ]),
+        ];
     }
+
+    private string CurrentLanguage => _language ?? _localizer.CurrentLanguage;
 
     private async Task ConnectAsync(ConnectionProfile profile, MongoConnectionTarget target)
     {
@@ -428,6 +470,77 @@ public sealed class MainWindow : Window
         }
     }
 
+    private async Task LoadSettingsAsync()
+    {
+        var language = await _settings.GetLanguageAsync(CancellationToken.None);
+        _language = language is "en" or "ru" ? language : _localizer.CurrentLanguage;
+
+        if (_language is "en" or "ru")
+        {
+            _localizer.SetLanguage(_language);
+        }
+
+        var mode = await _settings.GetDisplayModeAsync(CancellationToken.None);
+        _resultViewMode = Enum.TryParse<ResultViewMode>(mode, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
+            ? parsed
+            : ResultViewMode.Table;
+
+        _queryTabs.SetResultViewMode(_resultViewMode);
+        RefreshMenuBar();
+    }
+
+    private async Task SetResultViewModeAsync(ResultViewMode mode)
+    {
+        _resultViewMode = mode;
+        _queryTabs.SetResultViewMode(mode);
+        await _settings.SetDisplayModeAsync(mode.ToString(), CancellationToken.None);
+
+        RefreshMenuBar();
+        SetStatus(_localizer.Format("Status.DisplayMode", _localizer.Get(ModeKey(mode))));
+    }
+
+    private async Task SetLanguageAsync(string language)
+    {
+        _language = language;
+        _localizer.SetLanguage(language);
+        await _settings.SetLanguageAsync(language, CancellationToken.None);
+
+        if (_treeFrame is not null)
+        {
+            _treeFrame.Title = _localizer.Get("Tree.Active");
+        }
+
+        _queryTabs.RefreshLocalization();
+        RefreshMenuBar();
+        SetStatus(_localizer.Format("Status.Language", language == "ru" ? "Русский" : "English"));
+    }
+
+    // The menu bar is rebuilt on a timer so the item currently being activated is not disposed
+    // underneath the command pipeline.
+    private void RefreshMenuBar()
+    {
+        if (_menuBar is null || Application is null)
+        {
+            return;
+        }
+
+        Application.AddTimeout(
+            TimeSpan.FromMilliseconds(50),
+            () =>
+            {
+                _menuBar.Menus = BuildMenuItems(_localizer);
+
+                return false;
+            });
+    }
+
+    private static string ModeKey(ResultViewMode mode) => mode switch
+    {
+        ResultViewMode.Table => "Result.Table",
+        ResultViewMode.Tree => "Result.Tree",
+        _ => "Result.Json",
+    };
+
     private void NewTab()
     {
         if (SelectedRow() is not { } row)
@@ -456,19 +569,20 @@ public sealed class MainWindow : Window
 
     private void EditDocument()
     {
-        var document = _queryTabs.ActiveTab?.Result.Documents.FirstOrDefault();
         if (ResolveContext() is not { } context)
         {
             return;
         }
 
-        if (document is null)
+        var documentJson = _queryTabs.SelectedDocumentJson;
+
+        if (documentJson is null)
         {
-            SetStatus(_localizer.Get("Documents.NoContext"));
+            SetStatus(_localizer.Get("Documents.NoDocument"));
             return;
         }
 
-        var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection, document.ToJson());
+        var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection, documentJson);
         var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
         Application!.Run(dialog);
 

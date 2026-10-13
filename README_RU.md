@@ -63,6 +63,7 @@ Framework-dependent сборку также можно запустить чер
 | Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
+| Настройки | Вид результата (Таблица / Дерево / JSON), Язык (English / Русский) |
 
 ## Настройки и данные
 
