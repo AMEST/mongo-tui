@@ -42,7 +42,7 @@ OpenAI-совместимого API.
 
 ### Готовые бинарники (без .NET runtime)
 
-Скачайте архив для своей ОС и архитектуры со страницы [Releases](../../releases), распакуйте и
+Скачайте архив для своей ОС и архитектуры со страницы [Releases](https://github.com/AMEST/mongo-tui/releases), распакуйте и
 запустите бинарник `mongo-tui`. Доступные архивы: `mongotui-linux-x64`, `mongotui-linux-arm64`,
 `mongotui-osx-x64`, `mongotui-osx-arm64`, `mongotui-windows-x64`.
 
@@ -67,8 +67,8 @@ chmod +x ./mongo-tui
 ### Из исходников (требуется .NET 10 SDK)
 
 ```bash
-git clone <repository-url>
-cd MongoTui
+git clone https://github.com/AMEST/mongo-tui.git
+cd mongo-tui
 dotnet run --project src/MongoTui.TUI
 ```
 

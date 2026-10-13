@@ -67,8 +67,8 @@ chmod +x ./mongo-tui
 ### From source (requires the .NET 10 SDK)
 
 ```bash
-git clone <repository-url>
-cd MongoTui
+git clone https://github.com/AMEST/mongo-tui.git
+cd mongo-tui
 dotnet run --project src/MongoTui.TUI
 ```
 
