@@ -1,146 +1,118 @@
-using System.Collections.Concurrent;
+using System.Text.Json;
 using Serilog;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Process;
+using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Queries;
 
 namespace MongoTui.Infrastructure.Mongo.Cli;
 
 /// <summary>
-/// A persistent <c>mongosh</c> session that evaluates scripts over stdin/stdout.
-/// Each command is terminated by a unique marker line, which delimits its output.
+/// Evaluates scripts with <c>mongosh</c> in one-shot <c>--eval</c> mode, asking it to render the
+/// result as Extended JSON (<c>--json=relaxed</c>). The script is passed verbatim so shell
+/// semantics (e.g. cursor methods like <c>limit</c>) are preserved; unlike the interactive REPL,
+/// this mode does not pollute stdout with prompts or shell-formatted values.
 /// </summary>
 public sealed class MongoShellSession : IMongoShellSession
 {
-    private static readonly TimeSpan StandardErrorSettleDelay = TimeSpan.FromMilliseconds(250);
+    private readonly IProcessRunner _runner;
+    private readonly MongoToolsLocator _tools;
+    private readonly MongoConnectionTarget _target;
 
-    private readonly IProcessSession _process;
-    private readonly ConcurrentQueue<string> _standardError = new();
-    private int _commandCounter;
-    private Task? _standardErrorPump;
+    public MongoShellSession(IProcessRunner runner, MongoToolsLocator tools, MongoConnectionTarget target)
+    {
+        _runner = runner;
+        _tools = tools;
+        _target = target;
+    }
 
-    public MongoShellSession(IProcessSession process) => _process = process;
-
-    public bool IsRunning => !_process.HasExited;
+    public bool IsRunning => true;
 
     public async Task<QueryResult> EvaluateAsync(string script, CancellationToken cancellationToken)
     {
-        StartStandardErrorPump();
-        DrainStandardError();
+        Log.Debug("mongosh: evaluating script ({ScriptLength} chars)", script.Length);
 
-        var marker = $"__MONGOTUI_END_{Interlocked.Increment(ref _commandCounter)}__";
-        Log.Debug("mongosh: sending script ({ScriptLength} chars)", script.Length);
+        var request = new ProcessRequest(
+            _tools.Resolve("mongosh"),
+            [_target.ConnectionString, "--quiet", "--norc", "--json=relaxed", "--eval", script]);
 
-        await _process.StandardInput.WriteLineAsync(script.AsMemory(), cancellationToken);
-        await _process.StandardInput.WriteLineAsync($"print(\"{marker}\")".AsMemory(), cancellationToken);
-        await _process.StandardInput.FlushAsync(cancellationToken);
-
-        var lines = new List<string>();
-        while (true)
-        {
-            var line = await _process.StandardOutput.ReadLineAsync(cancellationToken);
-            if (line is null)
-            {
-                break;
-            }
-
-            if (line.Contains(marker, StringComparison.Ordinal))
-            {
-                break;
-            }
-
-            lines.Add(line);
-        }
+        var result = await _runner.RunAsync(request, cancellationToken);
 
         Log.Debug(
-            "mongosh: received {LineCount} stdout lines ({CharCount} chars, processExited={Exited})",
-            lines.Count,
-            lines.Sum(line => line.Length),
-            _process.HasExited);
+            "mongosh: exit={ExitCode}, stdout={StdoutChars} chars, stderr={StderrChars} chars",
+            result.ExitCode,
+            result.StandardOutput.Length,
+            result.StandardError.Length);
 
-        if (lines.Count == 0 && await FailureAsync(cancellationToken) is { } failure)
+        if (result.ExitCode != 0)
         {
-            throw failure;
+            throw new QueryExecutionException(DescribeError(result));
         }
 
-        return ParseResult(lines);
+        if (!string.IsNullOrWhiteSpace(result.StandardError))
+        {
+            Log.Warning("mongosh stderr: {Error}", result.StandardError.Trim());
+        }
+
+        return ParseResult(result.StandardOutput.Trim());
     }
 
-    private async Task<QueryExecutionException?> FailureAsync(CancellationToken cancellationToken)
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    private static string DescribeError(ProcessResult result)
     {
-        // Give the stderr pump a moment to surface the reason (it is a separate pipe).
-        if (_standardErrorPump is not null)
+        if (ExtractJsonMessage(result.StandardOutput) is { } message)
         {
-            await Task.WhenAny(_standardErrorPump, Task.Delay(StandardErrorSettleDelay, cancellationToken));
+            Log.Warning("mongosh query error: {Message}", message);
+
+            return message;
         }
 
-        var error = string.Join(Environment.NewLine, _standardError).Trim();
+        var error = result.StandardError.Trim();
 
         if (error.Length > 0)
         {
-            Log.Warning("mongosh returned no stdout: {Error}", error);
+            Log.Warning("mongosh failed: {Error}", error);
 
-            return new QueryExecutionException($"mongosh failed:{Environment.NewLine}{error}");
+            return $"mongosh failed:{Environment.NewLine}{error}";
         }
 
-        if (_process.HasExited)
+        return $"mongosh exited with code {result.ExitCode}.";
+    }
+
+    private static string? ExtractJsonMessage(string output)
+    {
+        var trimmed = output.Trim();
+
+        if (!trimmed.StartsWith('{'))
         {
-            Log.Warning("mongosh exited before producing any output");
-
-            return new QueryExecutionException("mongosh exited before producing any output.");
+            return null;
         }
 
-        Log.Debug("mongosh produced no output for a silent script");
+        try
+        {
+            using var document = JsonDocument.Parse(trimmed);
+
+            if (document.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+            {
+                return message.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
         return null;
     }
 
-    private void DrainStandardError()
-    {
-        while (_standardError.TryDequeue(out _))
-        {
-        }
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        _process.Dispose();
-        return ValueTask.CompletedTask;
-    }
-
-    // mongosh reports query errors on stderr and keeps running, so we must drain and log
-    // it; otherwise failures are invisible to the caller.
-    private void StartStandardErrorPump()
-    {
-        if (_standardErrorPump is not null || _process.StandardError is not { } error)
-        {
-            return;
-        }
-
-        _standardErrorPump = Task.Run(async () =>
-        {
-            try
-            {
-                while (await error.ReadLineAsync() is { } line)
-                {
-                    _standardError.Enqueue(line);
-                    Log.Warning("mongosh stderr: {Line}", line);
-                }
-            }
-            catch (Exception exception)
-            {
-                Log.Debug(exception, "mongosh stderr pump stopped");
-            }
-        });
-    }
-
-    private static QueryResult ParseResult(IReadOnlyList<string> lines) =>
+    private static QueryResult ParseResult(string text) =>
         new()
         {
             Kind = QueryResultKind.Scalar,
-            Documents = ParseDocuments(string.Join('\n', lines).Trim()),
+            Documents = ParseDocuments(text),
         };
 
     private static IReadOnlyList<BsonDocument> ParseDocuments(string text)

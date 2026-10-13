@@ -27,16 +27,6 @@ public sealed class DefaultProcessRunner : IProcessRunner
         return new ProcessResult(process.ExitCode, await standardOutput, await standardError);
     }
 
-    public Task<IProcessSession> StartAsync(ProcessRequest request, CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var process = new System.Diagnostics.Process { StartInfo = BuildStartInfo(request) };
-        process.Start();
-
-        return Task.FromResult<IProcessSession>(new ProcessSession(process));
-    }
-
     private static System.Diagnostics.ProcessStartInfo BuildStartInfo(ProcessRequest request)
     {
         var startInfo = new System.Diagnostics.ProcessStartInfo(request.FileName)

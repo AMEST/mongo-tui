@@ -78,6 +78,17 @@ public sealed class QueryTabsView : View
             pane.Model.Result.Error);
     }
 
+    public async Task CloseForConnectionAsync(ConnectionId connectionId)
+    {
+        foreach (var pane in _panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToList())
+        {
+            await pane.Model.CloseAsync(CancellationToken.None);
+            _panes.Remove(pane.Container);
+            _tabs.Remove(pane.Container);
+            pane.Container.Dispose();
+        }
+    }
+
     public async Task CloseActiveAsync()
     {
         if (CurrentPane() is not { } pane)

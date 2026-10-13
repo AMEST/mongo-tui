@@ -224,7 +224,10 @@ public sealed class MainWindow : Window
         // action here as an application-level shortcut handled by KeyDownNotHandled instead.
         MenuItem Item(string text, Key key, Action action)
         {
-            _shortcuts[key] = action;
+            if (key != Key.Empty)
+            {
+                _shortcuts[key] = action;
+            }
 
             return new MenuItem(text, string.Empty, action, key);
         }
@@ -238,6 +241,7 @@ public sealed class MainWindow : Window
             new MenuBarItem(localizer.Get("Menu.Connection"),
             [
                 Item(localizer.Get("Menu.Connection.Manage"), Ctrl(KeyCode.O), () => Safe(ShowManagerAsync)),
+                Item(localizer.Get("Menu.Connection.Disconnect"), Key.Empty, () => Safe(DisconnectActiveAsync)),
                 Item(localizer.Get("Menu.Connection.Refresh"), Key.F9, () => Safe(RefreshActiveAsync)),
                 Item(localizer.Get("Menu.Connection.Unlock"), Key.F8, UnlockSecrets),
                 Item(localizer.Get("Menu.Connection.ChangePassword"), Ctrl(KeyCode.P), OpenChangePassword),
@@ -321,6 +325,24 @@ public sealed class MainWindow : Window
         }
 
         RebuildTree();
+    }
+
+    private async Task DisconnectActiveAsync()
+    {
+        var connection = SelectedRow()?.Owner ?? _tree.Connections.FirstOrDefault();
+
+        if (connection is null)
+        {
+            SetStatus(_localizer.Get("Tree.Empty"));
+            return;
+        }
+
+        _tree.Remove(connection.Profile.Id);
+        await _queryTabs.CloseForConnectionAsync(connection.Profile.Id);
+        RebuildTree();
+
+        Log.Information("Disconnected from {Profile}", connection.Profile.Name);
+        SetStatus(_localizer.Format("Status.Disconnected", connection.Profile.Name));
     }
 
     private void RebuildTree(int selectIndex = -1)

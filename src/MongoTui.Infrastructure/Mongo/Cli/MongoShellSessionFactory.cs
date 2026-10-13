@@ -4,7 +4,7 @@ using MongoTui.Application.Models;
 
 namespace MongoTui.Infrastructure.Mongo.Cli;
 
-/// <summary>Starts <c>mongosh</c> processes and wraps them as sessions.</summary>
+/// <summary>Creates <c>mongosh</c> sessions, one per tab.</summary>
 public sealed class MongoShellSessionFactory : IMongoShellSessionFactory
 {
     private readonly IProcessRunner _runner;
@@ -16,14 +16,10 @@ public sealed class MongoShellSessionFactory : IMongoShellSessionFactory
         _tools = tools;
     }
 
-    public async Task<IMongoShellSession> CreateAsync(MongoConnectionTarget target, CancellationToken cancellationToken)
+    public Task<IMongoShellSession> CreateAsync(MongoConnectionTarget target, CancellationToken cancellationToken)
     {
-        var request = new ProcessRequest(
-            _tools.Resolve("mongosh"),
-            [target.ConnectionString, "--quiet"]);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var process = await _runner.StartAsync(request, cancellationToken);
-
-        return new MongoShellSession(process);
+        return Task.FromResult<IMongoShellSession>(new MongoShellSession(_runner, _tools, target));
     }
 }

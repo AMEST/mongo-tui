@@ -10,7 +10,7 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 
 - **Connection manager** — SQLite-backed profiles; secrets encrypted with AES-256-GCM.
 - **Secrets** — KEK from the OS keyring, falling back to a master password derived with Argon2id.
-- **Query tabs** — a persistent `mongosh` session per tab, run with `F5`.
+- **Query tabs** — query scripts run through `mongosh --eval` as Extended JSON, run with `F5`.
 - **Result pane** — table, tree and JSON views with elapsed time and error reporting.
 - **Documents** — insert / edit / delete as JSON.
 - **Indexes & stats** — list, create and drop indexes; collection document/index counts.

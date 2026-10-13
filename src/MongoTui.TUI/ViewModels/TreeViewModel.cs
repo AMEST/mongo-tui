@@ -38,6 +38,19 @@ public sealed class TreeViewModel : ObservableObject
         _connections.Add(connection);
     }
 
+    /// <summary>Removes an active connection together with its cached expand state and collections.</summary>
+    public void Remove(ConnectionId connectionId)
+    {
+        _connections.RemoveAll(connection => connection.Profile.Id == connectionId);
+        _collapsed.Remove(connectionId);
+
+        foreach (var key in _expandedDatabases.Where(key => key.ConnectionId == connectionId).ToList())
+        {
+            _expandedDatabases.Remove(key);
+            _collections.Remove(key);
+        }
+    }
+
     /// <summary>Replaces the database list of an existing connection.</summary>
     public void UpdateDatabases(ConnectionId connectionId, IReadOnlyList<DatabaseInfo> databases)
     {
