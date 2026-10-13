@@ -25,7 +25,8 @@ public sealed class ConnectionFormViewModelTests
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
 
-        var service = new ConnectionService(_repository, _crypto, _keyProvider, _gateway);
+        var secrets = new SecretKeyService(_keyProvider, _crypto);
+        var service = new ConnectionService(_repository, secrets, _gateway);
         _sut = new ConnectionFormViewModel(service);
         _sut.LoadNew();
     }

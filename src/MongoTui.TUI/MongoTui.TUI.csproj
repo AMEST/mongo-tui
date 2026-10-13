@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>MongoTui.TUI</RootNamespace>
-    <AssemblyName>MongoTui.TUI</AssemblyName>
+    <AssemblyName>mongo-tui</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

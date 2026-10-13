@@ -1,13 +1,16 @@
 using System.Net;
 using System.Text;
 using AwesomeAssertions;
+using FakeItEasy;
+using MongoTui.Application.Abstractions.Security;
 using MongoTui.Application.QueryAssistant;
+using MongoTui.Application.Services;
 using MongoTui.Domain.Ai;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Infrastructure.Ai.OpenAi;
-using MongoTui.Infrastructure.Options;
+using MongoTui.Infrastructure.Security;
 using MongoTui.Infrastructure.Tests.Fakes;
 
 namespace MongoTui.Infrastructure.Tests.Ai;
@@ -18,7 +21,7 @@ public sealed class OpenAiCompatibleAssistantTests
     public async Task Should_ReturnContent_When_ResponseOk()
     {
         var handler = new StubHandler(HttpStatusCode.OK, "{\"choices\":[{\"message\":{\"content\":\"db.users.find({})\"}}]}");
-        var sut = CreateAssistant(handler);
+        var sut = await CreateAssistantAsync(handler);
 
         var content = await sut.CompleteAsync(CreateRequest(), CancellationToken.None);
 
@@ -29,7 +32,7 @@ public sealed class OpenAiCompatibleAssistantTests
     public async Task Should_SendBearerToken_When_ApiKeyConfigured()
     {
         var handler = new StubHandler(HttpStatusCode.OK, "{\"choices\":[{\"message\":{\"content\":\"x\"}}]}");
-        var sut = CreateAssistant(handler, apiKey: "secret");
+        var sut = await CreateAssistantAsync(handler, apiKey: "secret");
 
         await sut.CompleteAsync(CreateRequest(), CancellationToken.None);
 
@@ -41,19 +44,38 @@ public sealed class OpenAiCompatibleAssistantTests
     public async Task ShouldThrow_QueryExecutionException_When_ResponseFails()
     {
         var handler = new StubHandler(HttpStatusCode.InternalServerError, "{}");
-        var sut = CreateAssistant(handler);
+        var sut = await CreateAssistantAsync(handler);
 
         var act = async () => await sut.CompleteAsync(CreateRequest(), CancellationToken.None);
 
         await act.Should().ThrowAsync<QueryExecutionException>();
     }
 
-    private static OpenAiCompatibleAssistant CreateAssistant(StubHandler handler, string? apiKey = null)
+    [Fact]
+    public async Task ShouldThrow_DomainException_When_NotConfigured()
+    {
+        var handler = new StubHandler(HttpStatusCode.OK, "{}");
+        var sut = await CreateAssistantAsync(handler, apiKey: null);
+
+        var act = async () => await sut.CompleteAsync(CreateRequest(), CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    private static async Task<OpenAiCompatibleAssistant> CreateAssistantAsync(StubHandler handler, string? apiKey = "test-key")
     {
         var httpClient = new HttpClient(handler);
-        var options = new AiOptions { BaseUrl = "https://api.test/v1", Model = "gpt-4o-mini", ApiKey = apiKey };
+        var keyProvider = A.Fake<IKeyProvider>();
+        A.CallTo(() => keyProvider.UnlockWithMasterPasswordAsync(A<string>._, A<CancellationToken>._))
+            .Returns(new byte[32]);
 
-        return new OpenAiCompatibleAssistant(httpClient, options, new InMemorySettingsStore(), new PromptBuilder());
+        var secrets = new SecretKeyService(keyProvider, new AesGcmCryptoService());
+        await secrets.UnlockAsync("master", CancellationToken.None);
+
+        var settings = new AiSettingsService(new InMemorySettingsStore(), secrets);
+        await settings.SaveAsync("https://api.test/v1", "gpt-4o-mini", apiKey, CancellationToken.None);
+
+        return new OpenAiCompatibleAssistant(httpClient, settings, new PromptBuilder());
     }
 
     private static QueryAssistantRequest CreateRequest() =>

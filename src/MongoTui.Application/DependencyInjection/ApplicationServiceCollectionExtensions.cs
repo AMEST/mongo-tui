@@ -10,10 +10,14 @@ public static class ApplicationServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<SecretKeyService>();
         services.AddSingleton<ConnectionService>();
+        services.AddSingleton<AiSettingsService>();
+        services.AddSingleton<MasterPasswordService>();
         services.AddSingleton<QueryService>();
         services.AddSingleton<DocumentService>();
         services.AddSingleton<IndexService>();
+        services.AddSingleton<DatabaseService>();
         services.AddSingleton<ExportService>();
         services.AddSingleton<ImportService>();
         services.AddSingleton<AutocompleteService>();

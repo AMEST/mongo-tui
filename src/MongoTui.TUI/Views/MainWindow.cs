@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Drawing;
 using MongoDB.Bson;
 using Serilog;
 using MongoTui.Application.Abstractions.Ai;
@@ -28,12 +29,15 @@ public sealed class MainWindow : Window
     private readonly ConnectionService _connections;
     private readonly DocumentService _documents;
     private readonly IndexService _indexes;
+    private readonly DatabaseService _databases;
     private readonly ExportService _export;
     private readonly ImportService _import;
     private readonly IAiAssistant _assistant;
     private readonly IQueryHistoryRepository _history;
     private readonly TranslateQueryService _translate;
     private readonly SettingsService _settings;
+    private readonly AiSettingsService _aiSettings;
+    private readonly MasterPasswordService _masterPassword;
     private readonly IMongoGateway _gateway;
     private readonly ListView _treeList = new();
     private readonly TreeViewModel _tree;
@@ -45,6 +49,7 @@ public sealed class MainWindow : Window
     private FrameView? _treeFrame;
     private ResultViewMode _resultViewMode = ResultViewMode.Table;
     private string? _language;
+    private bool _aiConfigured;
 
     public MainWindow(
         ILocalizer localizer,
@@ -52,24 +57,30 @@ public sealed class MainWindow : Window
         QueryService queryService,
         DocumentService documents,
         IndexService indexes,
+        DatabaseService databases,
         ExportService export,
         ImportService import,
         IAiAssistant assistant,
         IQueryHistoryRepository history,
         TranslateQueryService translate,
         SettingsService settings,
+        AiSettingsService aiSettings,
+        MasterPasswordService masterPassword,
         IMongoGateway gateway)
     {
         _localizer = localizer;
         _connections = connections;
         _documents = documents;
         _indexes = indexes;
+        _databases = databases;
         _export = export;
         _import = import;
         _assistant = assistant;
         _history = history;
         _translate = translate;
         _settings = settings;
+        _aiSettings = aiSettings;
+        _masterPassword = masterPassword;
         _gateway = gateway;
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = new QueryTabsView(queryService, localizer);
@@ -99,6 +110,7 @@ public sealed class MainWindow : Window
         _treeList.Width = Dim.Fill();
         _treeList.Height = Dim.Fill();
         _treeList.Accepted += (_, _) => Safe(OpenTreeItemAsync);
+        _treeList.MouseEvent += OnTreeMouseEvent;
         treeFrame.Add(_treeList);
         Add(treeFrame);
 
@@ -157,6 +169,13 @@ public sealed class MainWindow : Window
             return;
         }
 
+        if (key == new Key(KeyCode.Space | KeyCode.CtrlMask))
+        {
+            key.Handled = true;
+            OpenTreeContextMenu(new Point(2, 2));
+            return;
+        }
+
         if (_shortcuts.TryGetValue(key, out var action))
         {
             Log.Debug("Shortcut {Key} invoked", key);
@@ -185,6 +204,7 @@ public sealed class MainWindow : Window
                 UnlockSecrets();
             }
 
+            await RefreshAiAvailabilityAsync();
             await ShowManagerAsync();
         }
         catch (Exception exception)
@@ -239,17 +259,19 @@ public sealed class MainWindow : Window
     {
         static Key Ctrl(KeyCode code) => new(code | KeyCode.CtrlMask);
 
+        _shortcuts.Clear();
+
         // MenuBar menu items only receive their shortcut while their popover is open
         // (Terminal.Gui bails out of Command.HotKey for non-visible items). Register the
         // action here as an application-level shortcut handled by KeyDownNotHandled instead.
-        MenuItem Item(string text, Key key, Action action)
+        MenuItem Item(string text, Key key, Action action, bool enabled = true)
         {
-            if (key != Key.Empty)
+            if (enabled && key != Key.Empty)
             {
                 _shortcuts[key] = action;
             }
 
-            return new MenuItem(text, string.Empty, action, key);
+            return new MenuItem(text, string.Empty, action, key) { Enabled = enabled };
         }
 
         static MenuItem Choice(string text, bool selected, Action action) =>
@@ -272,10 +294,10 @@ public sealed class MainWindow : Window
             new MenuBarItem(localizer.Get("Menu.Query"),
             [
                 Item(localizer.Get("Menu.Query.New"), Ctrl(KeyCode.T), NewTab),
-                Item(localizer.Get("Menu.Query.Run"), Key.F5, () => Safe(_queryTabs.RunActiveAsync)),
+                Item(localizer.Get("Menu.Query.Run"), Key.F5, () => Safe(RunActiveQueryAsync)),
                 Item(localizer.Get("Menu.Query.Close"), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
-                Item(localizer.Get("Menu.Query.Ai"), Key.F6, OpenAiAssistant),
-                Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate),
+                Item(localizer.Get("Menu.Query.Ai"), Key.F6, OpenAiAssistant, _aiConfigured),
+                Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate, _aiConfigured),
                 Item(localizer.Get("Menu.Query.History"), Ctrl(KeyCode.H), () => Safe(OpenHistoryAsync)),
             ]),
             new MenuBarItem(localizer.Get("Menu.Document"),
@@ -311,6 +333,7 @@ public sealed class MainWindow : Window
                         Choice("Русский", CurrentLanguage == "ru", () => Safe(() => SetLanguageAsync("ru"))),
                     ]),
                 },
+                Item(localizer.Get("Menu.Settings.Ai"), Key.Empty, () => Safe(OpenAiSettingsAsync)),
             ]),
         ];
     }
@@ -379,12 +402,17 @@ public sealed class MainWindow : Window
             return;
         }
 
-        _tree.Remove(connection.Profile.Id);
-        await _queryTabs.CloseForConnectionAsync(connection.Profile.Id);
-        RebuildTree();
+        await DisconnectAsync(connection);
+    }
 
-        Log.Information("Disconnected from {Profile}", connection.Profile.Name);
-        SetStatus(_localizer.Format("Status.Disconnected", connection.Profile.Name));
+    private async Task RunActiveQueryAsync()
+    {
+        var summary = await _queryTabs.RunActiveAsync();
+
+        if (summary is { } result)
+        {
+            SetStatus(_localizer.Format("Status.QueryResult", result.DocumentCount, result.Elapsed.TotalMilliseconds));
+        }
     }
 
     private void RebuildTree(int selectIndex = -1)
@@ -448,6 +476,241 @@ public sealed class MainWindow : Window
 
     private static string BuildCollectionScript(string database, string collection) =>
         $"db.getSiblingDB(\"{database}\").getCollection(\"{collection}\").find({{}}).limit(50).toArray()";
+
+    private void OnTreeMouseEvent(object? sender, Mouse mouse)
+    {
+        if (!mouse.Flags.HasFlag(MouseFlags.RightButtonClicked))
+        {
+            return;
+        }
+
+        if (mouse.Position is { } position && _rows.Count > 0)
+        {
+            _treeList.SelectedItem = Math.Clamp(position.Y, 0, _rows.Count - 1);
+        }
+
+        mouse.Handled = true;
+        OpenTreeContextMenu(mouse.ScreenPosition);
+    }
+
+    private void OpenTreeContextMenu(Point position)
+    {
+        if (Application is null || SelectedRow() is not { } row)
+        {
+            return;
+        }
+
+        var actions = BuildContextActions(row);
+
+        if (actions.Count == 0)
+        {
+            return;
+        }
+
+        var clamped = new Point(
+            Math.Clamp(position.X, 0, Math.Max(0, Application.Screen.Width - 38)),
+            Math.Clamp(position.Y, 0, Math.Max(0, Application.Screen.Height - (actions.Count + 4))));
+
+        var dialog = new ContextMenuDialog(_localizer, Application, actions.Select(action => action.Title).ToList(), clamped);
+        Application.Run(dialog);
+
+        if (dialog.SelectedIndex >= 0 && dialog.SelectedIndex < actions.Count)
+        {
+            Safe(actions[dialog.SelectedIndex].Handler);
+        }
+    }
+
+    private List<(string Title, Func<Task> Handler)> BuildContextActions(TreeRow row)
+    {
+        var connection = row.Owner;
+        var actions = new List<(string Title, Func<Task> Handler)>();
+
+        switch (row.Kind)
+        {
+            case TreeRowKind.Connection:
+                actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshConnectionAsync(connection)));
+                actions.Add((_localizer.Get("Tree.Disconnect"), () => DisconnectAsync(connection)));
+                break;
+            case TreeRowKind.Database:
+                actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshDatabaseAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get("Tree.Statistics"), () => ShowDatabaseStatsAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get("Tree.DropDatabase"), () => DropDatabaseAsync(connection, row.Database!)));
+                break;
+            case TreeRowKind.Collection:
+                actions.Add((_localizer.Get("Tree.Statistics"), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get("Tree.Indexes"), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get("Tree.ClearCollection"), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get("Tree.DropCollection"), () => DropCollectionAsync(connection, row.Database!, row.Collection!)));
+                break;
+        }
+
+        return actions;
+    }
+
+    private async Task RefreshConnectionAsync(ActiveConnection connection)
+    {
+        var databases = await _gateway.ListDatabasesAsync(connection.Target, CancellationToken.None);
+
+        _tree.UpdateDatabases(
+            connection.Profile.Id,
+            databases.OrderBy(database => database.Name, StringComparer.OrdinalIgnoreCase).ToList());
+
+        RebuildTree();
+        SetStatus(_localizer.Format("Status.Connected", connection.Profile.Name, databases.Count));
+    }
+
+    private async Task RefreshDatabaseAsync(ActiveConnection connection, string database)
+    {
+        await _tree.ReloadCollectionsAsync(connection.Profile.Id, connection.Target, database, CancellationToken.None);
+        RebuildTree();
+        SetStatus(database);
+    }
+
+    private async Task DisconnectAsync(ActiveConnection connection)
+    {
+        _tree.Remove(connection.Profile.Id);
+        await _queryTabs.CloseForConnectionAsync(connection.Profile.Id);
+        RebuildTree();
+
+        Log.Information("Disconnected from {Profile}", connection.Profile.Name);
+        SetStatus(_localizer.Format("Status.Disconnected", connection.Profile.Name));
+    }
+
+    private async Task ShowDatabaseStatsAsync(ActiveConnection connection, string database)
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        var stats = await _databases.GetStatsAsync(connection.Target, DatabaseName.Create(database), CancellationToken.None);
+
+        var text = string.Join(Environment.NewLine,
+        [
+            $"{_localizer.Get("Stats.Name")}: {stats.Name}",
+            $"{_localizer.Get("Stats.Collections")}: {stats.CollectionCount}",
+            $"{_localizer.Get("Stats.Documents")}: {stats.ObjectCount}",
+            $"{_localizer.Get("Stats.DataSize")}: {FormatBytes(stats.DataSizeBytes)}",
+            $"{_localizer.Get("Stats.StorageSize")}: {FormatBytes(stats.StorageSizeBytes)}",
+            $"{_localizer.Get("Stats.Indexes")}: {stats.IndexCount}",
+        ]);
+
+        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get("Stats.DatabaseTitle"), text));
+    }
+
+    private async Task ShowCollectionStatsAsync(ActiveConnection connection, string database, string collection)
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        var collectionRef = new CollectionRef(DatabaseName.Create(database), CollectionName.Create(collection));
+        var stats = await _indexes.GetStatsAsync(connection.Target, collectionRef, CancellationToken.None);
+
+        var text = string.Join(Environment.NewLine,
+        [
+            $"{_localizer.Get("Stats.Name")}: {stats.Name}",
+            $"{_localizer.Get("Stats.Documents")}: {stats.DocumentCount}",
+            $"{_localizer.Get("Stats.Indexes")}: {stats.IndexCount}",
+        ]);
+
+        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get("Stats.CollectionTitle"), text));
+    }
+
+    private async Task OpenCollectionIndexesAsync(ActiveConnection connection, string database, string collection)
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        var collectionRef = new CollectionRef(DatabaseName.Create(database), CollectionName.Create(collection));
+        var dialog = new IndexManagerDialog(_indexes, _localizer, Application, connection.Target, collectionRef);
+        await dialog.LoadAsync();
+        Application.Run(dialog);
+    }
+
+    private async Task DropDatabaseAsync(ActiveConnection connection, string database)
+    {
+        if (!Confirm("Confirm.DropDatabase", database))
+        {
+            return;
+        }
+
+        await _databases.DropDatabaseAsync(connection.Target, DatabaseName.Create(database), CancellationToken.None);
+        _tree.RemoveDatabase(connection.Profile.Id, database);
+        RebuildTree();
+        SetStatus(_localizer.Format("Status.DatabaseDropped", database));
+    }
+
+    private async Task DropCollectionAsync(ActiveConnection connection, string database, string collection)
+    {
+        var name = $"{database}.{collection}";
+
+        if (!Confirm("Confirm.DropCollection", name))
+        {
+            return;
+        }
+
+        var collectionRef = new CollectionRef(DatabaseName.Create(database), CollectionName.Create(collection));
+        await _databases.DropCollectionAsync(connection.Target, collectionRef, CancellationToken.None);
+        _tree.RemoveCollection(connection.Profile.Id, database, collection);
+        RebuildTree();
+        SetStatus(_localizer.Format("Status.CollectionDropped", name));
+    }
+
+    private async Task ClearCollectionAsync(ActiveConnection connection, string database, string collection)
+    {
+        var name = $"{database}.{collection}";
+
+        if (!Confirm("Confirm.ClearCollection", name))
+        {
+            return;
+        }
+
+        var collectionRef = new CollectionRef(DatabaseName.Create(database), CollectionName.Create(collection));
+        await _databases.ClearCollectionAsync(connection.Target, collectionRef, CancellationToken.None);
+        SetStatus(_localizer.Format("Status.CollectionCleared", name));
+    }
+
+    private bool Confirm(string key, string target)
+    {
+        if (Application is null)
+        {
+            return false;
+        }
+
+        var dialog = new ConfirmDialog(
+            _localizer,
+            Application,
+            _localizer.Get(key + ".Title"),
+            _localizer.Format(key + ".Message", target));
+
+        Application.Run(dialog);
+
+        return dialog.Confirmed;
+    }
+
+    private static string FormatBytes(long? bytes)
+    {
+        if (bytes is not { } value)
+        {
+            return "-";
+        }
+
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double size = value;
+        var unit = 0;
+
+        while (size >= 1024 && unit < units.Length - 1)
+        {
+            size /= 1024;
+            unit++;
+        }
+
+        return $"{size:0.##} {units[unit]}";
+    }
 
     private TreeRow? SelectedRow() =>
         _treeList.SelectedItem is int index && index >= 0 && index < _rows.Count ? _rows[index] : null;
@@ -646,6 +909,12 @@ public sealed class MainWindow : Window
 
     private void OpenAiAssistant()
     {
+        if (!_aiConfigured)
+        {
+            SetStatus(_localizer.Get("Ai.NotConfigured"));
+            return;
+        }
+
         if (ResolveContext() is not { } context || Application is null)
         {
             return;
@@ -659,6 +928,12 @@ public sealed class MainWindow : Window
 
     private void OpenTranslate()
     {
+        if (!_aiConfigured)
+        {
+            SetStatus(_localizer.Get("Ai.NotConfigured"));
+            return;
+        }
+
         if (Application is null)
         {
             return;
@@ -695,6 +970,7 @@ public sealed class MainWindow : Window
         if (dialog.Unlocked)
         {
             SetStatus(_localizer.Get("MasterPassword.Unlock"));
+            Safe(RefreshAiAvailabilityAsync);
         }
     }
 
@@ -705,12 +981,36 @@ public sealed class MainWindow : Window
             return;
         }
 
-        var dialog = new ChangeMasterPasswordDialog(_connections, _localizer, Application);
+        var dialog = new ChangeMasterPasswordDialog(_masterPassword, _localizer, Application);
         Application.Run(dialog);
 
         if (dialog.Changed)
         {
             SetStatus(_localizer.Get("ChangePassword.Changed"));
         }
+    }
+
+    private async Task OpenAiSettingsAsync()
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        var dialog = new AiSettingsDialog(_aiSettings, _localizer, Application);
+        await dialog.LoadAsync(CancellationToken.None);
+        Application.Run(dialog);
+
+        if (dialog.Saved)
+        {
+            await RefreshAiAvailabilityAsync();
+            SetStatus(_localizer.Get("Ai.Settings.Saved"));
+        }
+    }
+
+    private async Task RefreshAiAvailabilityAsync()
+    {
+        _aiConfigured = await _aiSettings.IsConfiguredAsync(CancellationToken.None);
+        RefreshMenuBar();
     }
 }

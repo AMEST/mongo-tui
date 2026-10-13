@@ -84,6 +84,7 @@
   <data name="Menu.Settings" xml:space="preserve"><value>Settings</value></data>
   <data name="Menu.Settings.Display" xml:space="preserve"><value>Result view</value></data>
   <data name="Menu.Settings.Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Menu.Settings.Ai" xml:space="preserve"><value>AI settings...</value></data>
   <data name="Export.Title" xml:space="preserve"><value>Export collection</value></data>
   <data name="Import.Title" xml:space="preserve"><value>Import collection</value></data>
   <data name="Export.Field.Output" xml:space="preserve"><value>Output file</value></data>
@@ -100,6 +101,12 @@
   <data name="Ai.Field.Prompt" xml:space="preserve"><value>Ask</value></data>
   <data name="Ai.Ask" xml:space="preserve"><value>Ask</value></data>
   <data name="Ai.NoContext" xml:space="preserve"><value>Select a collection-backed query tab first.</value></data>
+  <data name="Ai.NotConfigured" xml:space="preserve"><value>AI assistant is not configured. Set it in Settings → AI settings.</value></data>
+  <data name="Ai.Settings.Title" xml:space="preserve"><value>AI settings</value></data>
+  <data name="Ai.Settings.Url" xml:space="preserve"><value>Base URL</value></data>
+  <data name="Ai.Settings.Model" xml:space="preserve"><value>Model</value></data>
+  <data name="Ai.Settings.ApiKey" xml:space="preserve"><value>API key</value></data>
+  <data name="Ai.Settings.Saved" xml:space="preserve"><value>AI settings saved.</value></data>
   <data name="Menu.Query.History" xml:space="preserve"><value>History...</value></data>
   <data name="History.Title" xml:space="preserve"><value>Query history</value></data>
   <data name="History.Empty" xml:space="preserve"><value>No history yet.</value></data>
@@ -128,4 +135,30 @@
   <data name="Result.Table" xml:space="preserve"><value>Table</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Tree</value></data>
   <data name="Result.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Common.Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Common.No" xml:space="preserve"><value>No</value></data>
+  <data name="Tree.ContextMenu" xml:space="preserve"><value>Actions</value></data>
+  <data name="Tree.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Tree.Disconnect" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Tree.Statistics" xml:space="preserve"><value>Statistics</value></data>
+  <data name="Tree.Indexes" xml:space="preserve"><value>Indexes...</value></data>
+  <data name="Tree.ClearCollection" xml:space="preserve"><value>Clear data...</value></data>
+  <data name="Tree.DropCollection" xml:space="preserve"><value>Drop collection...</value></data>
+  <data name="Tree.DropDatabase" xml:space="preserve"><value>Drop database...</value></data>
+  <data name="Confirm.DropDatabase.Title" xml:space="preserve"><value>Drop database</value></data>
+  <data name="Confirm.DropDatabase.Message" xml:space="preserve"><value>Drop database "{0}"? This cannot be undone.</value></data>
+  <data name="Confirm.DropCollection.Title" xml:space="preserve"><value>Drop collection</value></data>
+  <data name="Confirm.DropCollection.Message" xml:space="preserve"><value>Drop collection "{0}"? This cannot be undone.</value></data>
+  <data name="Confirm.ClearCollection.Title" xml:space="preserve"><value>Clear collection</value></data>
+  <data name="Confirm.ClearCollection.Message" xml:space="preserve"><value>Delete all documents in "{0}"?</value></data>
+  <data name="Stats.DatabaseTitle" xml:space="preserve"><value>Database statistics</value></data>
+  <data name="Stats.CollectionTitle" xml:space="preserve"><value>Collection statistics</value></data>
+  <data name="Stats.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Stats.Collections" xml:space="preserve"><value>Collections</value></data>
+  <data name="Stats.DataSize" xml:space="preserve"><value>Data size</value></data>
+  <data name="Stats.StorageSize" xml:space="preserve"><value>Storage size</value></data>
+  <data name="Status.QueryResult" xml:space="preserve"><value>Returned {0} documents in {1:F0} ms</value></data>
+  <data name="Status.DatabaseDropped" xml:space="preserve"><value>Dropped database {0}</value></data>
+  <data name="Status.CollectionDropped" xml:space="preserve"><value>Dropped collection {0}</value></data>
+  <data name="Status.CollectionCleared" xml:space="preserve"><value>Cleared collection {0}</value></data>
 </root>

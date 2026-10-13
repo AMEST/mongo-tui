@@ -2,11 +2,10 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using MongoTui.Application.Abstractions.Ai;
-using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.QueryAssistant;
+using MongoTui.Application.Services;
 using MongoTui.Domain.Ai;
 using MongoTui.Domain.Exceptions;
-using MongoTui.Infrastructure.Options;
 
 namespace MongoTui.Infrastructure.Ai.OpenAi;
 
@@ -14,18 +13,15 @@ namespace MongoTui.Infrastructure.Ai.OpenAi;
 public sealed class OpenAiCompatibleAssistant : IAiAssistant
 {
     private readonly HttpClient _httpClient;
-    private readonly AiOptions _options;
-    private readonly ISettingsStore _settings;
+    private readonly AiSettingsService _settings;
     private readonly PromptBuilder _promptBuilder;
 
     public OpenAiCompatibleAssistant(
         HttpClient httpClient,
-        AiOptions options,
-        ISettingsStore settings,
+        AiSettingsService settings,
         PromptBuilder promptBuilder)
     {
         _httpClient = httpClient;
-        _options = options;
         _settings = settings;
         _promptBuilder = promptBuilder;
     }
@@ -38,23 +34,24 @@ public sealed class OpenAiCompatibleAssistant : IAiAssistant
 
     private async Task<string> SendAsync(string prompt, CancellationToken cancellationToken)
     {
-        var apiKey = await _settings.GetAsync(AiOptions.ApiKeySettingKey, cancellationToken) ?? _options.ApiKey;
+        var configuration = await _settings.GetAsync(cancellationToken);
+
+        if (!configuration.IsConfigured)
+        {
+            throw new DomainException("The AI assistant is not configured. Set the URL, model and API key in Settings.");
+        }
 
         var payload = new
         {
-            model = _options.Model,
+            model = configuration.Model,
             messages = new[] { new { role = "user", content = prompt } },
         };
 
         using var httpRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            $"{_options.BaseUrl.TrimEnd('/')}/chat/completions");
+            $"{configuration.BaseUrl.TrimEnd('/')}/chat/completions");
 
-        if (!string.IsNullOrEmpty(apiKey))
-        {
-            httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-        }
-
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", configuration.ApiKey);
         httpRequest.Content = JsonContent.Create(payload);
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);

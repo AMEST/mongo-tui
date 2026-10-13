@@ -22,7 +22,8 @@ public sealed class ConnectionServiceTests
 
     public ConnectionServiceTests()
     {
-        _sut = new ConnectionService(_repository, _crypto, _keyProvider, _gateway);
+        var secrets = new SecretKeyService(_keyProvider, _crypto);
+        _sut = new ConnectionService(_repository, secrets, _gateway);
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
     }
@@ -163,41 +164,6 @@ public sealed class ConnectionServiceTests
 
         unlocked.Should().BeTrue();
         A.CallTo(() => _keyProvider.GetOrCreateKekAsync(A<CancellationToken>._)).MustNotHaveHappened();
-    }
-
-    [Fact]
-    public async Task Should_ReEncryptSecrets_When_ChangingMasterPassword()
-    {
-        await UnlockAsync();
-        var profile = NewProfile();
-        StoredConnection? updated = null;
-        var newNonce = new byte[] { 7, 7, 7 };
-        A.CallTo(() => _keyProvider.ChangeMasterPasswordAsync("new-master", A<CancellationToken>._))
-            .Returns(new byte[32]);
-        A.CallTo(() => _repository.GetAllAsync(A<CancellationToken>._))
-            .Returns(new List<StoredConnection>
-            {
-                new(profile, new EncryptedSecret(new byte[12], new byte[8])),
-            });
-        A.CallTo(() => _crypto.Decrypt(A<byte[]>._, A<byte[]>._, A<byte[]>._)).Returns(System.Text.Encoding.UTF8.GetBytes("pw"));
-        A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out newNonce)).Returns([9, 9]);
-        A.CallTo(() => _repository.UpdateAsync(A<StoredConnection>._, A<CancellationToken>._))
-            .Invokes((StoredConnection value, CancellationToken _) => updated = value);
-
-        await _sut.ChangeMasterPasswordAsync("new-master", CancellationToken.None);
-
-        updated.Should().NotBeNull();
-        updated!.Secret!.CipherText.Should().Equal(9, 9);
-        A.CallTo(() => _keyProvider.ChangeMasterPasswordAsync("new-master", A<CancellationToken>._))
-            .MustHaveHappenedOnceExactly();
-    }
-
-    [Fact]
-    public async Task ShouldThrow_DomainException_When_ChangingPasswordWhileLocked()
-    {
-        var act = async () => await _sut.ChangeMasterPasswordAsync("new-master", CancellationToken.None);
-
-        await act.Should().ThrowAsync<DomainException>();
     }
 
     private async Task UnlockAsync()

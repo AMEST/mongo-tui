@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  PROJECT_PATH: src/MongoTui.TUI/MongoTui.TUI.csproj
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact_name: mongotui-linux-x64
+          - os: ubuntu-latest
+            rid: linux-arm64
+            artifact_name: mongotui-linux-arm64
+          - os: macos-latest
+            rid: osx-x64
+            artifact_name: mongotui-osx-x64
+          - os: macos-latest
+            rid: osx-arm64
+            artifact_name: mongotui-osx-arm64
+          - os: windows-latest
+            rid: win-x64
+            artifact_name: mongotui-windows-x64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Publish self-contained
+      shell: bash
+      run: |
+        dotnet publish ${{ env.PROJECT_PATH }} \
+          -c Release \
+          -r ${{ matrix.rid }} \
+          --self-contained true \
+          -p:PublishSingleFile=true \
+          -o publish/${{ matrix.artifact_name }}
+        tar -czf ${{ matrix.artifact_name }}.tar.gz -C publish/${{ matrix.artifact_name }} .
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.artifact_name }}.tar.gz
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: '**/*.tar.gz'
+        generate_release_notes: true

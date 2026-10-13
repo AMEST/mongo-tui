@@ -6,6 +6,7 @@ using MongoDB.Driver;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
+using MongoTui.Domain.Databases;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
 
@@ -69,6 +70,47 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
             IndexCount = indexes.Count,
         };
     }
+
+    public async Task<DatabaseStats> GetDatabaseStatsAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken)
+    {
+        var stats = await GetClient(target)
+            .GetDatabase(database.Value)
+            .RunCommandAsync<BsonDocument>(new BsonDocument("dbStats", 1), cancellationToken: cancellationToken);
+
+        return new DatabaseStats
+        {
+            Name = database.Value,
+            CollectionCount = GetInt(stats, "collections"),
+            ObjectCount = GetLong(stats, "objects"),
+            DataSizeBytes = TryGetLong(stats, "dataSize"),
+            StorageSizeBytes = TryGetLong(stats, "storageSize"),
+            IndexCount = GetInt(stats, "indexes"),
+        };
+    }
+
+    public Task DropDatabaseAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken) =>
+        GetClient(target).DropDatabaseAsync(database.Value, cancellationToken);
+
+    public Task DropCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        GetClient(target)
+            .GetDatabase(collection.Database.Value)
+            .DropCollectionAsync(collection.Collection.Value, cancellationToken);
+
+    public Task ClearCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        GetCollection(target, collection)
+            .DeleteManyAsync(FilterDefinition<BsonDocument>.Empty, cancellationToken);
 
     public async Task CreateIndexAsync(
         MongoConnectionTarget target,
@@ -200,6 +242,15 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
 
     private static BsonDocument ParseFilter(string filterJson) =>
         string.IsNullOrWhiteSpace(filterJson) ? new BsonDocument() : BsonDocument.Parse(filterJson);
+
+    private static int GetInt(BsonDocument document, string name) =>
+        document.TryGetValue(name, out var value) && value.IsNumeric ? value.ToInt32() : 0;
+
+    private static long GetLong(BsonDocument document, string name) =>
+        document.TryGetValue(name, out var value) && value.IsNumeric ? value.ToInt64() : 0;
+
+    private static long? TryGetLong(BsonDocument document, string name) =>
+        document.TryGetValue(name, out var value) && value.IsNumeric ? value.ToInt64() : null;
 
     private static IndexInfo MapIndex(BsonDocument index)
     {

@@ -84,6 +84,7 @@
   <data name="Menu.Settings" xml:space="preserve"><value>Настройки</value></data>
   <data name="Menu.Settings.Display" xml:space="preserve"><value>Вид результата</value></data>
   <data name="Menu.Settings.Language" xml:space="preserve"><value>Язык</value></data>
+  <data name="Menu.Settings.Ai" xml:space="preserve"><value>Настройки ИИ...</value></data>
   <data name="Export.Title" xml:space="preserve"><value>Экспорт коллекции</value></data>
   <data name="Import.Title" xml:space="preserve"><value>Импорт коллекции</value></data>
   <data name="Export.Field.Output" xml:space="preserve"><value>Файл вывода</value></data>
@@ -100,6 +101,12 @@
   <data name="Ai.Field.Prompt" xml:space="preserve"><value>Запрос</value></data>
   <data name="Ai.Ask" xml:space="preserve"><value>Спросить</value></data>
   <data name="Ai.NoContext" xml:space="preserve"><value>Сначала выберите вкладку запроса с коллекцией.</value></data>
+  <data name="Ai.NotConfigured" xml:space="preserve"><value>ИИ-помощник не настроен. Задайте его в Настройки → Настройки ИИ.</value></data>
+  <data name="Ai.Settings.Title" xml:space="preserve"><value>Настройки ИИ</value></data>
+  <data name="Ai.Settings.Url" xml:space="preserve"><value>Базовый URL</value></data>
+  <data name="Ai.Settings.Model" xml:space="preserve"><value>Модель</value></data>
+  <data name="Ai.Settings.ApiKey" xml:space="preserve"><value>API-ключ</value></data>
+  <data name="Ai.Settings.Saved" xml:space="preserve"><value>Настройки ИИ сохранены.</value></data>
   <data name="Menu.Query.History" xml:space="preserve"><value>История...</value></data>
   <data name="History.Title" xml:space="preserve"><value>История запросов</value></data>
   <data name="History.Empty" xml:space="preserve"><value>История пуста.</value></data>
@@ -128,4 +135,30 @@
   <data name="Result.Table" xml:space="preserve"><value>Таблица</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Дерево</value></data>
   <data name="Result.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Common.Yes" xml:space="preserve"><value>Да</value></data>
+  <data name="Common.No" xml:space="preserve"><value>Нет</value></data>
+  <data name="Tree.ContextMenu" xml:space="preserve"><value>Действия</value></data>
+  <data name="Tree.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Tree.Disconnect" xml:space="preserve"><value>Отключиться</value></data>
+  <data name="Tree.Statistics" xml:space="preserve"><value>Статистика</value></data>
+  <data name="Tree.Indexes" xml:space="preserve"><value>Индексы...</value></data>
+  <data name="Tree.ClearCollection" xml:space="preserve"><value>Очистить данные...</value></data>
+  <data name="Tree.DropCollection" xml:space="preserve"><value>Удалить коллекцию...</value></data>
+  <data name="Tree.DropDatabase" xml:space="preserve"><value>Удалить базу...</value></data>
+  <data name="Confirm.DropDatabase.Title" xml:space="preserve"><value>Удаление базы данных</value></data>
+  <data name="Confirm.DropDatabase.Message" xml:space="preserve"><value>Удалить базу данных "{0}"? Действие необратимо.</value></data>
+  <data name="Confirm.DropCollection.Title" xml:space="preserve"><value>Удаление коллекции</value></data>
+  <data name="Confirm.DropCollection.Message" xml:space="preserve"><value>Удалить коллекцию "{0}"? Действие необратимо.</value></data>
+  <data name="Confirm.ClearCollection.Title" xml:space="preserve"><value>Очистка коллекции</value></data>
+  <data name="Confirm.ClearCollection.Message" xml:space="preserve"><value>Удалить все документы в "{0}"?</value></data>
+  <data name="Stats.DatabaseTitle" xml:space="preserve"><value>Статистика базы данных</value></data>
+  <data name="Stats.CollectionTitle" xml:space="preserve"><value>Статистика коллекции</value></data>
+  <data name="Stats.Name" xml:space="preserve"><value>Имя</value></data>
+  <data name="Stats.Collections" xml:space="preserve"><value>Коллекций</value></data>
+  <data name="Stats.DataSize" xml:space="preserve"><value>Размер данных</value></data>
+  <data name="Stats.StorageSize" xml:space="preserve"><value>Размер на диске</value></data>
+  <data name="Status.QueryResult" xml:space="preserve"><value>Возвращено {0} документов за {1:F0} мс</value></data>
+  <data name="Status.DatabaseDropped" xml:space="preserve"><value>База данных {0} удалена</value></data>
+  <data name="Status.CollectionDropped" xml:space="preserve"><value>Коллекция {0} удалена</value></data>
+  <data name="Status.CollectionCleared" xml:space="preserve"><value>Коллекция {0} очищена</value></data>
 </root>

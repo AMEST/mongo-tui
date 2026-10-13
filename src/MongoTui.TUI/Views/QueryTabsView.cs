@@ -83,12 +83,12 @@ public sealed class QueryTabsView : View
         }
     }
 
-    public async Task RunActiveAsync()
+    public async Task<QueryRunSummary?> RunActiveAsync()
     {
         if (CurrentPane() is not { } pane)
         {
             Log.Debug("RunActive: no active query pane");
-            return;
+            return null;
         }
 
         Log.Debug("RunActive: executing tab {TabId} ({Title})", pane.Model.Id, pane.Model.Title);
@@ -96,11 +96,15 @@ public sealed class QueryTabsView : View
         pane.ShowResult();
         pane.FocusResult();
 
+        var summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed);
+
         Log.Debug(
             "RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
             pane.Model.Id,
             pane.Model.Result.Documents.Count,
             pane.Model.Result.Error);
+
+        return summary;
     }
 
     public async Task CloseForConnectionAsync(ConnectionId connectionId)

@@ -100,6 +100,47 @@ public sealed class TreeViewModel : ObservableObject
         _expandedDatabases.Add(key);
     }
 
+    /// <summary>Reloads the cached collections of a database.</summary>
+    public async Task ReloadCollectionsAsync(
+        ConnectionId connectionId,
+        MongoConnectionTarget target,
+        string database,
+        CancellationToken cancellationToken)
+    {
+        var key = (connectionId, database);
+        var names = await _gateway.ListCollectionsAsync(target, DatabaseName.Create(database), cancellationToken);
+        _collections[key] = names.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>Removes a database and its cached collections from the tree.</summary>
+    public void RemoveDatabase(ConnectionId connectionId, string database)
+    {
+        var key = (connectionId, database);
+        _expandedDatabases.Remove(key);
+        _collections.Remove(key);
+
+        var index = _connections.FindIndex(connection => connection.Profile.Id == connectionId);
+
+        if (index >= 0)
+        {
+            _connections[index] = _connections[index] with
+            {
+                Databases = _connections[index].Databases.Where(info => info.Name != database).ToList(),
+            };
+        }
+    }
+
+    /// <summary>Removes a single collection from the cache.</summary>
+    public void RemoveCollection(ConnectionId connectionId, string database, string collection)
+    {
+        var key = (connectionId, database);
+
+        if (_collections.TryGetValue(key, out var collections))
+        {
+            _collections[key] = collections.Where(name => name != collection).ToList();
+        }
+    }
+
     /// <summary>Flattens the tree into display rows honouring expand state.</summary>
     public IReadOnlyList<TreeRow> BuildRows()
     {

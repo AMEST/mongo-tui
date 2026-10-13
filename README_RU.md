@@ -2,11 +2,20 @@
 
 [English](README.md) | **Русский**
 
-Кроссплатформенный терминальный клиент для MongoDB, повторяющий UX-логику Studio 3T:
+Кроссплатформенный терминальный клиент для MongoDB:
 менеджер подключений, дерево серверов/баз/коллекций, вкладки запросов, просмотр и
 редактирование документов, импорт/экспорт, автодополнение и ИИ-помощник на базе
 OpenAI-совместимого API.
 
+## Скриншоты
+
+| Главное окно | Менеджер подключений |
+|---|---|
+| [![Главное окно](docs/work.jpg)](docs/work.jpg) | [![Менеджер подключений](docs/connection-manager.jpg)](docs/connection-manager.jpg) |
+
+| Добавление документа | Мастер-пароль |
+|---|---|
+| [![Добавление документа](docs/insert-document.jpg)](docs/insert-document.jpg) | [![Мастер-пароль](docs/master-password.jpg)](docs/master-password.jpg) |
 ## Возможности
 
 - **Менеджер подключений** — профили в SQLite; секреты шифруются AES-256-GCM.
@@ -29,14 +38,79 @@ OpenAI-совместимого API.
 - **Опционально OS keyring** — libsecret (Linux), Keychain (macOS), Credential Manager (Windows).
   Если недоступен, используется мастер-пароль.
 
-## Запуск из бинаря
+## Установка
 
-Готовые бинари пока не публикуются; соберите их (см. ниже) и запустите полученный файл.
+### Готовые бинарники (без .NET runtime)
 
-- **Windows**: `MongoTui.TUI.exe`
-- **Linux / macOS**: `./MongoTui.TUI`
+Скачайте архив для своей ОС и архитектуры со страницы [Releases](../../releases), распакуйте и
+запустите бинарник `mongo-tui`. Доступные архивы: `mongotui-linux-x64`, `mongotui-linux-arm64`,
+`mongotui-osx-x64`, `mongotui-osx-arm64`, `mongotui-windows-x64`.
 
-Framework-dependent сборку также можно запустить через `dotnet MongoTui.TUI.dll`.
+**macOS** — бинарники не подписаны и не нотаризованы, поэтому Gatekeeper блокирует их при
+первом запуске. Снимите атрибут карантина перед запуском:
+
+```bash
+xattr -d com.apple.quarantine ./mongo-tui
+chmod +x ./mongo-tui
+./mongo-tui
+```
+
+**Linux:**
+
+```bash
+chmod +x ./mongo-tui
+./mongo-tui
+```
+
+**Windows:** запустите `mongo-tui.exe`.
+
+### Из исходников (требуется .NET 10 SDK)
+
+```bash
+git clone <repository-url>
+cd MongoTui
+dotnet run --project src/MongoTui.TUI
+```
+
+Полный цикл сборки и тестов — в разделе [Сборка и тесты](#сборка-и-тесты), а собрать собственный
+single-file бинарник можно по разделу [Self-contained сборка](#self-contained-сборка).
+
+### Инструменты MongoDB
+
+Приложение вызывает MongoDB Database Tools, поэтому они должны быть установлены и доступны в
+`PATH` (см. [Зависимости для работы](#зависимости-для-работы)). Как минимум нужен **`mongosh`** —
+без него не выполняются запросы. Для импорта/экспорта и dump/restore дополнительно требуются
+`mongoexport` / `mongoimport` и `mongodump` / `mongorestore`.
+
+**macOS (Homebrew):**
+
+```bash
+brew install mongodb/brew/mongosh
+```
+
+Весь набор утилит — `brew install mongodb/brew/mongodb-database-tools`.
+
+**Linux (Debian / Ubuntu):**
+
+```bash
+sudo apt-get install -y mongodb-mongosh mongodb-database-tools
+```
+
+**Linux (RHEL / Fedora):**
+
+```bash
+sudo dnf install -y mongodb-mongosh mongodb-database-tools
+```
+
+**Любая платформа с Node.js (npm):**
+
+```bash
+npm install -g mongosh
+```
+
+`npx mongosh` запускает shell без глобальной установки. Также можно скачать архивы со страницы
+[MongoDB Downloads](https://www.mongodb.com/try/download/shell) и добавить их в `PATH`, либо указать
+приложению их каталог через `MongoToolsOptions.Directory`.
 
 ## Как пользоваться
 
@@ -52,7 +126,11 @@ Framework-dependent сборку также можно запустить чер
    по базе — загрузить и показать коллекции, по коллекции — открыть вкладку запроса с готовым
    скриптом `find`.
 4. Напишите JavaScript-запрос (например `db.users.find({})`) и нажмите **F5**.
-5. Смотрите результат в панели таблицы/дерева/JSON.
+5. Смотрите результат в панели таблицы/дерева/JSON; в статус-баре — время выполнения и число
+   возвращённых документов.
+6. **Правый клик** по узлу дерева (или **Ctrl+Space**) открывает контекстное меню: для
+   подключения — обновить/отключиться, для базы — обновить/статистика/удалить, для коллекции —
+   статистика/индексы/очистить/удалить (опасные действия с подтверждением).
 
 Обзор меню:
 
@@ -63,7 +141,7 @@ Framework-dependent сборку также можно запустить чер
 | Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
-| Настройки | Вид результата (Таблица / Дерево / JSON), Язык (English / Русский) |
+| Настройки | Вид результата (Таблица / Дерево / JSON), Язык (English / Русский), Настройки ИИ… |
 
 ## Настройки и данные
 
@@ -89,13 +167,9 @@ Framework-dependent сборку также можно запустить чер
 
 ИИ работает с любым OpenAI-совместимым эндпоинтом (OpenAI, Azure OpenAI, Ollama, OpenRouter, локальные).
 
-## Запуск и сборка из исходников
+## Сборка и тесты
 
 Требуется **.NET 10 SDK**.
-
-```sh
-dotnet run --project src/MongoTui.TUI
-```
 
 Сборка и тесты всего решения:
 

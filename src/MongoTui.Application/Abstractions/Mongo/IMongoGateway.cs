@@ -1,5 +1,6 @@
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
+using MongoTui.Domain.Databases;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
 
@@ -23,6 +24,26 @@ public interface IMongoGateway
         CancellationToken cancellationToken);
 
     Task<CollectionStats> GetCollectionStatsAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken);
+
+    Task<DatabaseStats> GetDatabaseStatsAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken);
+
+    Task DropDatabaseAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken);
+
+    Task DropCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken);
+
+    Task ClearCollectionAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
         CancellationToken cancellationToken);

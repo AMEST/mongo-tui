@@ -2,10 +2,19 @@
 
 **English** | [Русский](README_RU.md)
 
-A cross-platform terminal client for MongoDB that follows the UX logic of Studio 3T:
+A cross-platform terminal client for MongoDB:
 connection manager, server/database/collection tree, query tabs, document viewing and
 editing, import/export, autocomplete, and an AI assistant built on an OpenAI-compatible API.
 
+## Screenshots
+
+| Main window | Connection manager |
+|---|---|
+| [![Main window](docs/work.jpg)](docs/work.jpg) | [![Connection manager](docs/connection-manager.jpg)](docs/connection-manager.jpg) |
+
+| Insert document | Master password |
+|---|---|
+| [![Insert document](docs/insert-document.jpg)](docs/insert-document.jpg) | [![Master password](docs/master-password.jpg)](docs/master-password.jpg) |
 ## Features
 
 - **Connection manager** — SQLite-backed profiles; secrets encrypted with AES-256-GCM.
@@ -29,14 +38,79 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 - **Optional OS keyring** — libsecret (Linux), Keychain (macOS), Credential Manager (Windows).
   When unavailable, the app uses a master password instead.
 
-## Run from a binary
+## Installation
 
-Prebuilt binaries are not published yet; build one (see below) and run the produced executable.
+### Prebuilt binaries (no .NET runtime required)
 
-- **Windows**: `MongoTui.TUI.exe`
-- **Linux / macOS**: `./MongoTui.TUI`
+Download the archive for your OS and architecture from [Releases](https://github.com/AMEST/mongo-tui/releases), extract it and
+run the `mongo-tui` binary. Available archives: `mongotui-linux-x64`, `mongotui-linux-arm64`,
+`mongotui-osx-x64`, `mongotui-osx-arm64`, `mongotui-windows-x64`.
 
-Framework-dependent publish output also works via `dotnet MongoTui.TUI.dll`.
+**macOS** — the binaries are not code-signed or notarized, so Gatekeeper blocks them on first
+launch. Clear the quarantine attribute before running:
+
+```bash
+xattr -d com.apple.quarantine ./mongo-tui
+chmod +x ./mongo-tui
+./mongo-tui
+```
+
+**Linux:**
+
+```bash
+chmod +x ./mongo-tui
+./mongo-tui
+```
+
+**Windows:** run `mongo-tui.exe`.
+
+### From source (requires the .NET 10 SDK)
+
+```bash
+git clone <repository-url>
+cd MongoTui
+dotnet run --project src/MongoTui.TUI
+```
+
+See [Building and testing](#building-and-testing) for the full build and test workflow, and
+[Self-contained build](#self-contained-build) to produce your own single-file binary.
+
+### MongoDB tools
+
+The app shells out to the MongoDB Database Tools, so they must be installed and available on
+your `PATH` (see [Requirements](#requirements)). At minimum **`mongosh`** is required — without it
+queries cannot run. `mongoexport` / `mongoimport` and `mongodump` / `mongorestore` are additionally
+needed for import/export and dump/restore.
+
+**macOS (Homebrew):**
+
+```bash
+brew install mongodb/brew/mongosh
+```
+
+Install the full tool set with `brew install mongodb/brew/mongodb-database-tools`.
+
+**Linux (Debian / Ubuntu):**
+
+```bash
+sudo apt-get install -y mongodb-mongosh mongodb-database-tools
+```
+
+**Linux (RHEL / Fedora):**
+
+```bash
+sudo dnf install -y mongodb-mongosh mongodb-database-tools
+```
+
+**Any platform with Node.js (npm):**
+
+```bash
+npm install -g mongosh
+```
+
+`npx mongosh` runs the shell without a global install. You can also download the archives from the
+[MongoDB Downloads page](https://www.mongodb.com/try/download/shell) and add them to `PATH`, or
+point the app at their directory through `MongoToolsOptions.Directory`.
 
 ## Usage
 
@@ -52,7 +126,11 @@ Framework-dependent publish output also works via `dotnet MongoTui.TUI.dll`.
    on a database to load and show its collections, on a collection to open a query tab with a
    ready `find` script.
 4. Write a JavaScript query (e.g. `db.users.find({})`) and press **F5** to run it.
-5. Inspect the result in the table/tree/JSON pane.
+5. Inspect the result in the table/tree/JSON pane; the status bar shows the elapsed time and the
+   number of returned documents.
+6. **Right-click** a tree node (or press **Ctrl+Space**) to open its context menu: connection —
+   refresh/disconnect; database — refresh/statistics/drop; collection — statistics/indexes/clear/
+   drop (destructive actions require confirmation).
 
 Menu overview:
 
@@ -63,7 +141,7 @@ Menu overview:
 | Query | New tab (Ctrl+T), Run (F5), Close tab (Ctrl+W), AI assistant… (F6), Translate… (F7), History… (Ctrl+H) |
 | Document | Insert… (Ctrl+I), Edit… (Ctrl+E), Delete… (Ctrl+D) |
 | Collection | Indexes… (Ctrl+K), Export… (F2), Import… (F3) |
-| Settings | Result view (Table / Tree / JSON), Language (English / Русский) |
+| Settings | Result view (Table / Tree / JSON), Language (English / Русский), AI settings… |
 
 ## Settings and data
 
@@ -89,13 +167,9 @@ All data lives under the user's home directory:
 
 AI works with any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Ollama, OpenRouter, local).
 
-## Build and run from source
+## Building and testing
 
 Requires the **.NET 10 SDK**.
-
-```sh
-dotnet run --project src/MongoTui.TUI
-```
 
 Build and test the whole solution:
 

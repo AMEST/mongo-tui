@@ -1,6 +1,7 @@
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
+using MongoTui.Domain.Databases;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
 using MongoTui.Domain.Transfer;
@@ -41,6 +42,30 @@ public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway
         CollectionRef collection,
         CancellationToken cancellationToken) =>
         _driver.GetCollectionStatsAsync(target, collection, cancellationToken);
+
+    public Task<DatabaseStats> GetDatabaseStatsAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken) =>
+        _driver.GetDatabaseStatsAsync(target, database, cancellationToken);
+
+    public Task DropDatabaseAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken) =>
+        _driver.DropDatabaseAsync(target, database, cancellationToken);
+
+    public Task DropCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        _driver.DropCollectionAsync(target, collection, cancellationToken);
+
+    public Task ClearCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        _driver.ClearCollectionAsync(target, collection, cancellationToken);
 
     public Task CreateIndexAsync(
         MongoConnectionTarget target,

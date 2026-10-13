@@ -10,14 +10,14 @@ namespace MongoTui.TUI.Views;
 /// <summary>Modal dialog that changes the master password and re-encrypts secrets.</summary>
 public sealed class ChangeMasterPasswordDialog : ThemedDialog
 {
-    private readonly ConnectionService _connections;
+    private readonly MasterPasswordService _masterPassword;
     private readonly IApplication _application;
     private readonly TextField _passwordField = new() { Secret = true };
     private readonly Label _error = new();
 
-    public ChangeMasterPasswordDialog(ConnectionService connections, ILocalizer localizer, IApplication application)
+    public ChangeMasterPasswordDialog(MasterPasswordService masterPassword, ILocalizer localizer, IApplication application)
     {
-        _connections = connections;
+        _masterPassword = masterPassword;
         _application = application;
 
         Title = localizer.Get("ChangePassword.Title");
@@ -52,7 +52,7 @@ public sealed class ChangeMasterPasswordDialog : ThemedDialog
 
         try
         {
-            await _connections.ChangeMasterPasswordAsync(_passwordField.Text ?? string.Empty, CancellationToken.None);
+            await _masterPassword.ChangeAsync(_passwordField.Text ?? string.Empty, CancellationToken.None);
             Changed = true;
             _application.RequestStop(this);
         }

@@ -104,6 +104,51 @@ public sealed class TreeViewModelTests
         _sut.BuildRows().Should().HaveCount(3);
     }
 
+    [Fact]
+    public async Task Should_ReloadCollections_When_Requested()
+    {
+        var connection = NewConnection("local", "app");
+        _sut.AddOrReplace(connection);
+        A.CallTo(() => _gateway.ListCollectionsAsync(Target, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(new List<string> { "users" });
+
+        await _sut.ToggleDatabaseAsync(connection.Profile.Id, Target, "app", CancellationToken.None);
+
+        A.CallTo(() => _gateway.ListCollectionsAsync(Target, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(new List<string> { "users", "orders" });
+        await _sut.ReloadCollectionsAsync(connection.Profile.Id, Target, "app", CancellationToken.None);
+
+        _sut.BuildRows().Where(row => row.Kind == TreeRowKind.Collection).Select(row => row.Collection)
+            .Should().Equal("orders", "users");
+    }
+
+    [Fact]
+    public void Should_HideDatabase_When_Removed()
+    {
+        var connection = NewConnection("local", "app", "logs");
+        _sut.AddOrReplace(connection);
+
+        _sut.RemoveDatabase(connection.Profile.Id, "app");
+
+        _sut.BuildRows().Where(row => row.Kind == TreeRowKind.Database).Select(row => row.Database)
+            .Should().Equal("logs");
+    }
+
+    [Fact]
+    public async Task Should_HideCollection_When_Removed()
+    {
+        var connection = NewConnection("local", "app");
+        _sut.AddOrReplace(connection);
+        A.CallTo(() => _gateway.ListCollectionsAsync(Target, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(new List<string> { "users", "orders" });
+        await _sut.ToggleDatabaseAsync(connection.Profile.Id, Target, "app", CancellationToken.None);
+
+        _sut.RemoveCollection(connection.Profile.Id, "app", "users");
+
+        _sut.BuildRows().Where(row => row.Kind == TreeRowKind.Collection).Select(row => row.Collection)
+            .Should().Equal("orders");
+    }
+
     private static ActiveConnection NewConnection(string name, params string[] databases)
     {
         var profile = ConnectionProfile.Create(ConnectionId.New(), name, "mongodb://localhost:27017");

@@ -8,7 +8,7 @@ namespace MongoTui.TUI.Views;
 
 /// <summary>
 /// Modal dialog that inserts, edits or deletes a document. In edit mode a find filter selects the
-/// document to load, mirroring the two-pane workflow of Studio 3T.
+/// document to load.
 /// </summary>
 public sealed class DocumentEditDialog : ThemedDialog
 {
