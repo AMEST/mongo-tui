@@ -28,9 +28,44 @@ jobs:
     - name: Build
       run: dotnet build --no-restore -c Release
 
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
-        dotnet test tests/MongoTui.Domain.Tests -c Release --no-build
-        dotnet test tests/MongoTui.Application.Tests -c Release --no-build
-        dotnet test tests/MongoTui.Infrastructure.Tests -c Release --no-build
-        dotnet test tests/MongoTui.TUI.Tests -c Release --no-build
+        dotnet test tests/MongoTui.Domain.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
+        dotnet test tests/MongoTui.Application.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
+        dotnet test tests/MongoTui.Infrastructure.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
+        dotnet test tests/MongoTui.TUI.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
+
+    - name: Publish coverage summary
+      if: always()
+      run: |
+        python3 - <<'PY'
+        import os
+        from pathlib import Path
+        import xml.etree.ElementTree as ET
+
+        summary = ["## Unit test coverage", "",
+                   "| Test project | Module | Lines | Branches |",
+                   "|---|---|---:|---:|"]
+        reports = sorted(Path("tests").glob("*/TestResults/coverage.cobertura.xml"))
+        for report in reports:
+            project = report.parent.parent.name
+            for package in ET.parse(report).getroot().findall("./packages/package"):
+                lines = float(package.attrib["line-rate"]) * 100
+                branches = float(package.attrib["branch-rate"]) * 100
+                module = package.attrib["name"]
+                summary.append(f"| {project} | {module} | {lines:.2f}% | {branches:.2f}% |")
+        if not reports:
+            summary.append("\nNo coverage reports were generated; check the test step.")
+        text = "\n".join(summary) + "\n"
+        print(text)
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
+            output.write(text)
+        PY
+
+    - name: Upload coverage reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: unit-test-coverage
+        path: tests/**/TestResults/coverage.cobertura.xml
+        if-no-files-found: warn

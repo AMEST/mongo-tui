@@ -16,7 +16,6 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FakeItEasy" />
     <PackageReference Include="AwesomeAssertions" />
-    <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
 </Project>
