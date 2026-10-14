@@ -17,12 +17,20 @@ public sealed class ConnectionFormViewModel : ObservableObject
     private string? _password;
     private string? _authDatabase;
     private string? _validationError;
+    private SshTunnelOptions _ssh = new();
+    private TlsOptions _tls = new();
 
     public ConnectionFormViewModel(ConnectionService connections) => _connections = connections;
 
     public ConnectionId Id { get; private set; } = ConnectionId.New();
 
     public bool IsNew { get; private set; } = true;
+
+    public SshTunnelOptions Ssh
+    {
+        get => _ssh;
+        set => SetProperty(ref _ssh, value);
+    }
 
     public string Name
     {
@@ -77,6 +85,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
         Password = null;
         AuthDatabase = null;
         ValidationError = null;
+        Ssh = new SshTunnelOptions();
+        _tls = new TlsOptions();
         OnPropertyChanged(nameof(Id));
         OnPropertyChanged(nameof(IsNew));
     }
@@ -91,6 +101,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
         Username = profile.Auth.Username;
         AuthDatabase = profile.Auth.AuthDatabase;
         Password = secret;
+        Ssh = profile.Ssh;
+        _tls = profile.Tls;
         ValidationError = null;
         OnPropertyChanged(nameof(Id));
         OnPropertyChanged(nameof(IsNew));
@@ -191,5 +203,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
                 Kind = AuthKind,
                 Username = Username,
                 AuthDatabase = AuthDatabase,
-            });
+            },
+            tls: _tls,
+            ssh: Ssh);
 }

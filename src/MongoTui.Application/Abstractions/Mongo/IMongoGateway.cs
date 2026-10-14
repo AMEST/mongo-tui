@@ -9,6 +9,9 @@ namespace MongoTui.Application.Abstractions.Mongo;
 /// <summary>Read/write access to a MongoDB deployment.</summary>
 public interface IMongoGateway
 {
+    /// <summary>Releases the cached client after all operations using this target have stopped.</summary>
+    void ReleaseClient(MongoConnectionTarget target);
+
     Task<IReadOnlyList<DatabaseInfo>> ListDatabasesAsync(
         MongoConnectionTarget target,
         CancellationToken cancellationToken);

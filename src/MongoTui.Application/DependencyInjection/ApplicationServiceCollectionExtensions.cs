@@ -12,6 +12,7 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddSingleton<SecretKeyService>();
         services.AddSingleton<ConnectionService>();
+        services.AddSingleton<ConnectionTunnelService>();
         services.AddSingleton<AiSettingsService>();
         services.AddSingleton<MasterPasswordService>();
         services.AddSingleton<QueryService>();

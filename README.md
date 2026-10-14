@@ -30,11 +30,50 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 
 ## Requirements
 
-- **.NET 10 runtime** — only when running framework-dependent (a self-contained build bundles it).
-- **MongoDB server** to connect to.
-- **MongoDB Database Tools** — `mongosh`, `mongoexport`, `mongoimport`, `mongodump`, `mongorestore`.
-  They must be on the `PATH`, or their directory can be configured in the settings
-  (`MongoToolsOptions.Directory`).
+Install the following components on the machine where **`mongo-tui` runs**. Normal use
+requires an interactive terminal, **MongoDB Shell (`mongosh`)** for query tabs, and access
+to a MongoDB server (local or remote).
+
+| Dependency | When required |
+|---|---|
+| [MongoDB Shell (`mongosh`)](https://www.mongodb.com/docs/mongodb-shell/install/) | Running scripts in query tabs. The connection tree and document operations use the bundled MongoDB driver. |
+| **.NET 10 runtime** | Running a framework-dependent build. Prebuilt release archives and self-contained builds include the runtime. |
+| [MongoDB Database Tools](https://www.mongodb.com/docs/database-tools/installation/) | `mongoexport` / `mongoimport` for JSON/CSV export/import; `mongodump` / `mongorestore` for database backups/restores. |
+| [OpenSSH client 8.4+ (`ssh`)](https://www.openssh.org/txt/release-8.4) | Automatic SSH/TPAM SOCKS5 proxy startup and interactive 2FA through `SSH_ASKPASS_REQUIRE=force`. |
+
+`mongosh` is installed separately from **MongoDB Database Tools**. External executables must
+be available on the `PATH` of the `mongo-tui` process; `MongoToolsOptions.Directory` can
+override the lookup directory for MongoDB tools. For SSH key authentication, provide a key
+file or have the required key loaded in an accessible ssh-agent.
+
+On **Linux**, self-contained builds still need the .NET system dependencies: glibc,
+libgcc, libstdc++, ICU, OpenSSL, zlib, GSSAPI/Kerberos, CA certificates and timezone data;
+some distribution versions also require Brotli. Package names and versions depend on the OS:
+see Microsoft's requirements for [Ubuntu](https://learn.microsoft.com/en-us/dotnet/core/install/linux-ubuntu-install#dependencies)
+and [Debian](https://learn.microsoft.com/en-us/dotnet/core/install/linux-debian#dependencies).
+Extract the whole release archive and preserve its file layout: the native SQLite and
+Oniguruma libraries are shipped with the app.
+
+The **.NET 10 SDK** is required to build from source, **Docker** to run integration tests,
+and **Node.js/npm** when installing `mongosh` through npm.
+
+Check the components needed for your workflow:
+
+```sh
+mongosh --version
+
+# Export/import and database backups/restores
+mongoexport --version
+mongoimport --version
+mongodump --version
+mongorestore --version
+
+# SSH/TPAM proxy
+ssh -V
+
+# Framework-dependent builds: Microsoft.NETCore.App 10.0.x must be listed
+dotnet --list-runtimes
+```
 
 ## Installation
 
@@ -77,10 +116,9 @@ See [Building and testing](#building-and-testing) for the full build and test wo
 
 ### MongoDB tools
 
-The app shells out to the MongoDB Database Tools, so they must be installed and available on
-your `PATH` (see [Requirements](#requirements)). At minimum **`mongosh`** is required — without it
-queries cannot run. `mongoexport` / `mongoimport` and `mongodump` / `mongorestore` are additionally
-needed for import/export and dump/restore.
+Install **MongoDB Shell (`mongosh`)** for query tabs and **MongoDB Database Tools** for
+import/export and dump/restore. These are separate packages and their executables must be
+available on your `PATH` (see [Requirements](#requirements)).
 
 **macOS (Homebrew):**
 
@@ -90,13 +128,13 @@ brew install mongodb/brew/mongosh
 
 Install the full tool set with `brew install mongodb/brew/mongodb-database-tools`.
 
-**Linux (Debian / Ubuntu):**
+**Linux (Debian / Ubuntu, with the official MongoDB package repository configured):**
 
 ```bash
 sudo apt-get install -y mongodb-mongosh mongodb-database-tools
 ```
 
-**Linux (RHEL / Fedora):**
+**Linux (RHEL / Fedora, with the appropriate MongoDB package repository configured):**
 
 ```bash
 sudo dnf install -y mongodb-mongosh mongodb-database-tools
@@ -108,9 +146,10 @@ sudo dnf install -y mongodb-mongosh mongodb-database-tools
 npm install -g mongosh
 ```
 
-`npx mongosh` runs the shell without a global install. You can also download the archives from the
-[MongoDB Downloads page](https://www.mongodb.com/try/download/shell) and add them to `PATH`, or
-point the app at their directory through `MongoToolsOptions.Directory`.
+Download standalone archives from the [MongoDB Shell downloads](https://www.mongodb.com/try/download/shell)
+and [Database Tools downloads](https://www.mongodb.com/try/download/database-tools), then add
+their executable directories to `PATH`. The app invokes `mongosh` directly, so an installation
+accessible only through `npx mongosh` does not satisfy the shell dependency.
 
 ## Usage
 
@@ -131,6 +170,31 @@ point the app at their directory through `MongoToolsOptions.Directory`.
 6. **Right-click** a tree node (or press **Ctrl+Space**) to open its context menu: connection —
    refresh/disconnect; database — refresh/statistics/drop; collection — statistics/indexes/clear/
    drop (destructive actions require confirmation).
+
+To enable an SSH SOCKS5 proxy for a profile, open **SSH SOCKS…** in the connection form,
+enable automatic startup, and enter the SSH host, port and login. For TPAM use port `4422`
+and a login such as `requester+user@domain+system`. Leave the key file empty to use ssh-agent
+and `~/.ssh/config`; local port `0` selects an available loopback port. Save the SSH settings
+and then save the connection profile.
+
+**Connect** and **Test** start `ssh -D` and show SSH authentication prompts, including the 2FA
+code after key authentication. Responses are passed through a private pipe and never saved.
+OpenSSH 8.4+ must be installed in `PATH` for
+[`SSH_ASKPASS_REQUIRE=force`](https://man.openbsd.org/ssh.1#SSH_ASKPASS_REQUIRE).
+Host keys are checked using the usual SSH configuration and `known_hosts`.
+
+Both `mongodb://` and `mongodb+srv://` URIs are supported. SRV/TXT DNS records must resolve
+on the client; DNS queries are not sent through SOCKS. The effective URI gets
+`proxyHost=127.0.0.1` and the actual `proxyPort`, replacing
+existing values. Old proxy credentials are removed because OpenSSH SOCKS5 has no proxy
+authentication. MongoDB hosts, replica-set and TLS options are preserved, as is the saved URI.
+The SSH process stops on disconnect, failed connection/test, or application exit. This mode
+supports 2FA via SSH keyboard-interactive authentication; a TPAM prompt inside a remote shell
+requires a different flow because `ssh -N` does not open a shell.
+
+Import/export and backup/restore through MongoDB Database Tools are unavailable for
+connections with a SOCKS proxy. The tools ignore SOCKS settings, so MongoTui blocks their
+launch and displays the reason to prevent a direct connection to MongoDB.
 
 Menu overview:
 

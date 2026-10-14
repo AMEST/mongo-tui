@@ -20,6 +20,8 @@ public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway
         _cli = cli;
     }
 
+    public void ReleaseClient(MongoConnectionTarget target) => _driver.ReleaseClient(target);
+
     public Task<IReadOnlyList<DatabaseInfo>> ListDatabasesAsync(
         MongoConnectionTarget target,
         CancellationToken cancellationToken) =>

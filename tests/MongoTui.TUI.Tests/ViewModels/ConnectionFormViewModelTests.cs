@@ -3,6 +3,7 @@ using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
@@ -26,7 +27,8 @@ public sealed class ConnectionFormViewModelTests
             .Returns((StoredConnection?)null);
 
         var secrets = new SecretKeyService(_keyProvider, _crypto);
-        var service = new ConnectionService(_repository, secrets, _gateway);
+        var service = new ConnectionService(_repository, secrets, _gateway,
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
         _sut = new ConnectionFormViewModel(service);
         _sut.LoadNew();
     }
@@ -85,6 +87,40 @@ public sealed class ConnectionFormViewModelTests
         _sut.AuthKind.Should().Be(AuthKind.ScramSha256);
         _sut.Username.Should().Be("admin");
         _sut.Password.Should().Be("secret");
+    }
+
+    [Fact]
+    public async Task Should_PreserveSshAndTlsSettings_WhenEditingAndSavingProfile()
+    {
+        var ssh = new SshTunnelOptions
+        {
+            Enabled = true,
+            Host = "tpam",
+            Port = 4422,
+            Username = "requester+user+system",
+            LocalPort = 1080,
+            PrivateKeyFile = "/keys/key"
+        };
+        var tls = new TlsOptions { Enabled = true };
+        var profile = ConnectionProfile.Create(ConnectionId.New(), "prod", "mongodb://host", tls: tls, ssh: ssh);
+        _sut.Load(profile, null);
+
+        var saved = await _sut.SaveAsync(CancellationToken.None);
+
+        saved.Should().BeTrue();
+        A.CallTo(() => _repository.AddAsync(
+            A<StoredConnection>.That.Matches(value => value.Profile.Ssh == ssh && value.Profile.Tls == tls),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public void Should_ResetSshSettings_WhenStartingNewProfile()
+    {
+        _sut.Ssh = new SshTunnelOptions { Enabled = true, Host = "jump" };
+
+        _sut.LoadNew();
+
+        _sut.Ssh.Should().Be(new SshTunnelOptions());
     }
 
     [Fact]

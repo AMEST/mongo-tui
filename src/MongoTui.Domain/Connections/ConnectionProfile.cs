@@ -42,6 +42,8 @@ public sealed record ConnectionProfile
             throw new DomainException("Connection string must use the 'mongodb' or 'mongodb+srv' scheme.");
         }
 
+        ssh?.Validate();
+
         var now = DateTimeOffset.UtcNow;
 
         return new ConnectionProfile
@@ -57,7 +59,22 @@ public sealed record ConnectionProfile
         };
     }
 
-    private static bool IsMongoUri(string uri) =>
-        System.Uri.TryCreate(uri, System.UriKind.Absolute, out var parsed)
-        && (parsed.Scheme == "mongodb" || parsed.Scheme == "mongodb+srv");
+    private static bool IsMongoUri(string uri)
+    {
+        var schemeEnd = uri.IndexOf("://", StringComparison.Ordinal);
+        if (schemeEnd < 0 || !(uri[..schemeEnd].Equals("mongodb", StringComparison.OrdinalIgnoreCase)
+            || uri[..schemeEnd].Equals("mongodb+srv", StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        var remainder = uri[(schemeEnd + 3)..];
+        var authorityEnd = remainder.IndexOfAny(['/', '?', '#']);
+        var authority = authorityEnd < 0 ? remainder : remainder[..authorityEnd];
+        var credentialsEnd = authority.LastIndexOf('@') + 1;
+        var credentials = authority[..credentialsEnd];
+        return authority[credentialsEnd..].Split(',').All(host =>
+            host.Length > 0 && System.Uri.TryCreate(uri[..(schemeEnd + 3)] + credentials + host,
+                System.UriKind.Absolute, out var parsed) && parsed.Host.Length > 0);
+    }
 }

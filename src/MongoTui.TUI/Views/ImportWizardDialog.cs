@@ -114,7 +114,9 @@ public sealed class ImportWizardDialog : ThemedDialog
         }
         catch (DomainException exception)
         {
-            _error.Text = exception.Message;
+            _error.Text = exception is ProxyTransferNotSupportedException
+                ? _localizer.Get("Transfer.ProxyNotSupported")
+                : exception.Message;
         }
     }
 

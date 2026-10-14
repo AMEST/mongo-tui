@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MongoTui.Application.Services;
+using MongoTui.TUI.Services;
 using MongoTui.TUI.Themes;
 using MongoTui.TUI.Views;
 using Terminal.Gui.App;
@@ -11,20 +13,26 @@ public sealed class AppHost
 {
     private readonly IServiceProvider _services;
     private readonly ILogger<AppHost> _logger;
+    private readonly SshAuthenticationPrompt _sshPrompt;
+    private readonly ConnectionTunnelService _tunnels;
 
-    public AppHost(IServiceProvider services, ILogger<AppHost> logger)
+    public AppHost(IServiceProvider services, ILogger<AppHost> logger,
+        SshAuthenticationPrompt sshPrompt, ConnectionTunnelService tunnels)
     {
         _services = services;
         _logger = logger;
+        _sshPrompt = sshPrompt;
+        _tunnels = tunnels;
     }
 
     /// <summary>Initializes the TUI and blocks until the user quits.</summary>
-    public int Run()
+    public async Task<int> RunAsync()
     {
         _logger.LogInformation("MongoTui starting");
 
         using var application = Terminal.Gui.App.Application.Create();
         application.Init();
+        _sshPrompt.Application = application;
 
         try
         {
@@ -47,6 +55,8 @@ public sealed class AppHost
         }
         finally
         {
+            await _tunnels.DisposeAsync();
+            _sshPrompt.Application = null;
             _logger.LogInformation("MongoTui stopped");
         }
     }

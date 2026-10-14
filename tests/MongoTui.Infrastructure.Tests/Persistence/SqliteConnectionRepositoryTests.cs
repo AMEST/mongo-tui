@@ -107,7 +107,15 @@ public sealed class SqliteConnectionRepositoryTests : IDisposable
                 "mongodb://localhost:27017",
                 new AuthOptions { Kind = AuthKind.ScramSha256, Username = "admin", AuthDatabase = "admin" },
                 new TlsOptions { Enabled = true, AllowInvalidCertificates = true },
-                new SshTunnelOptions { Enabled = true, Host = "jump", Port = 2222, Username = "bob" }),
+                new SshTunnelOptions
+                {
+                    Enabled = true,
+                    Host = "jump",
+                    Port = 2222,
+                    Username = "bob",
+                    LocalPort = 1080,
+                    PrivateKeyFile = "/keys/id_ed25519"
+                }),
             Secret: null);
 
         await _sut.AddAsync(stored, CancellationToken.None);
@@ -119,6 +127,8 @@ public sealed class SqliteConnectionRepositoryTests : IDisposable
         found.Profile.Tls.AllowInvalidCertificates.Should().BeTrue();
         found.Profile.Ssh.Port.Should().Be(2222);
         found.Profile.Ssh.Username.Should().Be("bob");
+        found.Profile.Ssh.LocalPort.Should().Be(1080);
+        found.Profile.Ssh.PrivateKeyFile.Should().Be("/keys/id_ed25519");
     }
 
     private static StoredConnection NewConnection(string name) =>
