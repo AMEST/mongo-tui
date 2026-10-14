@@ -4,6 +4,7 @@ using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
@@ -27,7 +28,8 @@ public sealed class MasterPasswordServiceTests
     public MasterPasswordServiceTests()
     {
         _secrets = new SecretKeyService(_keyProvider, _crypto);
-        var connections = new ConnectionService(_repository, _secrets, _gateway);
+        var connections = new ConnectionService(_repository, _secrets, _gateway,
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>()));
         _ai = new AiSettingsService(_settings, _secrets);
         _sut = new MasterPasswordService(_secrets, connections, _ai);
 

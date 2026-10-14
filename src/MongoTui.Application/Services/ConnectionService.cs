@@ -13,15 +13,18 @@ public sealed class ConnectionService
     private readonly IConnectionRepository _repository;
     private readonly SecretKeyService _secrets;
     private readonly IMongoGateway _gateway;
+    private readonly ConnectionTunnelService _tunnels;
 
     public ConnectionService(
         IConnectionRepository repository,
         SecretKeyService secrets,
-        IMongoGateway gateway)
+        IMongoGateway gateway,
+        ConnectionTunnelService tunnels)
     {
         _repository = repository;
         _secrets = secrets;
         _gateway = gateway;
+        _tunnels = tunnels;
     }
 
     public bool IsUnlocked => _secrets.IsUnlocked;
@@ -100,7 +103,8 @@ public sealed class ConnectionService
     public async Task TestConnectionAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
     {
         var target = new MongoConnectionTarget(BuildConnectionString(profile, secret));
-        await _gateway.ListDatabasesAsync(target, cancellationToken);
+        await using var connection = await _tunnels.OpenAsync(profile, target, cancellationToken);
+        await _gateway.ListDatabasesAsync(connection.Target, cancellationToken);
     }
 
     /// <summary>Builds an effective connection string by injecting credentials when authentication is used.</summary>

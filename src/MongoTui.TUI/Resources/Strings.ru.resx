@@ -165,4 +165,48 @@
   <data name="Status.DatabaseDropped" xml:space="preserve"><value>База данных {0} удалена</value></data>
   <data name="Status.CollectionDropped" xml:space="preserve"><value>Коллекция {0} удалена</value></data>
   <data name="Status.CollectionCleared" xml:space="preserve"><value>Коллекция {0} очищена</value></data>
+  <data name="Ssh.Settings" xml:space="preserve">
+    <value>SSH SOCKS…</value>
+  </data>
+  <data name="Ssh.Title" xml:space="preserve">
+    <value>SSH SOCKS-прокси</value>
+  </data>
+  <data name="Ssh.Enabled" xml:space="preserve">
+    <value>Запускать SSH SOCKS-прокси при подключении</value>
+  </data>
+  <data name="Ssh.Host" xml:space="preserve">
+    <value>SSH-хост / алиас config</value>
+  </data>
+  <data name="Ssh.Port" xml:space="preserve">
+    <value>Порт SSH</value>
+  </data>
+  <data name="Ssh.Username" xml:space="preserve">
+    <value>Логин SSH / TPAM</value>
+  </data>
+  <data name="Ssh.LocalPort" xml:space="preserve">
+    <value>Локальный порт (0 = авто)</value>
+  </data>
+  <data name="Ssh.KeyFile" xml:space="preserve">
+    <value>Файл ключа (необязательно)</value>
+  </data>
+  <data name="Ssh.Hint" xml:space="preserve">
+    <value>Пустые ключ/логин: ssh-agent и SSH config.
+TPAM: порт 4422, логин requester+user+system.
+SRV/TXT-записи DNS должны разрешаться локально.</value>
+  </data>
+  <data name="Ssh.InvalidPorts" xml:space="preserve">
+    <value>Введите числовые порты SSH и SOCKS.</value>
+  </data>
+  <data name="Ssh.InvalidOptions" xml:space="preserve">
+    <value>Проверьте SSH-хост и порты (SSH: 1–65535, SOCKS: 0–65535).</value>
+  </data>
+  <data name="Ssh.Authentication.Title" xml:space="preserve">
+    <value>Аутентификация SSH / 2FA</value>
+  </data>
+  <data name="Ssh.Authentication.Hint" xml:space="preserve">
+    <value>Введите код 2FA или ответ на запрос SSH.</value>
+  </data>
+  <data name="Ssh.Cancelled" xml:space="preserve">
+    <value>Аутентификация SSH отменена.</value>
+  </data>
 </root>

@@ -4,6 +4,7 @@ using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.QueryAssistant;
 using MongoTui.Infrastructure.Ai.OpenAi;
 using MongoTui.Infrastructure.FileSystem;
@@ -13,6 +14,7 @@ using MongoTui.Infrastructure.Options;
 using MongoTui.Infrastructure.Persistence.Sqlite;
 using MongoTui.Infrastructure.Process;
 using MongoTui.Infrastructure.Security;
+using MongoTui.Infrastructure.Ssh;
 
 namespace MongoTui.Infrastructure.DependencyInjection;
 
@@ -43,6 +45,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<MongoToolsOptions>();
         services.AddSingleton<MongoToolsLocator>();
         services.AddSingleton<IProcessRunner, DefaultProcessRunner>();
+        services.AddSingleton<SshAskPassFactory>();
+        services.AddSingleton<ISshTunnelFactory, SshCliTunnelFactory>();
         services.AddSingleton<IMongoShellSessionFactory, MongoShellSessionFactory>();
 
         services.AddSingleton<IDriverMongoGateway, DriverMongoGateway>();

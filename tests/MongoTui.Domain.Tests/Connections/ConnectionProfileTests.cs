@@ -10,6 +10,9 @@ public sealed class ConnectionProfileTests
     [Theory]
     [InlineData("mongodb://localhost:27017")]
     [InlineData("mongodb+srv://cluster.example.com")]
+    [InlineData("mongodb://node1:27017,node2:27018/?replicaSet=rs")]
+    [InlineData("mongodb://bob:pw@node1:27017,node2:27018/app")]
+    [InlineData("mongodb://[::1]:27017,[::2]:27018/")]
     public void Should_Create_When_ValidMongoUri(string uri)
     {
         var profile = ConnectionProfile.Create(ConnectionId.New(), "local", uri);

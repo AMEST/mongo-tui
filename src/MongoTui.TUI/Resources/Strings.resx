@@ -165,4 +165,48 @@
   <data name="Status.DatabaseDropped" xml:space="preserve"><value>Dropped database {0}</value></data>
   <data name="Status.CollectionDropped" xml:space="preserve"><value>Dropped collection {0}</value></data>
   <data name="Status.CollectionCleared" xml:space="preserve"><value>Cleared collection {0}</value></data>
+  <data name="Ssh.Settings" xml:space="preserve">
+    <value>SSH SOCKS…</value>
+  </data>
+  <data name="Ssh.Title" xml:space="preserve">
+    <value>SSH SOCKS proxy</value>
+  </data>
+  <data name="Ssh.Enabled" xml:space="preserve">
+    <value>Start SSH SOCKS proxy when connecting</value>
+  </data>
+  <data name="Ssh.Host" xml:space="preserve">
+    <value>SSH host / config alias</value>
+  </data>
+  <data name="Ssh.Port" xml:space="preserve">
+    <value>SSH port</value>
+  </data>
+  <data name="Ssh.Username" xml:space="preserve">
+    <value>SSH / TPAM login</value>
+  </data>
+  <data name="Ssh.LocalPort" xml:space="preserve">
+    <value>Local port (0 = auto)</value>
+  </data>
+  <data name="Ssh.KeyFile" xml:space="preserve">
+    <value>Key file (optional)</value>
+  </data>
+  <data name="Ssh.Hint" xml:space="preserve">
+    <value>Blank key file/login uses ssh-agent and SSH config.
+TPAM: port 4422, login requester+user+system.
+SRV/TXT DNS records must resolve locally.</value>
+  </data>
+  <data name="Ssh.InvalidPorts" xml:space="preserve">
+    <value>Enter numeric SSH and local ports.</value>
+  </data>
+  <data name="Ssh.InvalidOptions" xml:space="preserve">
+    <value>Check SSH host and ports (SSH: 1–65535, local: 0–65535).</value>
+  </data>
+  <data name="Ssh.Authentication.Title" xml:space="preserve">
+    <value>SSH authentication / 2FA</value>
+  </data>
+  <data name="Ssh.Authentication.Hint" xml:space="preserve">
+    <value>Enter the 2FA code or the response requested by SSH.</value>
+  </data>
+  <data name="Ssh.Cancelled" xml:space="preserve">
+    <value>SSH authentication cancelled.</value>
+  </data>
 </root>

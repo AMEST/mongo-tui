@@ -23,7 +23,7 @@ using Terminal.Gui.Views;
 namespace MongoTui.TUI.Views;
 
 /// <summary>Root window of the application shell.</summary>
-public sealed class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
     private readonly ILocalizer _localizer;
     private readonly ConnectionService _connections;
@@ -39,6 +39,7 @@ public sealed class MainWindow : Window
     private readonly AiSettingsService _aiSettings;
     private readonly MasterPasswordService _masterPassword;
     private readonly IMongoGateway _gateway;
+    private readonly ConnectionTunnelService _tunnels;
     private readonly ListView _treeList = new();
     private readonly TreeViewModel _tree;
     private readonly List<TreeRow> _rows = [];
@@ -66,7 +67,8 @@ public sealed class MainWindow : Window
         SettingsService settings,
         AiSettingsService aiSettings,
         MasterPasswordService masterPassword,
-        IMongoGateway gateway)
+        IMongoGateway gateway,
+        ConnectionTunnelService tunnels)
     {
         _localizer = localizer;
         _connections = connections;
@@ -82,6 +84,7 @@ public sealed class MainWindow : Window
         _aiSettings = aiSettings;
         _masterPassword = masterPassword;
         _gateway = gateway;
+        _tunnels = tunnels;
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = new QueryTabsView(queryService, localizer);
         _queryTabs.RunRequested += (_, _) => Safe(RunActiveQueryAsync);
@@ -402,33 +405,6 @@ public sealed class MainWindow : Window
 
     private string CurrentLanguage => _language ?? _localizer.CurrentLanguage;
 
-    private async Task ConnectAsync(ConnectionProfile profile, MongoConnectionTarget target)
-    {
-        try
-        {
-            var databases = await _gateway.ListDatabasesAsync(target, CancellationToken.None);
-            Log.Debug("Connected to {Profile}: {Count} databases returned", profile.Name, databases.Count);
-
-            _tree.AddOrReplace(new ActiveConnection(
-                profile,
-                target,
-                databases.OrderBy(database => database.Name, StringComparer.OrdinalIgnoreCase).ToList()));
-
-            RebuildTree();
-            SetStatus(_localizer.Format("Status.Connected", profile.Name, databases.Count));
-        }
-        catch (Exception exception)
-        {
-            Log.Error(exception, "Connect failed");
-            SetStatus(exception.Message);
-
-            if (Application is not null)
-            {
-                Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get("Common.Error"), exception.Message));
-            }
-        }
-    }
-
     private async Task RefreshActiveAsync()
     {
         if (_tree.Count == 0)
@@ -626,16 +602,6 @@ public sealed class MainWindow : Window
         await _tree.ReloadCollectionsAsync(connection.Profile.Id, connection.Target, database, CancellationToken.None);
         RebuildTree();
         SetStatus(database);
-    }
-
-    private async Task DisconnectAsync(ActiveConnection connection)
-    {
-        _tree.Remove(connection.Profile.Id);
-        await _queryTabs.CloseForConnectionAsync(connection.Profile.Id);
-        RebuildTree();
-
-        Log.Information("Disconnected from {Profile}", connection.Profile.Name);
-        SetStatus(_localizer.Format("Status.Disconnected", connection.Profile.Name));
     }
 
     private async Task ShowDatabaseStatsAsync(ActiveConnection connection, string database)

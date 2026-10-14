@@ -3,8 +3,14 @@ using Microsoft.Extensions.Logging;
 using MongoTui.Application.DependencyInjection;
 using MongoTui.Infrastructure.DependencyInjection;
 using MongoTui.Infrastructure.FileSystem;
+using MongoTui.Infrastructure.Ssh;
 using MongoTui.TUI.Bootstrap;
 using Serilog;
+
+if (Environment.GetEnvironmentVariable("MONGOTUI_ASKPASS_PIPE") is { Length: > 0 } pipeName)
+{
+    return await new SshAskPassClient().RunAsync(pipeName, args.FirstOrDefault() ?? string.Empty, CancellationToken.None);
+}
 
 Directory.CreateDirectory(AppPaths.LogsDirectory);
 
@@ -27,10 +33,10 @@ TaskScheduler.UnobservedTaskException += (_, args) =>
 
 try
 {
-    using var provider = BuildServiceProvider();
+    await using var provider = BuildServiceProvider();
     var host = provider.GetRequiredService<AppHost>();
 
-    return host.Run();
+    return await host.RunAsync();
 }
 catch (Exception ex)
 {
@@ -49,6 +55,12 @@ static ServiceProvider BuildServiceProvider()
     services.AddLogging(builder => builder.AddSerilog(Log.Logger, dispose: false));
     services.AddApplication();
     services.AddInfrastructure();
+    var executable = Environment.ProcessPath!;
+    if (Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+    {
+        executable = Path.Combine(AppContext.BaseDirectory, "mongo-tui" + (OperatingSystem.IsWindows() ? ".exe" : string.Empty));
+    }
+    services.AddSingleton(new SshCliOptions(executable));
     services.AddTui();
 
     return services.BuildServiceProvider();

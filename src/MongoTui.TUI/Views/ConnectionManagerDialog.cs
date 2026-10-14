@@ -78,7 +78,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
 
     private async Task CreateAsync()
     {
-        var dialog = new ConnectionFormDialog(_connections, _localizer, _application, profile: null, secret: null);
+        using var dialog = new ConnectionFormDialog(_connections, _localizer, _application, profile: null, secret: null);
         _application.Run(dialog);
 
         if (dialog.Saved)
@@ -97,7 +97,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
 
         var profile = _profiles[index.Value];
         var secret = await _connections.GetSecretAsync(profile.Id, CancellationToken.None);
-        var dialog = new ConnectionFormDialog(_connections, _localizer, _application, profile, secret);
+        using var dialog = new ConnectionFormDialog(_connections, _localizer, _application, profile, secret);
         _application.Run(dialog);
 
         if (dialog.Saved)

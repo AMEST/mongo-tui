@@ -4,6 +4,7 @@ using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
@@ -18,12 +19,14 @@ public sealed class ConnectionServiceTests
     private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
     private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
+    private readonly ISshTunnelFactory _tunnelFactory = A.Fake<ISshTunnelFactory>();
     private readonly ConnectionService _sut;
 
     public ConnectionServiceTests()
     {
         var secrets = new SecretKeyService(_keyProvider, _crypto);
-        _sut = new ConnectionService(_repository, secrets, _gateway);
+        _sut = new ConnectionService(_repository, secrets, _gateway,
+            new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>()));
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
     }
@@ -118,6 +121,32 @@ public sealed class ConnectionServiceTests
         await act.Should().NotThrowAsync();
         A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_TestViaProxyAndCloseTunnel_WhenSshEnabled(bool gatewayFails)
+    {
+        var session = A.Fake<ISshTunnelSession>();
+        A.CallTo(() => session.LocalPort).Returns(1080);
+        A.CallTo(() => session.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        A.CallTo(() => _tunnelFactory.StartAsync(A<SshTunnelOptions>._, A<ITwoFactorPrompt>._, A<CancellationToken>._))
+            .Returns(session);
+        var profile = NewProfile() with { Ssh = new SshTunnelOptions { Enabled = true, Host = "jump" } };
+        if (gatewayFails)
+        {
+            A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+                .Throws(new ConnectionFailedException("MongoDB refused the connection."));
+        }
+
+        var failure = await Record.ExceptionAsync(() => _sut.TestConnectionAsync(profile, null, CancellationToken.None));
+
+        (failure is ConnectionFailedException).Should().Be(gatewayFails);
+        A.CallTo(() => _gateway.ListDatabasesAsync(
+            A<MongoConnectionTarget>.That.Matches(target => target.ConnectionString == "mongodb://localhost:27017/?proxyHost=127.0.0.1&proxyPort=1080"),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => session.DisposeAsync()).MustHaveHappenedOnceExactly();
     }
 
     [Fact]

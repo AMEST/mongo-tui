@@ -14,6 +14,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
 {
     private readonly ConnectionFormViewModel _viewModel;
     private readonly IApplication _application;
+    private readonly ILocalizer _localizer;
     private readonly TextField _nameField = new();
     private readonly TextField _uriField = new();
     private readonly TextField _userField = new();
@@ -22,6 +23,8 @@ public sealed class ConnectionFormDialog : ThemedDialog
     private readonly ListView _authList = new();
     private readonly Label _error = new();
     private readonly string[] _authKinds = Enum.GetNames<AuthKind>();
+    private CancellationTokenSource? _testCancellation;
+    private bool _closing;
 
     public ConnectionFormDialog(
         ConnectionService connections,
@@ -31,6 +34,12 @@ public sealed class ConnectionFormDialog : ThemedDialog
         string? secret)
     {
         _application = application;
+        _localizer = localizer;
+        Disposing += (_, _) =>
+        {
+            _closing = true;
+            _testCancellation?.Cancel();
+        };
         _viewModel = new ConnectionFormViewModel(connections);
 
         if (profile is null)
@@ -99,8 +108,10 @@ public sealed class ConnectionFormDialog : ThemedDialog
         testButton.OnAcceptAsync(TestAsync);
         var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
         cancelButton.OnAccept(() => _application.RequestStop(this));
+        var sshButton = new Button { Text = localizer.Get("Ssh.Settings") };
+        sshButton.OnAccept(EditSsh);
 
-        this.AddButtons(fromUriButton, saveButton, testButton, cancelButton);
+        this.AddButtons(fromUriButton, sshButton, saveButton, testButton, cancelButton);
     }
 
     /// <summary>Whether the profile was saved before the dialog closed.</summary>
@@ -161,9 +172,45 @@ public sealed class ConnectionFormDialog : ThemedDialog
 
     private async Task TestAsync()
     {
+        if (_testCancellation is not null)
+        {
+            return;
+        }
+
         SyncFromFields();
-        var error = await _viewModel.TestAsync(CancellationToken.None);
-        _error.Text = error ?? "OK";
+        using var cancellation = new CancellationTokenSource();
+        _testCancellation = cancellation;
+        try
+        {
+            var error = await _viewModel.TestAsync(cancellation.Token);
+            SetTestStatus(error ?? _localizer.Get("Common.Ok"));
+        }
+        catch (OperationCanceledException)
+        {
+            SetTestStatus(_localizer.Get("Ssh.Cancelled"));
+        }
+        finally
+        {
+            _testCancellation = null;
+        }
+    }
+
+    private void SetTestStatus(string message)
+    {
+        if (!_closing)
+        {
+            _error.Text = message;
+        }
+    }
+
+    private void EditSsh()
+    {
+        using var dialog = new SshTunnelDialog(_localizer, _application, _viewModel.Ssh);
+        _application.Run(dialog);
+        if (dialog.Options is { } options)
+        {
+            _viewModel.Ssh = options;
+        }
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
