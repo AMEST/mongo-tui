@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ '**' ]
+    branches: [ master ]
   pull_request:
 
 env:
@@ -61,11 +61,3 @@ jobs:
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
             output.write(text)
         PY
-
-    - name: Upload coverage reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: unit-test-coverage
-        path: tests/**/TestResults/coverage.cobertura.xml
-        if-no-files-found: warn
