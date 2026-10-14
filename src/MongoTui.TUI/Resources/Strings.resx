@@ -97,6 +97,7 @@
   <data name="Transfer.Field.Mode" xml:space="preserve"><value>Mode</value></data>
   <data name="Transfer.Run" xml:space="preserve"><value>Run</value></data>
   <data name="Transfer.Done" xml:space="preserve"><value>Done.</value></data>
+  <data name="Transfer.ProxyNotSupported" xml:space="preserve"><value>Unavailable: MongoDB Tools ignore SOCKS and connect directly.</value></data>
   <data name="Menu.Query.Ai" xml:space="preserve"><value>AI assistant...</value></data>
   <data name="Ai.Title" xml:space="preserve"><value>AI assistant</value></data>
   <data name="Ai.Field.Prompt" xml:space="preserve"><value>Ask</value></data>

@@ -29,7 +29,7 @@ public sealed class MasterPasswordServiceTests
     {
         _secrets = new SecretKeyService(_keyProvider, _crypto);
         var connections = new ConnectionService(_repository, _secrets, _gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>()));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
         _ai = new AiSettingsService(_settings, _secrets);
         _sut = new MasterPasswordService(_secrets, connections, _ai);
 

@@ -52,7 +52,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         }
 
         Title = localizer.Get("Connections.Title");
-        Width = 64;
+        Width = 80;
         Height = 20;
 
         Add(FieldLabel(localizer.Get("Connections.Field.Name"), 1));

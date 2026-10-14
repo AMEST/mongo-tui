@@ -28,7 +28,7 @@ public sealed class ConnectionFormViewModelTests
 
         var secrets = new SecretKeyService(_keyProvider, _crypto);
         var service = new ConnectionService(_repository, secrets, _gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>()));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
         _sut = new ConnectionFormViewModel(service);
         _sut.LoadNew();
     }

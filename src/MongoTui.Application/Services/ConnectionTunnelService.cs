@@ -1,4 +1,5 @@
 using System.Globalization;
+using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
@@ -10,16 +11,18 @@ public sealed class ConnectionTunnelService : IAsyncDisposable
 {
     private readonly ISshTunnelFactory _factory;
     private readonly ITwoFactorPrompt _prompt;
+    private readonly IMongoGateway _gateway;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly HashSet<ISshTunnelSession> _sessions = [];
     private readonly HashSet<Task<TunnelConnection>> _pending = [];
     private readonly object _sync = new();
     private int _disposed;
 
-    public ConnectionTunnelService(ISshTunnelFactory factory, ITwoFactorPrompt prompt)
+    public ConnectionTunnelService(ISshTunnelFactory factory, ITwoFactorPrompt prompt, IMongoGateway gateway)
     {
         _factory = factory;
         _prompt = prompt;
+        _gateway = gateway;
     }
 
     public Task<TunnelConnection> OpenAsync(
@@ -60,7 +63,7 @@ public sealed class ConnectionTunnelService : IAsyncDisposable
         {
             lifetime.Token.ThrowIfCancellationRequested();
             var targetWithProxy = new MongoConnectionTarget(WithProxy(target.ConnectionString, tunnel.LocalPort));
-            var tracked = new TrackedSshTunnelSession(tunnel, Release);
+            var tracked = new TrackedSshTunnelSession(tunnel, session => Release(session, targetWithProxy));
             lock (_sync) { _sessions.Add(tracked); }
             return new TunnelConnection(targetWithProxy, tracked);
         }
@@ -106,9 +109,10 @@ public sealed class ConnectionTunnelService : IAsyncDisposable
         finally { lock (_sync) { _pending.Remove(task); } }
     }
 
-    private void Release(ISshTunnelSession session)
+    private void Release(ISshTunnelSession session, MongoConnectionTarget target)
     {
-        lock (_sync) { _sessions.Remove(session); }
+        try { _gateway.ReleaseClient(target); }
+        finally { lock (_sync) { _sessions.Remove(session); } }
     }
 
     /// <summary>Replaces proxy options without changing hosts, credentials, or other URI options.</summary>

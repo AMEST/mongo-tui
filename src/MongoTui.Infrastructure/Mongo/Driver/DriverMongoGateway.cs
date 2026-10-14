@@ -17,6 +17,15 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
 {
     private readonly ConcurrentDictionary<string, IMongoClient> _clients = new(StringComparer.Ordinal);
 
+    public void ReleaseClient(MongoConnectionTarget target)
+    {
+        if (_clients.TryRemove(target.ConnectionString, out var client))
+        {
+            ClusterRegistry.Instance.UnregisterAndDisposeCluster(client.Cluster);
+            client.Dispose();
+        }
+    }
+
     public async Task<IReadOnlyList<DatabaseInfo>> ListDatabasesAsync(
         MongoConnectionTarget target,
         CancellationToken cancellationToken)

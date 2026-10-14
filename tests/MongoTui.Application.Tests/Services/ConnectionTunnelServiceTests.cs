@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Ssh;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
@@ -13,6 +14,7 @@ public sealed class ConnectionTunnelServiceTests
 {
     private readonly ISshTunnelFactory _factory = A.Fake<ISshTunnelFactory>();
     private readonly ITwoFactorPrompt _prompt = A.Fake<ITwoFactorPrompt>();
+    private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
     private readonly ISshTunnelSession _session = A.Fake<ISshTunnelSession>();
     private readonly ConnectionTunnelService _sut;
     private readonly ConnectionProfile _profile = ConnectionProfile.Create(ConnectionId.New(), "tpam",
@@ -21,7 +23,7 @@ public sealed class ConnectionTunnelServiceTests
 
     public ConnectionTunnelServiceTests()
     {
-        _sut = new ConnectionTunnelService(_factory, _prompt);
+        _sut = new ConnectionTunnelService(_factory, _prompt, _gateway);
         A.CallTo(() => _session.LocalPort).Returns(1080);
         A.CallTo(() => _session.DisposeAsync()).Returns(ValueTask.CompletedTask);
         A.CallTo(() => _factory.StartAsync(A<SshTunnelOptions>._, _prompt, A<CancellationToken>._)).Returns(_session);
@@ -60,16 +62,30 @@ public sealed class ConnectionTunnelServiceTests
 
         await _sut.DisposeAsync();
         A.CallTo(() => _session.DisposeAsync()).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _gateway.ReleaseClient(connection.Target)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
     public async Task Should_CloseActiveSession_WhenApplicationExits()
     {
-        await _sut.OpenAsync(_profile, new MongoConnectionTarget(_profile.Uri), CancellationToken.None);
+        var connection = await _sut.OpenAsync(_profile, new MongoConnectionTarget(_profile.Uri), CancellationToken.None);
 
         await _sut.DisposeAsync();
 
         A.CallTo(() => _session.DisposeAsync()).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _gateway.ReleaseClient(connection.Target)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_ReleaseClient_WhenTunnelCleanupFails()
+    {
+        var connection = await _sut.OpenAsync(_profile, new MongoConnectionTarget(_profile.Uri), CancellationToken.None);
+        A.CallTo(() => _session.DisposeAsync()).Throws(new IOException("SSH cleanup failed."));
+
+        var failure = await Record.ExceptionAsync(() => connection.DisposeAsync().AsTask());
+
+        failure.Should().BeOfType<IOException>();
+        A.CallTo(() => _gateway.ReleaseClient(connection.Target)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]

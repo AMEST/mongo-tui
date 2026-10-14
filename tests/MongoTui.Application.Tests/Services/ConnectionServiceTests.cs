@@ -26,7 +26,7 @@ public sealed class ConnectionServiceTests
     {
         var secrets = new SecretKeyService(_keyProvider, _crypto);
         _sut = new ConnectionService(_repository, secrets, _gateway,
-            new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>()));
+            new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>(), _gateway));
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
     }
@@ -147,6 +147,9 @@ public sealed class ConnectionServiceTests
             A<MongoConnectionTarget>.That.Matches(target => target.ConnectionString == "mongodb://localhost:27017/?proxyHost=127.0.0.1&proxyPort=1080"),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => session.DisposeAsync()).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _gateway.ReleaseClient(
+            A<MongoConnectionTarget>.That.Matches(target => target.ConnectionString.Contains("proxyPort=1080"))))
+            .MustHaveHappenedOnceExactly();
     }
 
     [Fact]

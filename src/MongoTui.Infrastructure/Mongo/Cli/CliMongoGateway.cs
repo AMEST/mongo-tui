@@ -1,3 +1,4 @@
+using MongoDB.Driver;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Models;
@@ -21,6 +22,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
 
     public Task ExportAsync(MongoConnectionTarget target, ExportRequest request, CancellationToken cancellationToken)
     {
+        EnsureProxySupported(target);
         var arguments = new List<string>
         {
             $"--uri={target.ConnectionString}",
@@ -66,6 +68,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
 
     public Task ImportAsync(MongoConnectionTarget target, ImportRequest request, CancellationToken cancellationToken)
     {
+        EnsureProxySupported(target);
         var arguments = new List<string>
         {
             $"--uri={target.ConnectionString}",
@@ -111,6 +114,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         string outputDirectory,
         CancellationToken cancellationToken)
     {
+        EnsureProxySupported(target);
         var arguments = new List<string>
         {
             $"--uri={target.ConnectionString}",
@@ -127,6 +131,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         string inputDirectory,
         CancellationToken cancellationToken)
     {
+        EnsureProxySupported(target);
         var arguments = new List<string>
         {
             $"--uri={target.ConnectionString}",
@@ -135,6 +140,14 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         };
 
         return RunToolAsync("mongorestore", arguments, cancellationToken);
+    }
+
+    private static void EnsureProxySupported(MongoConnectionTarget target)
+    {
+        if (new MongoUrl(target.ConnectionString).ProxyHost is not null)
+        {
+            throw new ProxyTransferNotSupportedException();
+        }
     }
 
     private async Task RunToolAsync(string tool, IReadOnlyList<string> arguments, CancellationToken cancellationToken)

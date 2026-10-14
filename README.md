@@ -192,6 +192,10 @@ The SSH process stops on disconnect, failed connection/test, or application exit
 supports 2FA via SSH keyboard-interactive authentication; a TPAM prompt inside a remote shell
 requires a different flow because `ssh -N` does not open a shell.
 
+Import/export and backup/restore through MongoDB Database Tools are unavailable for
+connections with a SOCKS proxy. The tools ignore SOCKS settings, so MongoTui blocks their
+launch and displays the reason to prevent a direct connection to MongoDB.
+
 Menu overview:
 
 | Menu | Actions |
