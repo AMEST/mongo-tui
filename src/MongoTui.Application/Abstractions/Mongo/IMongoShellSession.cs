@@ -7,5 +7,6 @@ public interface IMongoShellSession : IAsyncDisposable
 {
     bool IsRunning { get; }
 
-    Task<QueryResult> EvaluateAsync(string script, CancellationToken cancellationToken);
+    /// <summary>Evaluates the script with the selected database; null keeps the connection's default database.</summary>
+    Task<QueryResult> EvaluateAsync(string script, string? database, CancellationToken cancellationToken);
 }

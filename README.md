@@ -18,15 +18,21 @@ editing, import/export, autocomplete, and an AI assistant built on an OpenAI-com
 ## Features
 
 - **Connection manager** — SQLite-backed profiles; secrets encrypted with AES-256-GCM.
-- **Master password** — unlocks the secrets; the key is derived with Argon2id.
+- **Secrets unlock** — master password with Argon2id key derivation.
 - **Query tabs** — query scripts run through `mongosh --eval` as Extended JSON, run with `F5` or `Ctrl+Enter`.
-- **Result pane** — table, tree and JSON views with elapsed time and error reporting.
+- **Result pane** — text table, formatted document blocks (the “Tree” mode), and JSON, with elapsed time and errors.
 - **Documents** — insert / edit / delete as JSON.
 - **Indexes & stats** — list, create and drop indexes; collection document/index counts.
-- **Export / Import** — `mongoexport`/`mongoimport` (json, canonical json, csv) and `mongodump`/`mongorestore`.
-- **Autocomplete** — databases, collections and fields (with a field cache).
-- **AI assistant** — ask for a query from a schema; translate foreign queries (e.g. SQL) to MongoDB.
-- **Query history**, **dark theme**, **localization** (English/Russian).
+- **Export / Import** — JSON collection transfers through `mongoexport`/`mongoimport`; canonical JSON export.
+- **Autocomplete** — `Ctrl+Space` in the query editor for database, collection and field names, including dotted paths; fields are sampled and cached.
+- **AI assistant** — generate a MongoDB find filter from a text description; translate queries (e.g. SQL) into a find filter or aggregation pipeline. Responses are displayed in dialogs.
+- **Query history** — view the last 100 queries for a connection; **dark theme**, **localization** (English/Russian).
+
+Current limitations: “Tree” results are formatted text without expandable nodes. BSON
+choices in the transfer dialogs are unsupported; database dump/restore exists only in
+Infrastructure and has no TUI action. CSV export lacks a field selector, and CSV import
+lacks field/header options; use JSON transfers from the TUI. History is a viewer without
+replay.
 
 ## Requirements
 
@@ -38,7 +44,7 @@ to a MongoDB server (local or remote).
 |---|---|
 | [MongoDB Shell (`mongosh`)](https://www.mongodb.com/docs/mongodb-shell/install/) | Running scripts in query tabs. The connection tree and document operations use the bundled MongoDB driver. |
 | **.NET 10 runtime** | Running a framework-dependent build. Prebuilt release archives and self-contained builds include the runtime. |
-| [MongoDB Database Tools](https://www.mongodb.com/docs/database-tools/installation/) | `mongoexport` / `mongoimport` for JSON/CSV export/import; `mongodump` / `mongorestore` for database backups/restores. |
+| [MongoDB Database Tools](https://www.mongodb.com/docs/database-tools/installation/) | `mongoexport` / `mongoimport` for collection transfers. Database dump/restore is not exposed in the TUI. |
 | [OpenSSH client 8.4+ (`ssh`)](https://www.openssh.org/txt/release-8.4) | Automatic SSH/TPAM SOCKS5 proxy startup and interactive 2FA through `SSH_ASKPASS_REQUIRE=force`. |
 
 `mongosh` is installed separately from **MongoDB Database Tools**. External executables must
@@ -62,11 +68,9 @@ Check the components needed for your workflow:
 ```sh
 mongosh --version
 
-# Export/import and database backups/restores
+# Collection export/import
 mongoexport --version
 mongoimport --version
-mongodump --version
-mongorestore --version
 
 # SSH/TPAM proxy
 ssh -V
@@ -171,6 +175,39 @@ accessible only through `npx mongosh` does not satisfy the shell dependency.
    refresh/disconnect; database — refresh/statistics/drop; collection — statistics/indexes/clear/
    drop (destructive actions require confirmation).
 
+In the query editor, press **Ctrl+Space** or choose **Query → Autocomplete** after a name
+prefix: `db.`, `db.ap`, `db.getSiblingDB("app").us`, `db.getCollection("us`, or
+`db.users.find({ "profile.na`. At `db.`, choose a database to insert `db.getSiblingDB("…")`;
+after its next dot, choose a collection. The current tab's database is selected before each
+query and supplies the context for direct `getCollection(...)` calls and field completion;
+an explicit `getSiblingDB(...)` overrides it. Use **↑/↓** to choose, **Enter** or **Tab** to
+insert, and **Esc** to dismiss or cancel loading. The list filters as you continue typing.
+Collection completions use `getCollection("…")` to avoid conflicts with database methods.
+Method suggestions open automatically while typing a method prefix or a dot after a supported
+call; **Ctrl+Space** also opens them. Selecting a method inserts its parentheses and places the
+caret inside required arguments. Existing call arguments are preserved when correcting a name.
+
+| Context | Method suggestions |
+|---|---|
+| `db.get`, `db.getSiblingDB("app").get` | `getSiblingDB("")`, `getCollection("")` |
+| `db.getCollection("users").` or `db.users.` | `find({})`, `findOne({})`, `countDocuments({})`, `estimatedDocumentCount()` |
+| `…find({}).` or `…find({}).limit(10).` | `limit()`, `skip()`, `sort({})`, `toArray()`, `count()` |
+
+Methods are suggested locally, without a database request. After `toArray()`, `count()`,
+`findOne()` or another terminal call, cursor suggestions stop. A matching method prefix takes
+priority over database/collection names; use `getSiblingDB("…")` or `getCollection("…")` for
+names that overlap with methods. The method list follows the [mongosh API](https://www.mongodb.com/docs/manual/reference/method/).
+
+Fields come from up to 20 documents, include nested paths up to eight levels, and are cached
+for one minute. **F9** and running a query invalidate the field cache. Empty collections and
+fields absent from the sample cannot produce field suggestions; JavaScript variables,
+operators, arbitrary call chains and full JavaScript parsing are not supported.
+
+Autocomplete tests cover method scopes and balanced arguments (`QueryMethodContextTests`),
+automatic popup opening, filtering, insertion, caret placement and dismissal
+(`QueryMethodAutocompleteTests`), and executing completed `find`/`limit`/`sort`/`toArray`/`count`
+chains against MongoDB in Testcontainers (`QueryMethodCompletionTests`).
+
 To enable an SSH SOCKS5 proxy for a profile, open **SSH SOCKS…** in the connection form,
 enable automatic startup, and enter the SSH host, port and login. For TPAM use port `4422`
 and a login such as `requester+user@domain+system`. Leave the key file empty to use ssh-agent
@@ -221,15 +258,16 @@ All data lives under the user's home directory:
 
 | Setting | Where | Default |
 |---|---|---|
-| AI base URL | code (`AiOptions.BaseUrl`) | `https://api.openai.com/v1` |
-| AI model | code (`AiOptions.Model`) | `gpt-4o-mini` |
+| AI base URL | Settings → AI settings…, stored as `ai.base_url` | — |
+| AI model | Settings → AI settings…, stored as `ai.model` | — |
 | AI API key | settings store, key `ai.api_key` | — |
 | MongoDB tools directory | `MongoToolsOptions.Directory` | system `PATH` |
 | Master-password salt | settings store, key `security.kek_salt` | generated on first unlock |
 | Master-password check | settings store, key `security.kek_check` | written on first unlock |
 | Language | OS locale (en default, ru available) | `en` |
 
-AI works with any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Ollama, OpenRouter, local).
+The AI assistant requires an endpoint compatible with the OpenAI Chat Completions API.
+Configure its base URL, model and API key in **Settings → AI settings…**.
 
 ## Building and testing
 

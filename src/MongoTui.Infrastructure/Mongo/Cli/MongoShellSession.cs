@@ -31,15 +31,11 @@ public sealed class MongoShellSession : IMongoShellSession
 
     public bool IsRunning => true;
 
-    public async Task<QueryResult> EvaluateAsync(string script, CancellationToken cancellationToken)
+    public async Task<QueryResult> EvaluateAsync(string script, string? database, CancellationToken cancellationToken)
     {
         Log.Debug("mongosh: evaluating script ({ScriptLength} chars)", script.Length);
 
-        var request = new ProcessRequest(
-            _tools.Resolve("mongosh"),
-            [_target.ConnectionString, "--quiet", "--norc", "--json=relaxed", "--eval", script]);
-
-        var result = await _runner.RunAsync(request, cancellationToken);
+        var result = await _runner.RunAsync(CreateRequest(script, database), cancellationToken);
 
         Log.Debug(
             "mongosh: exit={ExitCode}, stdout={StdoutChars} chars, stderr={StderrChars} chars",
@@ -61,6 +57,15 @@ public sealed class MongoShellSession : IMongoShellSession
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+    private ProcessRequest CreateRequest(string script, string? database)
+    {
+        var arguments = new List<string> { _target.ConnectionString, "--quiet", "--norc", "--json=relaxed" };
+        if (database is not null)
+            arguments.AddRange(["--eval", $"db = db.getSiblingDB({JsonSerializer.Serialize(database)})"]);
+        arguments.AddRange(["--eval", script]);
+        return new ProcessRequest(_tools.Resolve("mongosh"), arguments);
+    }
 
     private static string DescribeError(ProcessResult result)
     {

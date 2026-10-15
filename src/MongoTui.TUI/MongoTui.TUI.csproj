@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="MongoTui.TUI.Tests" />
+    <InternalsVisibleTo Include="MongoTui.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

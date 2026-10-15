@@ -56,7 +56,7 @@ public sealed class QueryTabsViewContextMenuTests
             A.Fake<IMongoShellSessionFactory>(),
             A.Fake<IQueryHistoryRepository>());
 
-        var tabs = new QueryTabsView(queryService, localizer);
+        var tabs = new QueryTabsView(queryService, localizer, new AutocompleteService(A.Fake<IMongoGateway>()));
         tabs.AddTab(
             ConnectionId.From(Guid.NewGuid()),
             new MongoConnectionTarget("mongodb://localhost:27017"),

@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MongoTui.Infrastructure\MongoTui.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\MongoTui.Application\MongoTui.Application.csproj" />
+    <ProjectReference Include="..\..\src\MongoTui.TUI\MongoTui.TUI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
