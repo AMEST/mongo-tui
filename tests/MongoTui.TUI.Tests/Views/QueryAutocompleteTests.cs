@@ -27,25 +27,31 @@ public sealed class QueryAutocompleteTests
     [Fact]
     public async Task Should_InsertSelectedCollection_WhenCompletionAccepted()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         await tabs.CompleteActiveAsync(CancellationToken.None);
 
         var accepted = tabs.ActiveEditorView!.Autocomplete.ProcessKey(Key.Enter);
 
         accepted.Should().BeTrue();
-        tabs.ActiveEditorView.Text.Should().Be("db.users");
-        tabs.ActiveTab!.Script.Should().Be("db.users");
+        tabs.ActiveEditorView.Text.Should().Be("db.getSiblingDB('app').getCollection(\"users\")");
+        tabs.ActiveTab!.Script.Should().Be("db.getSiblingDB('app').getCollection(\"users\")");
     }
 
-    [Fact]
-    public async Task Should_ReplaceEntireName_WhenCaretIsInsideToken()
+    [Theory]
+    [InlineData("db.getSiblingDB('app').us|es.find({})", "users", "db.getSiblingDB('app').getCollection(\"users\").find({})")]
+    [InlineData("db.getCollection('ord|\\'items').find({})", "order'items", "db.getCollection('order\\'items').find({})")]
+    [InlineData("db.getCollection(\"ord|\\\"items\").find({})", "order\"items", "db.getCollection(\"order\\\"items\").find({})")]
+    [InlineData("db.getCollection('order\\'it|ms').find({})", "order'items", "db.getCollection('order\\'items').find({})")]
+    public async Task Should_ReplaceEntireName_WhenCaretIsInsideToken(string marked, string collection, string expected)
     {
-        using var tabs = CreateTabs("db.uses.find({})", 5);
+        using var tabs = CreateTabs(marked.Replace("|", string.Empty, StringComparison.Ordinal), marked.IndexOf('|'));
+        A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(new List<string> { collection });
         await tabs.CompleteActiveAsync(CancellationToken.None);
 
         tabs.ActiveEditorView!.Autocomplete.ProcessKey(Key.Enter);
 
-        tabs.ActiveEditorView.Text.Should().Be("db.users.find({})");
+        tabs.ActiveEditorView.Text.Should().Be(expected);
     }
 
     [Fact]
@@ -57,6 +63,37 @@ public sealed class QueryAutocompleteTests
 
         status.Should().Be("Autocomplete.Hint");
         tabs.ActiveEditorView!.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("app");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("app")]
+    public async Task Should_ListDatabases_WhenCaretFollowsDatabaseRoot(string? database)
+    {
+        using var tabs = CreateTabs("db.", database: database);
+
+        var status = await tabs.CompleteActiveAsync(CancellationToken.None);
+
+        status.Should().Be("Autocomplete.Hint");
+        tabs.ActiveEditorView!.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("admin", "app");
+        A.CallTo(() => _gateway.ListDatabasesAsync(_target, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData("db.|", "db.getSiblingDB(\"admin\")")]
+    [InlineData("db.ap|", "db.getSiblingDB(\"app\")")]
+    [InlineData("db.ap|le", "db.getSiblingDB(\"app\")")]
+    public async Task Should_InsertSiblingDatabase_WhenDatabaseCompletionAccepted(string marked, string expected)
+    {
+        using var tabs = CreateTabs(marked.Replace("|", string.Empty, StringComparison.Ordinal), marked.IndexOf('|'));
+        await tabs.CompleteActiveAsync(CancellationToken.None);
+
+        var accepted = tabs.ActiveEditorView!.Autocomplete.ProcessKey(Key.Enter);
+
+        accepted.Should().BeTrue();
+        tabs.ActiveEditorView.Text.Should().Be(expected);
+        tabs.ActiveTab!.Script.Should().Be(expected);
     }
 
     [Theory]
@@ -76,22 +113,38 @@ public sealed class QueryAutocompleteTests
             "{}", A<QueryExecutionOptions>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
+    [Theory]
+    [InlineData("db.getCollection('order\\'items').find({ na", "order'items")]
+    [InlineData("db.getCollection('order\\\\items').find({ na", "order\\items")]
+    [InlineData("db.getSiblingDB('a\\u0070p').getCollection('order\\x2ditems').find({ na", "order-items")]
+    public async Task Should_LoadFieldsFromDecodedCollection_WhenQueryContainsEscapes(string script, string collection)
+    {
+        using var tabs = CreateTabs(script);
+
+        var status = await tabs.CompleteActiveAsync(CancellationToken.None);
+
+        status.Should().Be("Autocomplete.Hint");
+        A.CallTo(() => _gateway.FindAsync(_target,
+            new CollectionRef(DatabaseName.Create("app"), CollectionName.Create(collection)),
+            "{}", A<QueryExecutionOptions>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
     [Fact]
     public async Task Should_KeepText_WhenCompletionDismissed()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         await tabs.CompleteActiveAsync(CancellationToken.None);
 
         tabs.ActiveEditorView!.Autocomplete.ProcessKey(Key.Esc);
 
-        tabs.ActiveEditorView.Text.Should().Be("db.us");
+        tabs.ActiveEditorView.Text.Should().Be("db.getSiblingDB('app').us");
         tabs.ActiveEditorView.Autocomplete.Visible.Should().BeFalse();
     }
 
     [Fact]
     public async Task Should_ShowFailure_WhenGatewayThrows()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
             .ThrowsAsync(new InvalidOperationException("unavailable"));
 
@@ -104,7 +157,7 @@ public sealed class QueryAutocompleteTests
     [Fact]
     public async Task Should_DiscardSuggestions_WhenTextChangesDuringLoad()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         var pending = new TaskCompletionSource<IReadOnlyList<string>>();
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
             .Returns(pending.Task);
@@ -121,7 +174,7 @@ public sealed class QueryAutocompleteTests
     [Fact]
     public async Task Should_CancelRequest_WhenTabIsClosed()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         var pending = new TaskCompletionSource<IReadOnlyList<string>>();
         var token = CancellationToken.None;
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
@@ -140,13 +193,15 @@ public sealed class QueryAutocompleteTests
         status.Should().BeNull();
     }
 
-    [Fact]
-    public async Task Should_FilterVisiblePopup_WhenUserContinuesTyping()
+    [Theory]
+    [InlineData("db.a", 'p', "db.ap", "app")]
+    [InlineData("db.getSiblingDB('app').u", 's', "db.getSiblingDB('app').us", "users")]
+    public async Task Should_FilterVisiblePopup_WhenUserContinuesTyping(string script, char key, string expected, string suggestion)
     {
         using IApplication app = Terminal.Gui.App.Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
         using var runnable = new Runnable<bool>();
-        var tabs = CreateTabs("db.u");
+        var tabs = CreateTabs(script);
         tabs.Width = 60;
         tabs.Height = 15;
         runnable.Add(tabs);
@@ -157,18 +212,18 @@ public sealed class QueryAutocompleteTests
         await tabs.CompleteActiveAsync(CancellationToken.None);
         app.LayoutAndDraw();
 
-        tabs.ActiveEditorView.NewKeyDownEvent(new Key('s'));
+        tabs.ActiveEditorView.NewKeyDownEvent(new Key(key));
         app.LayoutAndDraw();
 
-        tabs.ActiveEditorView.Text.Should().Be("db.us");
+        tabs.ActiveEditorView.Text.Should().Be(expected);
         tabs.ActiveEditorView.Autocomplete.Visible.Should().BeTrue();
-        tabs.ActiveEditorView.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("users");
+        tabs.ActiveEditorView.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal(suggestion);
     }
 
     [Fact]
     public async Task Should_DiscardSuggestions_WhenEscapePressedDuringLoad()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         var pending = new TaskCompletionSource<IReadOnlyList<string>>();
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
             .Returns(pending.Task);
@@ -182,23 +237,29 @@ public sealed class QueryAutocompleteTests
         tabs.ActiveEditorView.Autocomplete.Suggestions.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Should_InsertQuotedCollectionAccess_WhenNameContainsDash()
+    [Theory]
+    [InlineData("order-items")]
+    [InlineData("getSiblingDB")]
+    [InlineData("getCollection")]
+    [InlineData("stats")]
+    [InlineData("constructor")]
+    public async Task Should_InsertQuotedCollectionAccess_WhenCollectionNameIsCompleted(string collection)
     {
-        using var tabs = CreateTabs("db.ord");
+        var script = $"db.getSiblingDB('app').getCollection(\"{collection[..3]}\")";
+        using var tabs = CreateTabs(script, script.Length - 2);
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))
-            .Returns(new List<string> { "order-items" });
+            .Returns(new List<string> { collection });
         await tabs.CompleteActiveAsync(CancellationToken.None);
 
         tabs.ActiveEditorView!.Autocomplete.ProcessKey(Key.Enter);
 
-        tabs.ActiveEditorView.Text.Should().Be("db.getCollection(\"order-items\")");
+        tabs.ActiveEditorView.Text.Should().Be($"db.getSiblingDB('app').getCollection(\"{collection}\")");
     }
 
     [Fact]
     public async Task Should_DiscardSuggestions_WhenUserSwitchesTab()
     {
-        using var tabs = CreateTabs("db.us");
+        using var tabs = CreateTabs("db.getSiblingDB('app').us");
         var editor = tabs.ActiveEditorView!;
         var pending = new TaskCompletionSource<IReadOnlyList<string>>();
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._))

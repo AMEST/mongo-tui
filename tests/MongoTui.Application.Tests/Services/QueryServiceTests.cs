@@ -20,7 +20,7 @@ public sealed class QueryServiceTests
     public QueryServiceTests()
     {
         A.CallTo(() => _session.IsRunning).Returns(true);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
             .Returns(QueryResult.Empty(QueryResultKind.Documents));
         A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .Returns(_session);
@@ -66,7 +66,7 @@ public sealed class QueryServiceTests
     [Fact]
     public async Task Should_WrapQueryExecutionException_When_SessionThrows()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
             .Throws(new InvalidOperationException("boom"));
 
         var act = async () => await _sut.ExecuteAsync(CreateContext(), CancellationToken.None);
@@ -81,7 +81,7 @@ public sealed class QueryServiceTests
     [Fact]
     public async Task Should_PropagateCancellation_When_Cancelled()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
             .Throws(new OperationCanceledException());
 
         var act = async () => await _sut.ExecuteAsync(CreateContext(), CancellationToken.None);
@@ -98,6 +98,35 @@ public sealed class QueryServiceTests
         await _sut.CloseTabAsync(context.TabId, CancellationToken.None);
 
         A.CallTo(() => _session.DisposeAsync()).MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData("app")]
+    [InlineData("other")]
+    [InlineData(null)]
+    public async Task Should_PassDatabaseAndOriginalScript_WhenQueryExecuted(string? database)
+    {
+        var context = CreateContext() with { Database = database };
+
+        await _sut.ExecuteAsync(context, CancellationToken.None);
+
+        A.CallTo(() => _session.EvaluateAsync(context.Script, database, CancellationToken.None)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _history.AddAsync(
+            A<QueryHistoryEntry>.That.Matches(entry => entry.Database == database && entry.Script == context.Script),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_UseChangedDatabase_WhenSessionReused()
+    {
+        var context = CreateContext();
+        await _sut.ExecuteAsync(context, CancellationToken.None);
+
+        await _sut.ExecuteAsync(context with { Database = "other" }, CancellationToken.None);
+
+        A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, "other", CancellationToken.None)).MustHaveHappenedOnceExactly();
     }
 
     private static QueryExecutionContext CreateContext() =>

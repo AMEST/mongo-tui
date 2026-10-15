@@ -29,6 +29,7 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
         Multiline = true;
         WordWrap = false;
         Text = model.Script;
+        Autocomplete = new QueryAutocomplete(GetCaretBack);
         Autocomplete.SuggestionGenerator = this;
         Autocomplete.Reopen = new Key(KeyCode.Space | KeyCode.CtrlMask);
         Autocomplete.MaxWidth = 60;
@@ -49,8 +50,10 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
         _request = request;
         try
         {
-            var candidates = await _autocomplete.GetSuggestionsAsync(
-                _model.Target, context.Database, context.Collection, string.Empty, request.Token);
+            var candidates = context.MethodScope is { } scope
+                ? QueryMethodCatalog.Get(scope).Select(method => method.Name).ToArray()
+                : await _autocomplete.GetSuggestionsAsync(
+                    _model.Target, context.Database, context.Collection, string.Empty, request.Token);
             if (request.IsCancellationRequested || !HasFocus || Text != text || CursorOffset() != cursor)
                 return null;
             _loadedContext = context;
@@ -77,15 +80,15 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
         var text = Text;
         var cursor = CursorOffset();
         var parsed = QueryCompletionContext.Parse(text, cursor, _model.Database);
-        if (parsed is null || _loadedContext is null || SelectedLength > 0
-            || parsed.Database != _loadedContext.Database || parsed.Collection != _loadedContext.Collection
-            || parsed.Start != _loadedContext.Start || parsed.Quote != _loadedContext.Quote
-            || parsed.CollectionAccess != _loadedContext.CollectionAccess)
+        if (parsed is null || !HasFocus || SelectedLength > 0)
             return [];
+        var candidates = parsed.MethodScope is { } scope
+            ? QueryMethodCatalog.Get(scope).Select(method => method.Name)
+            : MatchesLoadedContext(parsed) ? _candidates : [];
 
         context.CursorPosition = CurrentColumn - new StringInfo(text[parsed.Start..cursor]).LengthInTextElements;
         var remove = new StringInfo(text.Substring(parsed.Start, parsed.Length)).LengthInTextElements;
-        return _candidates
+        return candidates
             .Where(candidate => candidate.StartsWith(parsed.Prefix, StringComparison.OrdinalIgnoreCase))
             .Where(candidate => parsed.Replacement(candidate) != text.Substring(parsed.Start, parsed.Length))
             .Select(candidate => new Suggestion(remove, parsed.Replacement(candidate), candidate));
@@ -93,6 +96,29 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
 
     public bool IsWordChar(string text) =>
         text.Length > 0 && (char.IsLetterOrDigit(text, 0) || text[0] is '_' or '$' or '.');
+
+    private bool MatchesLoadedContext(QueryCompletionContext parsed) => _loadedContext is { } loaded
+        && parsed.Database == loaded.Database && parsed.Collection == loaded.Collection && parsed.Start == loaded.Start
+        && parsed.Quote == loaded.Quote && parsed.MemberAccess == loaded.MemberAccess && loaded.MethodScope is null;
+
+    private int GetCaretBack(Suggestion suggestion)
+    {
+        var context = QueryCompletionContext.Parse(Text, CursorOffset(), _model.Database);
+        return context is { MethodScope: { } scope, HasCallSuffix: false }
+            ? QueryMethodCatalog.Get(scope).Single(method => method.Name == suggestion.Title).CaretBack : 0;
+    }
+
+    protected override bool OnKeyDownNotHandled(Key key)
+    {
+        var handled = base.OnKeyDownNotHandled(key);
+        if (handled && !string.IsNullOrEmpty(key.AsGrapheme)
+            && QueryCompletionContext.Parse(Text, CursorOffset(), _model.Database)?.MethodScope is not null)
+        {
+            Autocomplete.ProcessKey(Autocomplete.Reopen);
+            RefreshAutocompletePopup();
+        }
+        return handled;
+    }
 
     internal void CancelCompletion()
     {

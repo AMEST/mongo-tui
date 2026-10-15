@@ -4,10 +4,15 @@ using System.Text.RegularExpressions;
 
 namespace MongoTui.TUI.Editor;
 
-/// <summary>Identifies a database, collection or field name at the query caret.</summary>
+/// <summary>Identifies a database, collection, field or shell method at the query caret.</summary>
 internal sealed record QueryCompletionContext(
-    string? Database, string? Collection, string Prefix, int Start, int Length, char? Quote, bool CollectionAccess)
+    string? Database, string? Collection, string Prefix, int Start, int Length, char? Quote, bool MemberAccess,
+    QueryMethodScope? MethodScope = null, bool HasCallSuffix = false)
 {
+    private const string QuotedName = """(?<quote>['"])(?<name>(?:\\[^\r\n]|(?!\k<quote>)[^\\\r\n])*)\k<quote>""";
+    private const string QuotedPrefix = """(?<quote>['"])(?<prefix>(?:\\[^\r\n]|(?!\k<quote>)[^\\\r\n])*)""";
+    private const string MemberPrefix = @"^\s*(?<prefix>[\p{L}\p{N}_$]*)$";
+
     public static QueryCompletionContext? Parse(string text, int cursor, string? database)
     {
         var before = text[..cursor];
@@ -18,17 +23,25 @@ internal sealed record QueryCompletionContext(
 
         var offset = roots[^1].Index + roots[^1].Length;
         var fragment = before[offset..];
-        var sibling = Match(fragment, "^\\s*getSiblingDB\\s*\\(\\s*(['\"])(.*?)\\1\\s*\\)\\s*\\.");
+        var sibling = Match(fragment, @"^\s*getSiblingDB\s*\(\s*" + QuotedName + @"\s*\)\s*\.");
         if (sibling.Success)
         {
-            database = sibling.Groups[2].Value;
+            database = JavaScriptStringLiteral.Decode(sibling.Groups["name"].Value);
             offset += sibling.Length;
             fragment = before[offset..];
         }
 
-        var name = Match(fragment, "^\\s*getSiblingDB\\s*\\(\\s*(?<quote>['\"])(?<prefix>[^'\"\\r\\n]*)$");
+        var name = Match(fragment, @"^\s*getSiblingDB\s*\(\s*" + QuotedPrefix + "$");
         if (name.Success)
             return Create(text, cursor, offset, name, null, null);
+        if (QueryMethodContext.Parse(text, cursor, masked, offset, database) is { } method)
+            return method;
+        if (!sibling.Success)
+        {
+            name = Match(fragment, MemberPrefix);
+            if (name.Success)
+                return Create(text, cursor, offset, name, null, null, memberAccess: true);
+        }
         if (database is null)
             return null;
 
@@ -38,49 +51,52 @@ internal sealed record QueryCompletionContext(
     private static QueryCompletionContext? ParseCollectionOrField(
         string text, int cursor, string database, string masked, int offset, string fragment)
     {
-        var name = Match(fragment, "^\\s*getCollection\\s*\\(\\s*(?<quote>['\"])(?<prefix>[^'\"\\r\\n]*)$");
+        var name = Match(fragment, @"^\s*getCollection\s*\(\s*" + QuotedPrefix + "$");
         if (name.Success)
             return Create(text, cursor, offset, name, database, null);
-        name = Match(fragment, @"^\s*(?<prefix>[\p{L}\p{N}_$]*)$");
+        name = Match(fragment, MemberPrefix);
         if (name.Success)
-            return Create(text, cursor, offset, name, database, null) with { CollectionAccess = true };
+            return Create(text, cursor, offset, name, database, null, memberAccess: true);
 
-        var collection = Match(fragment, "^\\s*(?:getCollection\\s*\\(\\s*(['\"])(?<name>.*?)\\1\\s*\\)|(?<name>[\\p{L}\\p{N}_$]+))\\s*\\.");
+        var collection = Match(fragment, @"^\s*(?:getCollection\s*\(\s*" + QuotedName + @"\s*\)|(?<name>[\p{L}\p{N}_$]+))\s*\.");
         if (!collection.Success || masked[offset..].Contains(';'))
             return null;
         var arguments = masked[(offset + collection.Length)..];
         if (arguments.Count(character => character == '(') <= arguments.Count(character => character == ')'))
             return null;
 
-        name = Match(fragment, "[,{]\\s*(?<quote>['\"]?)(?<prefix>[\\p{L}\\p{N}_$.]*)$");
-        return name.Success && masked[offset + name.Index] is '{' or ','
-            ? Create(text, cursor, offset, name, database, collection.Groups["name"].Value) : null;
+        var collectionName = collection.Groups["quote"].Success
+            ? JavaScriptStringLiteral.Decode(collection.Groups["name"].Value) : collection.Groups["name"].Value;
+        name = Match(fragment, @"[,{]\s*(?:" + QuotedPrefix + @"|(?<prefix>[\p{L}\p{N}_$.]*))$");
+        return collectionName is not null && name.Success && masked[offset + name.Index] is '{' or ','
+            ? Create(text, cursor, offset, name, database, collectionName) : null;
     }
 
     public string Replacement(string candidate)
     {
+        if (MethodScope is { } scope)
+            return HasCallSuffix ? candidate : QueryMethodCatalog.Get(scope).Single(method => method.Name == candidate).Replacement;
         var escaped = JsonEncodedText.Encode(candidate, JavaScriptEncoder.UnsafeRelaxedJsonEscaping).ToString();
         if (Quote is { } quote)
             return quote == '\'' ? escaped.Replace("'", "\\'", StringComparison.Ordinal) : escaped;
         var quoted = "\"" + escaped + "\"";
-        if (CollectionAccess)
-            return Match(candidate, @"^[\p{L}_$][\p{L}\p{N}_$]*$").Success
-                ? candidate : $"getCollection({quoted})";
-        return quoted;
+        var method = Database is null ? "getSiblingDB" : "getCollection";
+        return MemberAccess ? $"{method}({quoted})" : quoted;
     }
 
-    private static QueryCompletionContext Create(
-        string text, int cursor, int offset, Match match, string? database, string? collection)
+    private static QueryCompletionContext? Create(
+        string text, int cursor, int offset, Match match, string? database, string? collection, bool memberAccess = false)
     {
         var prefix = match.Groups["prefix"];
         var quote = match.Groups["quote"].Value;
-        var end = cursor;
-        while (end < text.Length && (quote.Length > 0
-                   ? text[end] != quote[0] && text[end] is not '\r' and not '\n'
-                   : char.IsLetterOrDigit(text[end]) || text[end] is '_' or '$' || collection is not null && text[end] == '.'))
+        var decoded = quote.Length == 0 ? prefix.Value : JavaScriptStringLiteral.Decode(prefix.Value);
+        if (decoded is null) return null;
+        var start = offset + prefix.Index;
+        var end = quote.Length == 0 ? cursor : JavaScriptStringLiteral.FindEnd(text, start, quote[0]);
+        while (quote.Length == 0 && end < text.Length
+               && (char.IsLetterOrDigit(text[end]) || text[end] is '_' or '$' || collection is not null && text[end] == '.'))
             end++;
-        return new(database, collection, prefix.Value, offset + prefix.Index,
-            end - offset - prefix.Index, quote.Length == 0 ? null : quote[0], false);
+        return new(database, collection, decoded, start, end - start, quote.Length == 0 ? null : quote[0], memberAccess);
     }
 
     private static Match Match(string input, string pattern) =>

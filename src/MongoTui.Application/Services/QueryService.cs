@@ -33,7 +33,7 @@ public sealed class QueryService : IAsyncDisposable
 
         try
         {
-            var result = await session.EvaluateAsync(context.Script, cancellationToken);
+            var result = await session.EvaluateAsync(context.Script, context.Database, cancellationToken);
             success = true;
 
             return result with { Elapsed = stopwatch.Elapsed };
