@@ -23,4 +23,12 @@
     <InternalsVisibleTo Include="MongoTui.TUI.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\LICENSE;..\..\THIRD-PARTY-LICENSES.md"
+          Link="%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest"
+          CopyToPublishDirectory="PreserveNewest"
+          ExcludeFromSingleFile="true" />
+  </ItemGroup>
+
 </Project>

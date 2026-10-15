@@ -307,3 +307,8 @@ official driver and bulk operations (export/import, dump/restore) to the Databas
 ## Project conventions
 
 - [`AGENTS.md`](AGENTS.md)
+
+## License
+
+MongoTui is licensed under the [MIT License](LICENSE).
+Dependency licenses and notices are collected in [Third-party licenses](THIRD-PARTY-LICENSES.md).

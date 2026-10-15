@@ -308,3 +308,8 @@ MongoDB Database Tools.
 ## Конвенции проекта
 
 - [`AGENTS.md`](AGENTS.md)
+
+## Лицензия
+
+MongoTui распространяется по [лицензии MIT](LICENSE).
+Лицензии и уведомления зависимостей собраны в [отдельном файле](THIRD-PARTY-LICENSES.md).
