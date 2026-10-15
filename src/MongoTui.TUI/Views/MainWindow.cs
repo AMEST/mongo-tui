@@ -309,6 +309,17 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void OpenAbout()
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        using var dialog = new AboutDialog(_localizer, Application);
+        Application.Run(dialog);
+    }
+
     private MenuBar BuildMenuBar(ILocalizer localizer) =>
         new(BuildMenuItems(localizer))
         {
@@ -399,6 +410,10 @@ public sealed partial class MainWindow : Window
                     ]),
                 },
                 Item(localizer.Get("Menu.Settings.Ai"), Key.Empty, () => Safe(OpenAiSettingsAsync)),
+            ]),
+            new MenuBarItem(localizer.Get("Menu.Help"),
+            [
+                Item(localizer.Get("Menu.Help.About"), Key.Empty, OpenAbout),
             ]),
         ];
     }

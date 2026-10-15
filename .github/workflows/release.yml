@@ -44,11 +44,13 @@ jobs:
     - name: Publish self-contained
       shell: bash
       run: |
+        version="${GITHUB_REF_NAME#v}"
         dotnet publish ${{ env.PROJECT_PATH }} \
           -c Release \
           -r ${{ matrix.rid }} \
           --self-contained true \
           -p:PublishSingleFile=true \
+          -p:Version="$version" \
           -o publish/${{ matrix.artifact_name }}
         tar -czf ${{ matrix.artifact_name }}.tar.gz -C publish/${{ matrix.artifact_name }} .
 

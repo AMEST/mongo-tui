@@ -12,6 +12,12 @@ if (Environment.GetEnvironmentVariable("MONGOTUI_ASKPASS_PIPE") is { Length: > 0
     return await new SshAskPassClient().RunAsync(pipeName, args.FirstOrDefault() ?? string.Empty, CancellationToken.None);
 }
 
+if (args.Contains("--version", StringComparer.Ordinal))
+{
+    await Console.Out.WriteLineAsync(ApplicationVersion.GetInformationalVersion());
+    return 0;
+}
+
 Directory.CreateDirectory(AppPaths.LogsDirectory);
 
 Log.Logger = new LoggerConfiguration()
