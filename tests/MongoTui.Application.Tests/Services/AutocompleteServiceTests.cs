@@ -77,4 +77,60 @@ public sealed class AutocompleteServiceTests
         A.CallTo(() => _gateway.FindAsync(Target, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
+
+    [Fact]
+    public async Task Should_IncludeDottedPaths_WhenDocumentsContainObjectsAndArrays()
+    {
+        A.CallTo(() => _gateway.FindAsync(Target, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .Returns(new QueryResult
+            {
+                Kind = QueryResultKind.Documents,
+                Documents = [BsonDocument.Parse("{profile: {name: 'a'}, items: [{price: 1}, {sku: 'x'}]}")],
+            });
+
+        var suggestions = await _sut.GetSuggestionsAsync(Target, "app", "users", string.Empty, CancellationToken.None);
+
+        suggestions.Should().Equal("items", "items.price", "items.sku", "profile", "profile.name");
+    }
+
+    [Fact]
+    public async Task Should_ReloadFields_WhenCacheInvalidated()
+    {
+        A.CallTo(() => _gateway.FindAsync(Target, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .Returns(QueryResult.Empty(QueryResultKind.Documents));
+        await _sut.GetSuggestionsAsync(Target, "app", "users", string.Empty, CancellationToken.None);
+        _sut.Invalidate();
+
+        await _sut.GetSuggestionsAsync(Target, "app", "users", string.Empty, CancellationToken.None);
+
+        A.CallTo(() => _gateway.FindAsync(Target, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .MustHaveHappenedTwiceExactly();
+    }
+
+    [Fact]
+    public async Task Should_LoadSeparateFields_WhenConnectionChanges()
+    {
+        var other = new MongoConnectionTarget("mongodb://other:27017");
+        A.CallTo(() => _gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .Returns(QueryResult.Empty(QueryResultKind.Documents));
+        await _sut.GetSuggestionsAsync(Target, "app", "users", string.Empty, CancellationToken.None);
+
+        await _sut.GetSuggestionsAsync(other, "app", "users", string.Empty, CancellationToken.None);
+
+        A.CallTo(() => _gateway.FindAsync(other, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task ShouldThrow_OperationCanceledException_WhenRequestCanceled()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        var act = () => _sut.GetSuggestionsAsync(Target, null, null, string.Empty, cancellation.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
 }

@@ -55,7 +55,7 @@ public sealed partial class MainWindow : Window
     public MainWindow(
         ILocalizer localizer,
         ConnectionService connections,
-        QueryService queryService,
+        QueryTabsView queryTabs,
         DocumentService documents,
         IndexService indexes,
         DatabaseService databases,
@@ -86,7 +86,7 @@ public sealed partial class MainWindow : Window
         _gateway = gateway;
         _tunnels = tunnels;
         _tree = new TreeViewModel(gateway, localizer);
-        _queryTabs = new QueryTabsView(queryService, localizer);
+        _queryTabs = queryTabs;
         _queryTabs.RunRequested += (_, _) => Safe(RunActiveQueryAsync);
         _queryTabs.ExportRequested += (_, _) => OpenExport();
         _queryTabs.EditDocumentRequested += (_, _) => EditDocument();
@@ -176,12 +176,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (key == new Key(KeyCode.Space | KeyCode.CtrlMask))
-        {
-            key.Handled = true;
-            OpenTreeContextMenu(new Point(2, 2));
-            return;
-        }
+        if (HandleCompletionKey(key)) return;
 
         if (key == new Key(KeyCode.Tab | KeyCode.CtrlMask))
         {
@@ -371,6 +366,7 @@ public sealed partial class MainWindow : Window
             [
                 Item(localizer.Get("Menu.Query.New"), Ctrl(KeyCode.T), NewTab),
                 Item(localizer.Get("Menu.Query.Run"), Key.F5, runQuery),
+                Item(localizer.Get("Menu.Query.Autocomplete"), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
                 Item(localizer.Get("Menu.Query.Close"), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
                 Item(localizer.Get("Menu.Query.Ai"), Key.F6, OpenAiAssistant, _aiConfigured),
                 Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate, _aiConfigured),
@@ -422,6 +418,7 @@ public sealed partial class MainWindow : Window
 
     private async Task RefreshActiveAsync()
     {
+        _queryTabs.InvalidateCompletions();
         if (_tree.Count == 0)
         {
             return;

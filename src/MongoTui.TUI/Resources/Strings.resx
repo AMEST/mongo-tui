@@ -217,4 +217,9 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Ssh.Cancelled" xml:space="preserve">
     <value>SSH authentication cancelled.</value>
   </data>
+  <data name="Menu.Query.Autocomplete" xml:space="preserve"><value>Autocomplete (Ctrl+Space)</value></data>
+  <data name="Autocomplete.Hint" xml:space="preserve"><value>↑/↓ select · Enter/Tab insert · Esc close</value></data>
+  <data name="Autocomplete.NoContext" xml:space="preserve"><value>Complete db.getSiblingDB("…"), db.…, db.getCollection("…"), or a field in a query object.</value></data>
+  <data name="Autocomplete.NoMatches" xml:space="preserve"><value>No matching names found.</value></data>
+  <data name="Autocomplete.Failed" xml:space="preserve"><value>Could not load completions. Check the connection and read permissions.</value></data>
 </root>

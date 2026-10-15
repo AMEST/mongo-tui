@@ -18,6 +18,7 @@ public static class TuiServiceCollectionExtensions
         services.AddSingleton<SshAuthenticationPrompt>();
         services.AddSingleton<ITwoFactorPrompt>(provider => provider.GetRequiredService<SshAuthenticationPrompt>());
         services.AddSingleton<AppHost>();
+        services.AddTransient<QueryTabsView>();
         services.AddTransient<MainWindow>();
 
         return services;
