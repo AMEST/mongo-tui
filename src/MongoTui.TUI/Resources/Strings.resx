@@ -13,6 +13,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="App.Title" xml:space="preserve"><value>MongoTui</value></data>
+  <data name="Menu.Help" xml:space="preserve"><value>Help</value></data>
+  <data name="Menu.Help.About" xml:space="preserve"><value>About...</value></data>
+  <data name="About.Title" xml:space="preserve"><value>About MongoTui</value></data>
+  <data name="About.Description" xml:space="preserve"><value>A terminal user interface for MongoDB.</value></data>
+  <data name="About.Version" xml:space="preserve"><value>Version: {0}</value></data>
   <data name="Status.Ready" xml:space="preserve"><value>Ready</value></data>
   <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+Enter Run · Ctrl+T New tab · Ctrl+W Close · Ctrl+O Connections · Ctrl+Q Quit</value></data>
   <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>
