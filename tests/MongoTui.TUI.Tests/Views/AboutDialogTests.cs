@@ -27,29 +27,30 @@ public sealed class AboutDialogTests
 
         dialog.Title.Should().Be(title);
         dialog.SubViews.OfType<Label>().Select(label => label.Text)
-            .Should().Contain(["MongoTui", description, versionLabel + version]);
+            .Should().Contain(["MongoTui", description, versionLabel + version,
+                "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)"]);
     }
 
     [Theory]
     [InlineData("en")]
     [InlineData("ru")]
-    public void Should_KeepVersionVisible_WhenDialogIsLaidOut(string language)
+    public void Should_KeepVersionAndLicenseVisible_WhenDialogIsLaidOut(string language)
     {
         var localizer = new ResxLocalizer();
         localizer.SetLanguage(language);
         using var dialog = new AboutDialog(localizer, A.Fake<IApplication>());
         dialog.BeginInit();
         dialog.EndInit();
-        var version = dialog.SubViews.OfType<Label>()
-            .Single(label => label.Text == localizer.Format("About.Version",
-                Assembly.GetEntryAssembly()!
-                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion));
+        var labels = dialog.SubViews.OfType<Label>().ToArray();
 
         dialog.Layout(new Size(80, 24));
 
-        version.Frame.Height.Should().BeGreaterThan(0);
-        version.Frame.Bottom.Should().BeLessThanOrEqualTo(dialog.Viewport.Height);
-        version.Frame.Right.Should().BeLessThanOrEqualTo(dialog.Viewport.Width);
+        foreach (var label in labels)
+        {
+            label.Frame.Height.Should().BeGreaterThan(0);
+            label.Frame.Bottom.Should().BeLessThanOrEqualTo(dialog.Viewport.Height);
+            label.Frame.Right.Should().BeLessThanOrEqualTo(dialog.Viewport.Width);
+        }
     }
 
     [Fact]

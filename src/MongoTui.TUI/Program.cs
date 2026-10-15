@@ -5,6 +5,7 @@ using MongoTui.Infrastructure.DependencyInjection;
 using MongoTui.Infrastructure.FileSystem;
 using MongoTui.Infrastructure.Ssh;
 using MongoTui.TUI.Bootstrap;
+using MongoTui.TUI.Localization;
 using Serilog;
 
 if (Environment.GetEnvironmentVariable("MONGOTUI_ASKPASS_PIPE") is { Length: > 0 } pipeName)
@@ -14,7 +15,10 @@ if (Environment.GetEnvironmentVariable("MONGOTUI_ASKPASS_PIPE") is { Length: > 0
 
 if (args.Contains("--version", StringComparer.Ordinal))
 {
+    var localizer = new ResxLocalizer();
     await Console.Out.WriteLineAsync(ApplicationVersion.GetInformationalVersion());
+    await Console.Out.WriteLineAsync(localizer.Get("About.License"));
+    await Console.Out.WriteLineAsync(localizer.Get("About.Copyright"));
     return 0;
 }
 

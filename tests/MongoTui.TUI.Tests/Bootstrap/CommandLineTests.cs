@@ -8,7 +8,7 @@ namespace MongoTui.TUI.Tests.Bootstrap;
 public sealed class CommandLineTests
 {
     [Fact]
-    public async Task Should_PrintVersionAndExit_WhenVersionArgumentIsPassed()
+    public async Task Should_PrintVersionAndLicenseAndExit_WhenVersionArgumentIsPassed()
     {
         var expectedVersion = typeof(ApplicationVersion).Assembly
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
@@ -31,7 +31,8 @@ public sealed class CommandLineTests
         await process.WaitForExitAsync(timeout.Token);
 
         process.ExitCode.Should().Be(0);
-        output.Should().Be(expectedVersion + Environment.NewLine);
+        output.Should().Be(string.Join(Environment.NewLine,
+            expectedVersion, "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)", string.Empty));
         error.Should().BeEmpty();
     }
 }
