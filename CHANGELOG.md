@@ -2,6 +2,57 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.4.0 — since v0.3.0
+
+### Added
+
+- **Query editor autocomplete** — press `Ctrl+Space` or choose **Query → Autocomplete**
+  for database, collection and field names, including dotted paths through nested objects
+  and arrays of documents.
+- **Database selection** — completing `db.` lists databases and inserts
+  `db.getSiblingDB("…")`; collections can then be selected after the next dot and are
+  inserted through `getCollection("…")`, including names that overlap with shell methods.
+- **Method completion** — `db.get` suggests `getSiblingDB` and `getCollection`; collections
+  offer `find`, `findOne`, `countDocuments` and `estimatedDocumentCount`. Supported cursor
+  chains offer `limit`, `skip`, `sort`, `toArray` and `count` after `find(...)` and `limit(...)`.
+  Method suggestions open automatically while typing a prefix or a dot after a supported call
+  and require no database request.
+- **Completion controls** — filter suggestions while typing, choose with `↑` / `↓`, insert
+  with `Enter` / `Tab`, and dismiss or cancel loading with `Esc`. Method completion inserts
+  parentheses and places the caret inside arguments, preserving existing call arguments
+  when correcting a method name.
+
+### Changed
+
+- Collection fields are sampled from up to 20 documents, with nested paths up to eight levels.
+  The field cache is scoped to the connection, database and collection, expires after one
+  minute, and is cleared by `F9` or running a query.
+
+### Fixed
+
+- Query execution now selects the tab's database before every run, so
+  `db.getCollection(...).find({}).toArray()` works without an explicit `getSiblingDB(...)`.
+  Explicit database selection in the script still takes precedence; tabs without a selected
+  database retain the connection's default database.
+- Completion replaces the entire name when the caret is inside a token, correctly handling
+  escaped quotes, backslashes and Unicode escapes while preserving the surrounding query.
+- Pending completion requests are cancelled and stale suggestions discarded when editing,
+  changing focus, switching or closing tabs, refreshing, or disconnecting.
+
+### Docs
+
+- README (EN / RU): documented autocomplete controls, method chains, field sampling,
+  cache invalidation and supported contexts.
+- Clarified AI configuration and existing TUI limitations for result views, transfers,
+  database backups and query history.
+
+### Tests
+
+- Added unit and TUI tests for completion contexts, escaping, cancellation, cache isolation,
+  method chains, popup rendering, keyboard selection and caret placement.
+- Added MongoDB Testcontainers tests for completed queries, escaped collection names,
+  names that overlap with shell methods, and database selection during query execution.
+
 ## v0.3.0 — since v0.2.0
 
 ### Added
@@ -76,5 +127,6 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.3.0 to v0.4.0]: https://github.com/AMEST/mongo-tui/compare/v0.3.0...v0.4.0
 [v0.2.0 to v0.3.0]: https://github.com/AMEST/mongo-tui/compare/v0.2.0...v0.3.0
 [v0.1.0 to v0.2.0]: https://github.com/AMEST/mongo-tui/compare/v0.1.0...v0.2.0
