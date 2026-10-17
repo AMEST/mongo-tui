@@ -112,7 +112,7 @@ public sealed class DocumentEditDialog : ThemedDialog
         }
         else
         {
-            _error.Text = _viewModel.ValidationError ?? _localizer.Get("Documents.NotFound");
+            _error.Text = ValidationMessage() ?? _localizer.Get("Documents.NotFound");
         }
     }
 
@@ -127,7 +127,7 @@ public sealed class DocumentEditDialog : ThemedDialog
         }
         else
         {
-            _error.Text = _viewModel.ValidationError ?? string.Empty;
+            _error.Text = ValidationMessage() ?? string.Empty;
         }
     }
 
@@ -142,7 +142,9 @@ public sealed class DocumentEditDialog : ThemedDialog
         }
         else
         {
-            _error.Text = _viewModel.ValidationError ?? string.Empty;
+            _error.Text = ValidationMessage() ?? string.Empty;
         }
     }
+    private string? ValidationMessage() => _viewModel.ValidationErrorKey is { } key
+        ? _localizer.Get(key) : _viewModel.ValidationError;
 }

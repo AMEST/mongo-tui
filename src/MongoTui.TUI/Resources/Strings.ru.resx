@@ -68,6 +68,8 @@
   <data name="Documents.Document" xml:space="preserve"><value>Документ</value></data>
   <data name="Documents.Load" xml:space="preserve"><value>Найти</value></data>
   <data name="Documents.NotFound" xml:space="preserve"><value>По фильтру ничего не найдено.</value></data>
+  <data name="Documents.IdChanged" xml:space="preserve"><value>Изменять _id документа нельзя. Загрузите документ заново перед редактированием.</value></data>
+  <data name="Documents.UnsafeResult" xml:space="preserve"><value>Редактирование доступно для результата find/findOne без проекции из одной коллекции.</value></data>
   <data name="Documents.DeleteCondition" xml:space="preserve"><value>Удалить документ по условию {0}?</value></data>
   <data name="Indexes.Title" xml:space="preserve"><value>Индексы</value></data>
   <data name="Indexes.Refresh" xml:space="preserve"><value>Обновить</value></data>

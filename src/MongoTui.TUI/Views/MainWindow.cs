@@ -266,7 +266,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Startup failed");
+            Log.Error("Startup failed ({ExceptionType})", exception.GetType().Name);
             SetStatus(exception.Message);
         }
     }
@@ -281,7 +281,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Command failed");
+            Log.Error("Command failed ({ExceptionType})", exception.GetType().Name);
             SetStatus(exception.Message);
         }
     }
@@ -881,7 +881,7 @@ public sealed partial class MainWindow : Window
 
     private void EditDocument()
     {
-        if (ResolveContext() is not { } context)
+        if (ResolveResultContext() is not { } context)
         {
             return;
         }
@@ -910,7 +910,7 @@ public sealed partial class MainWindow : Window
 
     private void DeleteDocument()
     {
-        if (ResolveContext() is not { } context)
+        if (ResolveResultContext() is not { } context)
         {
             return;
         }
@@ -939,13 +939,21 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            await _documents.DeleteAsync(context.Target, context.Collection, filter, CancellationToken.None);
-            SetStatus(_localizer.Get("Documents.Deleted"));
+            var deleted = await _documents.DeleteAsync(context.Target, context.Collection, filter, CancellationToken.None);
+            SetStatus(_localizer.Get(deleted > 0 ? "Documents.Deleted" : "Documents.NotFound"));
         }
         catch (DomainException exception)
         {
             SetStatus(exception.Message);
         }
+    }
+
+    private (MongoConnectionTarget Target, CollectionRef Collection)? ResolveResultContext()
+    {
+        if (_queryTabs.ActiveTab is { IsExecuting: false, ResultCollection: { } collection } tab)
+            return (tab.Target, collection);
+        SetStatus(_localizer.Get("Documents.UnsafeResult"));
+        return null;
     }
 
     private (MongoConnectionTarget Target, CollectionRef Collection)? ResolveContext()

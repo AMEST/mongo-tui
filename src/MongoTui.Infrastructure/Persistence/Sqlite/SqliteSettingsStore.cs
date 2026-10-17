@@ -13,7 +13,8 @@ public sealed class SqliteSettingsStore : ISettingsStore
 
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         return await db.Settings
             .Where(setting => setting.Key == key)
@@ -23,14 +24,16 @@ public sealed class SqliteSettingsStore : ISettingsStore
 
     public async Task SetAsync(string key, string value, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         await db.InsertOrReplaceAsync(new SettingRow { Key = key, Value = value }, token: cancellationToken);
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         var rows = await db.Settings.ToListAsync(cancellationToken);
 

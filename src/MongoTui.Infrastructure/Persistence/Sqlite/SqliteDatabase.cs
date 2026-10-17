@@ -1,11 +1,13 @@
 using Microsoft.Data.Sqlite;
+using MongoTui.Application.Abstractions.Persistence;
 
 namespace MongoTui.Infrastructure.Persistence.Sqlite;
 
 /// <summary>Owns the SQLite connection string, creates data connections and applies migrations.</summary>
-public sealed class SqliteDatabase
+public sealed class SqliteDatabase : IStorageTransaction
 {
     private readonly string _connectionString;
+    private readonly AsyncLocal<MongoTuiDataConnection?> _transactionConnection = new();
 
     public SqliteDatabase(string databasePath)
     {
@@ -16,6 +18,28 @@ public sealed class SqliteDatabase
 
     /// <summary>Creates a new LINQ to DB connection over the database.</summary>
     public MongoTuiDataConnection CreateConnection() => new(_connectionString);
+
+    internal SqliteSession OpenSession() => _transactionConnection.Value is { } connection
+        ? new SqliteSession(connection, false) : new SqliteSession(CreateConnection(), true);
+
+    public async Task ExecuteAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken)
+    {
+        if (_transactionConnection.Value is not null)
+            throw new InvalidOperationException("Nested storage transactions are not supported.");
+        await using var connection = CreateConnection();
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        _transactionConnection.Value = connection;
+        try
+        {
+            await action(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            await transaction.CommitAsync(cancellationToken);
+        }
+        finally
+        {
+            _transactionConnection.Value = null;
+        }
+    }
 
     /// <summary>Applies the schema migrations (idempotent).</summary>
     public void Migrate()

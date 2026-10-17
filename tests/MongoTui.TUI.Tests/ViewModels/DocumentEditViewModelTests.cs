@@ -20,7 +20,12 @@ public sealed class DocumentEditViewModelTests
     private static readonly CollectionRef Collection =
         new(DatabaseName.Create("app"), CollectionName.Create("users"));
 
-    public DocumentEditViewModelTests() => _documents = new DocumentService(_gateway);
+    public DocumentEditViewModelTests()
+    {
+        _documents = new DocumentService(_gateway);
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection, A<string>._, A<string>._, A<CancellationToken>._)).Returns(1L);
+        A.CallTo(() => _gateway.DeleteOneAsync(Target, Collection, A<string>._, A<CancellationToken>._)).Returns(1L);
+    }
 
     [Fact]
     public void Should_BeNew_When_NoExistingJson()
@@ -131,5 +136,51 @@ public sealed class DocumentEditViewModelTests
 
         loaded.Should().BeFalse();
         viewModel.ValidationError.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ShouldNot_WriteDocument_When_IdChanged(bool delete)
+    {
+        var model = new DocumentEditViewModel(_documents, Target, Collection, "{\"_id\":1}") { Json = "{\"_id\":2}" };
+
+        var succeeded = await (delete ? model.DeleteAsync(CancellationToken.None) : model.SaveAsync(CancellationToken.None));
+
+        succeeded.Should().BeFalse();
+        model.ValidationErrorKey.Should().Be("Documents.IdChanged");
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection, A<string>._, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => _gateway.DeleteOneAsync(Target, Collection, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ShouldNot_ReportSuccess_When_DocumentNoLongerExists(bool delete)
+    {
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection, A<string>._, A<string>._, A<CancellationToken>._)).Returns(0L);
+        A.CallTo(() => _gateway.DeleteOneAsync(Target, Collection, A<string>._, A<CancellationToken>._)).Returns(0L);
+        var model = new DocumentEditViewModel(_documents, Target, Collection, "{\"_id\":1}");
+
+        var succeeded = await (delete ? model.DeleteAsync(CancellationToken.None) : model.SaveAsync(CancellationToken.None));
+
+        succeeded.Should().BeFalse();
+        model.ValidationErrorKey.Should().Be("Documents.NotFound");
+    }
+
+    [Fact]
+    public async Task Should_UpdateOriginalIdentity_When_AnotherDocumentLoaded()
+    {
+        A.CallTo(() => _gateway.FindAsync(Target, Collection, A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [BsonDocument.Parse("{\"_id\":9}")] });
+        var model = new DocumentEditViewModel(_documents, Target, Collection, "{\"_id\":1}");
+        await model.LoadAsync(CancellationToken.None);
+
+        var saved = await model.SaveAsync(CancellationToken.None);
+
+        saved.Should().BeTrue();
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection,
+            A<string>.That.Matches(filter => BsonDocument.Parse(filter)["_id"] == 9), A<string>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
     }
 }

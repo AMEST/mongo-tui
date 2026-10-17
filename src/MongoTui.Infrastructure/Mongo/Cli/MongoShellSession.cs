@@ -50,7 +50,7 @@ public sealed class MongoShellSession : IMongoShellSession
 
         if (!string.IsNullOrWhiteSpace(result.StandardError))
         {
-            Log.Warning("mongosh stderr: {Error}", result.StandardError.Trim());
+            Log.Warning("mongosh wrote {StderrChars} stderr characters", result.StandardError.Length);
         }
 
         return ParseResult(result.StandardOutput.Trim());
@@ -71,8 +71,6 @@ public sealed class MongoShellSession : IMongoShellSession
     {
         if (ExtractJsonMessage(result.StandardOutput) is { } message)
         {
-            Log.Warning("mongosh query error: {Message}", message);
-
             return message;
         }
 
@@ -80,8 +78,6 @@ public sealed class MongoShellSession : IMongoShellSession
 
         if (error.Length > 0)
         {
-            Log.Warning("mongosh failed: {Error}", error);
-
             return $"mongosh failed:{Environment.NewLine}{error}";
         }
 

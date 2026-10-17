@@ -91,6 +91,7 @@ public interface IMongoGateway
         string documentJson,
         CancellationToken cancellationToken);
 
+    /// <summary>Replaces a document and returns the matched count, including unchanged documents.</summary>
     Task<long> ReplaceOneAsync(
         MongoConnectionTarget target,
         CollectionRef collection,

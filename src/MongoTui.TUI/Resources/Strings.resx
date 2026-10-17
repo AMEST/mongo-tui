@@ -68,6 +68,8 @@
   <data name="Documents.Document" xml:space="preserve"><value>Document</value></data>
   <data name="Documents.Load" xml:space="preserve"><value>Find</value></data>
   <data name="Documents.NotFound" xml:space="preserve"><value>No document matches the filter.</value></data>
+  <data name="Documents.IdChanged" xml:space="preserve"><value>The document _id cannot be changed. Reload the document before editing.</value></data>
+  <data name="Documents.UnsafeResult" xml:space="preserve"><value>Editing requires an unprojected find/findOne result from a single collection.</value></data>
   <data name="Documents.DeleteCondition" xml:space="preserve"><value>Delete the document matching {0}?</value></data>
   <data name="Indexes.Title" xml:space="preserve"><value>Indexes</value></data>
   <data name="Indexes.Refresh" xml:space="preserve"><value>Refresh</value></data>

@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Preserve the original document id during editing and deletion; reject id changes and
+  report missing documents correctly, including unchanged replacements.
+- Resolve document actions from the executed query's database and collection. Disable
+  editing and deletion for ambiguous scripts, projections, aggregations and results without ids.
+- Rotate the master password, connection secrets and AI API key in one SQLite transaction.
+  Roll back on failure or cancellation and serialize concurrent secret storage operations.
+- Extract and encrypt credentials from full connection URIs before saving; migrate legacy
+  profiles after unlock. Remove scripts, raw diagnostics and exception contents from logs.
+
 ## v0.4.0 — since v0.3.0
 
 ### Added

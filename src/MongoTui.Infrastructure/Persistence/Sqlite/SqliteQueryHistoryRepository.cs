@@ -16,7 +16,8 @@ public sealed class SqliteQueryHistoryRepository : IQueryHistoryRepository
 
     public async Task AddAsync(QueryHistoryEntry entry, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         await db.InsertAsync(ToRow(entry), token: cancellationToken);
     }
@@ -26,7 +27,8 @@ public sealed class SqliteQueryHistoryRepository : IQueryHistoryRepository
         int limit,
         CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
         var key = connectionId.ToString();
 
         var rows = await db.QueryHistory
@@ -40,7 +42,8 @@ public sealed class SqliteQueryHistoryRepository : IQueryHistoryRepository
 
     public async Task ClearAsync(ConnectionId connectionId, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
         var key = connectionId.ToString();
 
         await db.QueryHistory

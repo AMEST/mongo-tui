@@ -22,7 +22,10 @@ public sealed class AiSettingsService
         _secrets = secrets;
     }
 
-    public async Task<AiConfiguration> GetAsync(CancellationToken cancellationToken)
+    public Task<AiConfiguration> GetAsync(CancellationToken cancellationToken) =>
+        _secrets.RunExclusiveAsync(GetCoreAsync, cancellationToken);
+
+    private async Task<AiConfiguration> GetCoreAsync(CancellationToken cancellationToken)
     {
         var baseUrl = await _settings.GetAsync(BaseUrlKey, cancellationToken) ?? string.Empty;
         var model = await _settings.GetAsync(ModelKey, cancellationToken) ?? string.Empty;
@@ -38,7 +41,14 @@ public sealed class AiSettingsService
     /// Saves the configuration. Pass a non-null <paramref name="apiKey"/> to replace the stored key
     /// (empty string clears it); pass <see langword="null"/> to leave it unchanged.
     /// </summary>
-    public async Task SaveAsync(
+    public Task SaveAsync(
+        string baseUrl,
+        string model,
+        string? apiKey,
+        CancellationToken cancellationToken) =>
+        _secrets.RunExclusiveAsync(token => SaveCoreAsync(baseUrl, model, apiKey, token), cancellationToken);
+
+    private async Task SaveCoreAsync(
         string baseUrl,
         string model,
         string? apiKey,

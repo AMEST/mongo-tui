@@ -33,11 +33,11 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-    Log.Fatal(args.ExceptionObject as Exception, "Unhandled exception");
+    Log.Fatal("Unhandled exception ({ExceptionType})", args.ExceptionObject.GetType().Name);
 
 TaskScheduler.UnobservedTaskException += (_, args) =>
 {
-    Log.Error(args.Exception, "Unobserved task exception");
+    Log.Error("Unobserved task exception ({ExceptionType})", args.Exception.GetType().Name);
     args.SetObserved();
 };
 
@@ -50,7 +50,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    Log.Fatal("Application terminated unexpectedly ({ExceptionType})", ex.GetType().Name);
     return 1;
 }
 finally

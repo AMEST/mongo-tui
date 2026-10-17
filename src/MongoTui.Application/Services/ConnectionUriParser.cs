@@ -60,7 +60,7 @@ public static class ConnectionUriParser
         }
 
         var uriBuilder = new StringBuilder(scheme).Append(authority);
-        if (path.Length > 0)
+        if (slashIndex >= 0)
         {
             uriBuilder.Append('/').Append(path);
         }

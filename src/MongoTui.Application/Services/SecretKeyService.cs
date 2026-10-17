@@ -14,6 +14,7 @@ public sealed class SecretKeyService
     private readonly IKeyProvider _keyProvider;
     private readonly ICryptoService _cryptoService;
     private byte[]? _kek;
+    private readonly SemaphoreSlim _operation = new(1, 1);
 
     public SecretKeyService(IKeyProvider keyProvider, ICryptoService cryptoService)
     {
@@ -22,6 +23,22 @@ public sealed class SecretKeyService
     }
 
     public bool IsUnlocked => _kek is not null;
+
+    /// <summary>Serializes secret storage operations with master-key rotation.</summary>
+    public async Task RunExclusiveAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken)
+    {
+        await _operation.WaitAsync(cancellationToken);
+        try { await action(cancellationToken); }
+        finally { _operation.Release(); }
+    }
+
+    /// <summary>Serializes an operation returning a value with master-key rotation.</summary>
+    public async Task<T> RunExclusiveAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
+    {
+        await _operation.WaitAsync(cancellationToken);
+        try { return await action(cancellationToken); }
+        finally { _operation.Release(); }
+    }
 
     public async Task UnlockAsync(string masterPassword, CancellationToken cancellationToken) =>
         _kek = await _keyProvider.UnlockWithMasterPasswordAsync(masterPassword, cancellationToken);
