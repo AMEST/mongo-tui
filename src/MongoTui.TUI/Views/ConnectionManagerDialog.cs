@@ -34,7 +34,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         _list.X = 1;
         _list.Y = 1;
         _list.Width = Dim.Fill();
-        _list.Height = Dim.Fill();
+        _list.Height = Dim.Fill(6);
         Add(_list);
 
         _status.X = 1;
@@ -42,15 +42,24 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         _status.Width = Dim.Fill();
         Add(_status);
 
-        var connectButton = new Button { Text = localizer.Get("Connections.Connect"), IsDefault = true };
+        AddActions();
+    }
+
+    private void AddActions()
+    {
+        var copyButton = new Button { Text = _localizer.Get("Connections.CopyUri"), X = 1, Y = Pos.AnchorEnd(5) };
+        copyButton.OnAcceptAsync(() => GuardedAsync(CopyUriAsync));
+        Add(copyButton);
+
+        var connectButton = new Button { Text = _localizer.Get("Connections.Connect"), IsDefault = true };
         connectButton.OnAcceptAsync(ConnectAsync);
-        var newButton = new Button { Text = localizer.Get("Connections.New") };
+        var newButton = new Button { Text = _localizer.Get("Connections.New") };
         newButton.OnAcceptAsync(CreateAsync);
-        var editButton = new Button { Text = localizer.Get("Connections.Edit") };
+        var editButton = new Button { Text = _localizer.Get("Connections.Edit") };
         editButton.OnAcceptAsync(() => GuardedAsync(EditAsync));
-        var deleteButton = new Button { Text = localizer.Get("Connections.Delete") };
+        var deleteButton = new Button { Text = _localizer.Get("Connections.Delete") };
         deleteButton.OnAcceptAsync(() => GuardedAsync(DeleteAsync));
-        var closeButton = new Button { Text = localizer.Get("Common.Ok") };
+        var closeButton = new Button { Text = _localizer.Get("Common.Ok") };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(connectButton, newButton, editButton, deleteButton, closeButton);
@@ -140,6 +149,20 @@ public sealed class ConnectionManagerDialog : ThemedDialog
 
         await _connections.DeleteAsync(_profiles[index.Value].Id, CancellationToken.None);
         await LoadAsync();
+    }
+
+    private async Task CopyUriAsync()
+    {
+        var index = SelectedIndex();
+        if (index is null)
+        {
+            _status.Text = _localizer.Get("Connections.Empty");
+            return;
+        }
+
+        var target = await _connections.ResolveTargetAsync(_profiles[index.Value].Id, CancellationToken.None);
+        var copied = _application.Clipboard?.TrySetClipboardData(target.ConnectionString) == true;
+        _status.Text = _localizer.Get(copied ? "Connections.UriCopied" : "Connections.CopyUriFailed");
     }
 
     private async Task GuardedAsync(Func<Task> action)

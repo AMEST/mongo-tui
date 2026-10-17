@@ -43,6 +43,9 @@
   <data name="Connections.Title" xml:space="preserve"><value>Connections</value></data>
   <data name="Connections.New" xml:space="preserve"><value>New</value></data>
   <data name="Connections.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Connections.CopyUri" xml:space="preserve"><value>Copy URI</value></data>
+  <data name="Connections.UriCopied" xml:space="preserve"><value>Connection URI copied to clipboard.</value></data>
+  <data name="Connections.CopyUriFailed" xml:space="preserve"><value>Could not copy URI to clipboard.</value></data>
   <data name="Connections.Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="Connections.Test" xml:space="preserve"><value>Test</value></data>
   <data name="Connections.Save" xml:space="preserve"><value>Save</value></data>

@@ -63,6 +63,7 @@ Run `mongo-tui.exe`.
 1. Launch MongoTui and set or enter your master password.
 2. Open **Connection → Manage connections…**, add a MongoDB URI, save the profile and connect.
    **From URI** fills the authentication fields from a full connection string.
+   **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
 3. Expand a database and open a collection with **Enter** or a double-click. A query tab opens
    with a ready-to-run `find` query.
 4. Edit the query and press **F5** or **Ctrl+Enter**. Choose Table, Tree or JSON in
