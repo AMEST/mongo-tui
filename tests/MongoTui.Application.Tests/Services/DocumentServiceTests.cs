@@ -83,6 +83,16 @@ public sealed class DocumentServiceTests
     }
 
     [Fact]
+    public async Task ShouldNot_ReplaceDocument_When_IdDiffersFromOriginalFilter()
+    {
+        var act = () => _sut.ReplaceAsync(Target, Collection, "{\"_id\":1}", "{\"_id\":2}", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection, A<string>._, A<string>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Fact]
     public async Task Should_ReturnIndentedDocument_When_FindOneMatches()
     {
         A.CallTo(() => _gateway.FindAsync(

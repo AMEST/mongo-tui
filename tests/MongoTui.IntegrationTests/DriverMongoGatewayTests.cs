@@ -85,6 +85,21 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
         count.Should().Be(0);
     }
 
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(2, 0)]
+    public async Task Should_ReturnMatchedCount_When_ReplacementIsUnchangedOrMissing(int id, long expected)
+    {
+        using var gateway = new DriverMongoGateway();
+        var collection = NewCollection();
+        await gateway.InsertOneAsync(_target, collection, "{\"_id\":1,\"v\":1}", CancellationToken.None);
+
+        var matched = await gateway.ReplaceOneAsync(_target, collection,
+            $"{{\"_id\":{id}}}", $"{{\"_id\":{id},\"v\":1}}", CancellationToken.None);
+
+        matched.Should().Be(expected);
+    }
+
     [Fact]
     public async Task Should_ListCollections_When_DatabaseHasCollection()
     {

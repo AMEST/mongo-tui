@@ -24,7 +24,8 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
 
     public async Task<IReadOnlyList<StoredConnection>> GetAllAsync(CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         var rows = await db.Connections
             .OrderBy(connection => connection.Name)
@@ -35,7 +36,8 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
 
     public async Task<StoredConnection?> GetAsync(ConnectionId id, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
         var key = id.ToString();
 
         var row = await db.Connections
@@ -46,21 +48,24 @@ public sealed class SqliteConnectionRepository : IConnectionRepository
 
     public async Task AddAsync(StoredConnection connection, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         await db.InsertAsync(ToRow(connection), token: cancellationToken);
     }
 
     public async Task UpdateAsync(StoredConnection connection, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
 
         await db.UpdateAsync(ToRow(connection), token: cancellationToken);
     }
 
     public async Task DeleteAsync(ConnectionId id, CancellationToken cancellationToken)
     {
-        await using var db = _database.CreateConnection();
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
         var key = id.ToString();
 
         await db.Connections

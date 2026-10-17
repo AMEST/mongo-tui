@@ -24,6 +24,7 @@ public sealed class MasterPasswordServiceTests
     private readonly SecretKeyService _secrets;
     private readonly AiSettingsService _ai;
     private readonly MasterPasswordService _sut;
+    private readonly IStorageTransaction _transaction = A.Fake<IStorageTransaction>();
 
     public MasterPasswordServiceTests()
     {
@@ -31,7 +32,9 @@ public sealed class MasterPasswordServiceTests
         var connections = new ConnectionService(_repository, _secrets, _gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
         _ai = new AiSettingsService(_settings, _secrets);
-        _sut = new MasterPasswordService(_secrets, connections, _ai);
+        A.CallTo(() => _transaction.ExecuteAsync(A<Func<CancellationToken, Task>>._, A<CancellationToken>._))
+            .ReturnsLazily((Func<CancellationToken, Task> action, CancellationToken token) => action(token));
+        _sut = new MasterPasswordService(_secrets, connections, _ai, _transaction);
 
         A.CallTo(() => _settings.GetAsync(A<string>._, A<CancellationToken>._))
             .ReturnsLazily((string key, CancellationToken _) =>

@@ -216,7 +216,7 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
             BsonDocument.Parse(documentJson),
             cancellationToken: cancellationToken);
 
-        return result.ModifiedCount;
+        return result.MatchedCount;
     }
 
     public async Task<long> DeleteOneAsync(

@@ -63,7 +63,7 @@ public sealed class AppHost
 
     private bool HandleError(Exception exception)
     {
-        _logger.LogError(exception, "Unhandled error in the UI loop");
+        _logger.LogError("Unhandled error in the UI loop ({ExceptionType})", exception.GetType().Name);
 
         return true;
     }

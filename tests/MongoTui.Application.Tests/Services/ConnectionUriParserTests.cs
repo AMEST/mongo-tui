@@ -73,6 +73,16 @@ public sealed class ConnectionUriParserTests
     }
 
     [Theory]
+    [InlineData("mongodb://alice:password@localhost/?authSource=admin", "mongodb://localhost/?authSource=admin")]
+    [InlineData("mongodb+srv://alice:password@cluster.example/", "mongodb+srv://cluster.example/")]
+    public void Should_PreserveRootSlash_When_RemovingCredentials(string uri, string expected)
+    {
+        var parsed = ConnectionUriParser.Parse(uri);
+
+        parsed.Uri.Should().Be(expected);
+    }
+
+    [Theory]
     [InlineData("http://localhost")]
     [InlineData("localhost:27017")]
     [InlineData("")]

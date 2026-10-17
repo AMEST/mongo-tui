@@ -63,7 +63,7 @@ internal static class DialogButtonExtensions
             }
             catch (Exception exception)
             {
-                Log.Error(exception, "Dialog action failed");
+                Log.Error("Dialog action failed ({ExceptionType})", exception.GetType().Name);
             }
         };
 
@@ -75,7 +75,7 @@ internal static class DialogButtonExtensions
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Dialog action failed");
+            Log.Error("Dialog action failed ({ExceptionType})", exception.GetType().Name);
         }
     }
 }

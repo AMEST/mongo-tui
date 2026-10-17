@@ -33,6 +33,7 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddSingleton<ISettingsStore, SqliteSettingsStore>();
+        services.AddSingleton<IStorageTransaction>(provider => provider.GetRequiredService<SqliteDatabase>());
         services.AddSingleton<IConnectionRepository, SqliteConnectionRepository>();
         services.AddSingleton<IQueryHistoryRepository, SqliteQueryHistoryRepository>();
         services.AddSingleton<ICryptoService, AesGcmCryptoService>();

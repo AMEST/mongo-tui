@@ -30,14 +30,23 @@ public sealed class ConnectionService
     public bool IsUnlocked => _secrets.IsUnlocked;
 
     public Task UnlockAsync(string masterPassword, CancellationToken cancellationToken) =>
-        _secrets.UnlockAsync(masterPassword, cancellationToken);
+        _secrets.RunExclusiveAsync(async token =>
+        {
+            await _secrets.UnlockAsync(masterPassword, token);
+            await MigrateCredentialsAsync(token);
+        }, cancellationToken);
 
     /// <summary>
     /// Tries to unlock without user input. Returns true when already unlocked or when an
     /// OS keyring supplied the KEK; false when a master password is required.
     /// </summary>
     public Task<bool> TryAutoUnlockAsync(CancellationToken cancellationToken) =>
-        _secrets.TryAutoUnlockAsync(cancellationToken);
+        _secrets.RunExclusiveAsync(async token =>
+        {
+            if (!await _secrets.TryAutoUnlockAsync(token)) return false;
+            await MigrateCredentialsAsync(token);
+            return true;
+        }, cancellationToken);
 
     public void Lock() => _secrets.Lock();
 
@@ -66,8 +75,12 @@ public sealed class ConnectionService
     public async Task<ConnectionProfile?> GetProfileAsync(ConnectionId id, CancellationToken cancellationToken) =>
         (await _repository.GetAsync(id, cancellationToken))?.Profile;
 
-    public async Task SaveAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
+    public Task SaveAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken) =>
+        _secrets.RunExclusiveAsync(token => SaveCoreAsync(profile, secret, token), cancellationToken);
+
+    private async Task SaveCoreAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
     {
+        (profile, secret) = ConnectionCredentials.Extract(profile, secret);
         var stored = new StoredConnection(profile, EncryptSecret(secret));
         var existing = await _repository.GetAsync(profile.Id, cancellationToken);
 
@@ -84,13 +97,17 @@ public sealed class ConnectionService
     public Task DeleteAsync(ConnectionId id, CancellationToken cancellationToken) =>
         _repository.DeleteAsync(id, cancellationToken);
 
-    public async Task<string?> GetSecretAsync(ConnectionId id, CancellationToken cancellationToken)
-    {
-        var stored = await _repository.GetAsync(id, cancellationToken);
-        return stored?.Secret is null ? null : _secrets.Unprotect(stored.Secret);
-    }
+    public Task<string?> GetSecretAsync(ConnectionId id, CancellationToken cancellationToken) =>
+        _secrets.RunExclusiveAsync(async token =>
+        {
+            var stored = await _repository.GetAsync(id, token);
+            return stored?.Secret is null ? null : _secrets.Unprotect(stored.Secret);
+        }, cancellationToken);
 
-    public async Task<MongoConnectionTarget> ResolveTargetAsync(ConnectionId id, CancellationToken cancellationToken)
+    public Task<MongoConnectionTarget> ResolveTargetAsync(ConnectionId id, CancellationToken cancellationToken) =>
+        _secrets.RunExclusiveAsync(token => ResolveTargetCoreAsync(id, token), cancellationToken);
+
+    private async Task<MongoConnectionTarget> ResolveTargetCoreAsync(ConnectionId id, CancellationToken cancellationToken)
     {
         var stored = await _repository.GetAsync(id, cancellationToken)
             ?? throw new DomainException($"Connection '{id}' was not found.");
@@ -110,6 +127,7 @@ public sealed class ConnectionService
     /// <summary>Builds an effective connection string by injecting credentials when authentication is used.</summary>
     public static string BuildConnectionString(ConnectionProfile profile, string? secret)
     {
+        (profile, secret) = ConnectionCredentials.Extract(profile, secret);
         if (profile.Auth.Kind == AuthKind.None || string.IsNullOrEmpty(profile.Auth.Username))
         {
             return profile.Uri;
@@ -135,6 +153,19 @@ public sealed class ConnectionService
         }
 
         return result;
+    }
+
+    private async Task MigrateCredentialsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var stored in await _repository.GetAllAsync(cancellationToken))
+        {
+            var parsed = ConnectionUriParser.Parse(stored.Profile.Uri);
+            if (parsed.Username is null && parsed.Password is null) continue;
+            var secret = stored.Secret is null ? null : _secrets.Unprotect(stored.Secret);
+            var normalized = ConnectionCredentials.Extract(stored.Profile, secret);
+            await _repository.UpdateAsync(new StoredConnection(normalized.Profile,
+                EncryptSecret(normalized.Secret)), cancellationToken);
+        }
     }
 
     private EncryptedSecret? EncryptSecret(string? secret) =>

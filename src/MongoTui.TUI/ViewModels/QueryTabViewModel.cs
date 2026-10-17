@@ -3,6 +3,8 @@ using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Collections;
+using MongoTui.TUI.Editor;
 
 namespace MongoTui.TUI.ViewModels;
 
@@ -45,6 +47,9 @@ public sealed class QueryTabViewModel : ObservableObject
 
     public ResultViewModel Result { get; } = new();
 
+    /// <summary>The verified collection that produced the displayed documents, or null for ambiguous scripts.</summary>
+    public CollectionRef? ResultCollection { get; private set; }
+
     public string Title
     {
         get => _title;
@@ -66,7 +71,8 @@ public sealed class QueryTabViewModel : ObservableObject
     public async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         IsExecuting = true;
-        Log.Debug("Query tab {TabId}: executing {Script}", Id, Script);
+        ResultCollection = null;
+        Log.Debug("Query tab {TabId}: executing ({ScriptLength} chars)", Id, Script.Length);
 
         try
         {
@@ -82,16 +88,18 @@ public sealed class QueryTabViewModel : ObservableObject
 
             var result = await _queryService.ExecuteAsync(context, cancellationToken);
             Result.Load(result);
+            ResultCollection = result.Documents.All(document => document.Contains("_id"))
+                ? DocumentQuerySource.Resolve(context.Script, context.Database) : null;
             Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result.Documents.Count, result.Elapsed);
         }
         catch (DomainException exception)
         {
-            Log.Warning(exception, "Query tab {TabId}: execution failed", Id);
+            Log.Warning("Query tab {TabId}: execution failed ({ExceptionType})", Id, exception.GetType().Name);
             Result.LoadError(exception.Message);
         }
         catch (Exception exception)
         {
-            Log.Error(exception, "Query tab {TabId}: unexpected error", Id);
+            Log.Error("Query tab {TabId}: unexpected error ({ExceptionType})", Id, exception.GetType().Name);
             Result.LoadError(exception.Message);
         }
         finally

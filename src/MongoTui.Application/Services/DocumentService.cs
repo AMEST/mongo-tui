@@ -47,6 +47,7 @@ public sealed class DocumentService
         return _gateway.InsertOneAsync(target, collection, documentJson, cancellationToken);
     }
 
+    /// <summary>Replaces a document without changing its identity; returns the matched count.</summary>
     public Task<long> ReplaceAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
@@ -54,7 +55,8 @@ public sealed class DocumentService
         string documentJson,
         CancellationToken cancellationToken)
     {
-        Parse(documentJson);
+        if (!Parse(idFilterJson).Equals(Parse(BuildIdFilter(documentJson))))
+            throw new DomainException("Document '_id' cannot be changed.");
 
         return _gateway.ReplaceOneAsync(target, collection, idFilterJson, documentJson, cancellationToken);
     }

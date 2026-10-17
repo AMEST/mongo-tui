@@ -123,7 +123,7 @@ public sealed class QueryTabsView : View
             "RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
             pane.Model.Id,
             pane.Model.Result.Documents.Count,
-            pane.Model.Result.Error);
+            pane.Model.Result.HasError);
 
         return summary;
     }
