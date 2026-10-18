@@ -36,6 +36,7 @@ public sealed partial class MainWindow : Window
     private readonly ImportService _import;
     private readonly IAiAssistant _assistant;
     private readonly IQueryHistoryRepository _history;
+    private readonly CollectionSchemaService _schema;
     private readonly TranslateQueryService _translate;
     private readonly SettingsService _settings;
     private readonly AiSettingsService _aiSettings;
@@ -65,6 +66,7 @@ public sealed partial class MainWindow : Window
         ImportService import,
         IAiAssistant assistant,
         IQueryHistoryRepository history,
+        CollectionSchemaService schema,
         TranslateQueryService translate,
         SettingsService settings,
         AiSettingsService aiSettings,
@@ -81,6 +83,7 @@ public sealed partial class MainWindow : Window
         _import = import;
         _assistant = assistant;
         _history = history;
+        _schema = schema;
         _translate = translate;
         _settings = settings;
         _aiSettings = aiSettings;
@@ -381,7 +384,7 @@ public sealed partial class MainWindow : Window
                 Item(localizer.Get("Menu.Query.Run"), Key.F5, runQuery),
                 Item(localizer.Get("Menu.Query.Autocomplete"), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
                 Item(localizer.Get("Menu.Query.Close"), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
-                Item(localizer.Get("Menu.Query.Ai"), Key.F6, OpenAiAssistant, _aiConfigured),
+                Item(localizer.Get("Menu.Query.Ai"), Key.F6, () => Safe(OpenAiAssistantAsync), _aiConfigured),
                 Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate, _aiConfigured),
                 Item(localizer.Get("Menu.Query.History"), Ctrl(KeyCode.H), () => Safe(OpenHistoryAsync)),
             ]),
@@ -1038,7 +1041,7 @@ public sealed partial class MainWindow : Window
         Application.Run(dialog);
     }
 
-    private void OpenAiAssistant()
+    private async Task OpenAiAssistantAsync()
     {
         if (!_aiConfigured)
         {
@@ -1051,10 +1054,29 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var schema = new CollectionSchema { Collection = context.Collection, Fields = [] };
+        var schema = await DescribeSchemaAsync(context);
         var request = new QueryAssistantRequest { Schema = schema, Prompt = string.Empty };
         var dialog = new AiAssistantDialog(_assistant, _localizer, Application, request);
         Application.Run(dialog);
+    }
+
+    // The assistant reasons about the database, its collections and the sampled field types.
+    private async Task<CollectionSchema> DescribeSchemaAsync((MongoConnectionTarget Target, CollectionRef Collection) context)
+    {
+        try
+        {
+            return await _schema.DescribeAsync(
+                context.Target,
+                context.Collection.Database.Value,
+                context.Collection.Collection.Value,
+                CancellationToken.None);
+        }
+        catch (DomainException exception)
+        {
+            SetStatus(exception.Message);
+
+            return new CollectionSchema { Collection = context.Collection, Fields = [] };
+        }
     }
 
     private void OpenTranslate()

@@ -115,6 +115,7 @@
   <data name="Ai.Title" xml:space="preserve"><value>AI assistant</value></data>
   <data name="Ai.Field.Prompt" xml:space="preserve"><value>Ask</value></data>
   <data name="Ai.Ask" xml:space="preserve"><value>Ask</value></data>
+  <data name="Ai.Running" xml:space="preserve"><value>Requesting…</value></data>
   <data name="Ai.NoContext" xml:space="preserve"><value>Select a collection-backed query tab first.</value></data>
   <data name="Ai.NotConfigured" xml:space="preserve"><value>AI assistant is not configured. Set it in Settings → AI settings.</value></data>
   <data name="Ai.Settings.Title" xml:space="preserve"><value>AI settings</value></data>

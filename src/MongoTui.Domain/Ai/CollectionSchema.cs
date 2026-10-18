@@ -10,5 +10,8 @@ public sealed record CollectionSchema
 {
     public required CollectionRef Collection { get; init; }
 
+    /// <summary>Names of the collections in the database, for query generation context.</summary>
+    public IReadOnlyList<string> Collections { get; init; } = [];
+
     public required IReadOnlyList<SchemaField> Fields { get; init; }
 }

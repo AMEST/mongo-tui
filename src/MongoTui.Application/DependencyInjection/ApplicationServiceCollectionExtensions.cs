@@ -22,6 +22,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ExportService>();
         services.AddSingleton<ImportService>();
         services.AddSingleton<AutocompleteService>();
+        services.AddSingleton<CollectionSchemaService>();
         services.AddSingleton<TranslateQueryService>();
         services.AddSingleton<SettingsService>();
 

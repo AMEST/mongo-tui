@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## v0.5.1 — since v0.5.0
 
+### Added
+
+- The AI assistant receives the active database, the database's collections and the sampled
+  field names with their BSON types, so it can generate queries against the real schema.
+- The AI assistant dialog shows a requesting state and disables **Ask** while a request is
+  in flight.
+
 ### Changed
 
 - Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`; some terminal emulators,
@@ -11,6 +18,14 @@ All notable changes to this project are documented in this file.
   `Shift+Enter` as a plain newline.
 - Saving or testing a connection fills empty login and password fields from credentials
   embedded in the URI, so a pasted connection string works without the **From URI** button.
+
+### Fixed
+
+- In the AI assistant dialog, **Enter** in the prompt runs the request instead of closing
+  the dialog.
+- The AI assistant runs the request off the UI thread and applies the response from the
+  dialog's main loop, so the answer is shown and the dialog no longer stays stuck on
+  **Requesting…**.
 
 ## v0.5.0 — since v0.4.0
 

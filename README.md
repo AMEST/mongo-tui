@@ -118,6 +118,8 @@ appear inside MongoTui. Import and export are unavailable over SOCKS connections
 
 **AI assistant.** Set the base URL, model and API key in **Settings → AI settings…**.   
 Then use **Query → AI assistant…** or **Translate…**. Responses are shown in a dialog.
+The assistant receives the active database, the list of collections and the sampled field
+names with their BSON types, so it can draft queries against the real schema.
 
 ## Current limitations
 

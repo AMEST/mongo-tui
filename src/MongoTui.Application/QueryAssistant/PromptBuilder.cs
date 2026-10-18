@@ -14,8 +14,15 @@ public sealed class PromptBuilder
             ? "Write a MongoDB aggregation pipeline as a JSON array of stages."
             : "Write a MongoDB find filter as a JSON object.");
 
+        builder.AppendLine($"Database: {request.Schema.Collection.Database.Value}");
+
+        if (request.Schema.Collections.Count > 0)
+        {
+            builder.AppendLine($"Collections: {string.Join(", ", request.Schema.Collections)}");
+        }
+
         builder.AppendLine(
-            $"Collection: {request.Schema.Collection.Database.Value}.{request.Schema.Collection.Collection.Value}");
+            $"Target collection: {request.Schema.Collection.Database.Value}.{request.Schema.Collection.Collection.Value}");
 
         builder.AppendLine("Fields:");
         foreach (var field in request.Schema.Fields)

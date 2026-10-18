@@ -50,12 +50,33 @@ public sealed class PromptBuilderTests
         prompt.Should().Contain("- name: string");
     }
 
+    [Fact]
+    public void Should_ListDatabase_When_Built()
+    {
+        var request = CreateRequest(QueryAssistantMode.Find);
+
+        var prompt = _sut.Build(request);
+
+        prompt.Should().Contain("Database: app");
+    }
+
+    [Fact]
+    public void Should_ListCollections_When_SchemaHasCollections()
+    {
+        var request = CreateRequest(QueryAssistantMode.Find);
+
+        var prompt = _sut.Build(request);
+
+        prompt.Should().Contain("Collections: orders, users");
+    }
+
     private static QueryAssistantRequest CreateRequest(QueryAssistantMode mode) =>
         new()
         {
             Schema = new CollectionSchema
             {
                 Collection = new CollectionRef(DatabaseName.Create("app"), CollectionName.Create("users")),
+                Collections = ["orders", "users"],
                 Fields = [new SchemaField("name", "string"), new SchemaField("age", "int")],
             },
             Prompt = "find adults",
