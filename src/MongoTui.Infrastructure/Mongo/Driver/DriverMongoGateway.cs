@@ -13,7 +13,7 @@ using MongoTui.Domain.Queries;
 namespace MongoTui.Infrastructure.Mongo.Driver;
 
 /// <summary>Primary MongoDB channel backed by the official driver.</summary>
-public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
+public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery) : IDriverMongoGateway, IDisposable
 {
     private readonly ConcurrentDictionary<string, IMongoClient> _clients = new(StringComparer.Ordinal);
 
@@ -26,19 +26,10 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
         }
     }
 
-    public async Task<IReadOnlyList<DatabaseInfo>> ListDatabasesAsync(
+    public Task<IReadOnlyList<DatabaseInfo>> ListDatabasesAsync(
         MongoConnectionTarget target,
-        CancellationToken cancellationToken)
-    {
-        using var cursor = await GetClient(target).ListDatabasesAsync(cancellationToken);
-        var databases = await cursor.ToListAsync(cancellationToken);
-
-        return databases
-            .Select(database => new DatabaseInfo(
-                database["name"].AsString,
-                database.TryGetValue("empty", out var empty) && empty.ToBoolean()))
-            .ToList();
-    }
+        CancellationToken cancellationToken) =>
+        databaseDiscovery.ListAsync(GetClient(target), MongoUrl.Create(target.ConnectionString).DatabaseName, cancellationToken);
 
     public async Task<IReadOnlyList<string>> ListCollectionsAsync(
         MongoConnectionTarget target,
@@ -114,6 +105,13 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
             .GetDatabase(collection.Database.Value)
             .DropCollectionAsync(collection.Collection.Value, cancellationToken);
 
+    public Task CreateCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        GetClient(target).GetDatabase(collection.Database.Value)
+            .CreateCollectionAsync(collection.Collection.Value, cancellationToken: cancellationToken);
+
     public Task ClearCollectionAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
@@ -127,10 +125,11 @@ public sealed class DriverMongoGateway : IDriverMongoGateway, IDisposable
         string indexKeysJson,
         string? name,
         bool unique,
+        bool background,
         CancellationToken cancellationToken)
     {
         var keys = new BsonDocumentIndexKeysDefinition<BsonDocument>(BsonDocument.Parse(indexKeysJson));
-        var options = new CreateIndexOptions { Name = name, Unique = unique };
+        var options = new CreateIndexOptions { Name = name, Unique = unique, Background = background };
         var model = new CreateIndexModel<BsonDocument>(keys, options);
 
         await GetCollection(target, collection).Indexes.CreateOneAsync(model, cancellationToken: cancellationToken);

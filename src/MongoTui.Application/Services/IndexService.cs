@@ -29,8 +29,9 @@ public sealed class IndexService
         string indexKeysJson,
         string? name,
         bool unique,
+        bool background,
         CancellationToken cancellationToken) =>
-        _gateway.CreateIndexAsync(target, collection, indexKeysJson, name, unique, cancellationToken);
+        _gateway.CreateIndexAsync(target, collection, indexKeysJson, name, unique, background, cancellationToken);
 
     public Task DropAsync(
         MongoConnectionTarget target,

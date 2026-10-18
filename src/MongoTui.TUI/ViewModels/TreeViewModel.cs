@@ -2,6 +2,7 @@ using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
+using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 
 namespace MongoTui.TUI.ViewModels;
@@ -61,6 +62,22 @@ public sealed class TreeViewModel : ObservableObject
         }
     }
 
+    /// <summary>Adds an empty database locally until the next database refresh or reconnect.</summary>
+    public void AddDatabase(ConnectionId connectionId, DatabaseName database)
+    {
+        var connection = _connections.First(connection => connection.Profile.Id == connectionId);
+        if (connection.Databases.Any(info => info.Name == database.Value))
+        {
+            throw new DomainException("A database with this name is already listed.");
+        }
+
+        UpdateDatabases(connectionId, connection.Databases.Append(new DatabaseInfo(database.Value, true))
+            .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase).ToList());
+        _collections.Remove((connectionId, database.Value));
+        _expandedDatabases.Remove((connectionId, database.Value));
+        _collapsed.Remove(connectionId);
+    }
+
     /// <summary>Whether a connection node is expanded (shows its databases).</summary>
     public bool IsExpanded(ConnectionId connectionId) => !_collapsed.Contains(connectionId);
 
@@ -110,6 +127,12 @@ public sealed class TreeViewModel : ObservableObject
         var key = (connectionId, database);
         var names = await _gateway.ListCollectionsAsync(target, DatabaseName.Create(database), cancellationToken);
         _collections[key] = names.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToList();
+        var connection = _connections.FirstOrDefault(connection => connection.Profile.Id == connectionId);
+        if (connection is not null)
+        {
+            UpdateDatabases(connectionId, connection.Databases.Select(info => info.Name == database
+                ? info with { IsEmpty = names.Count == 0 } : info).ToList());
+        }
     }
 
     /// <summary>Removes a database and its cached collections from the tree.</summary>

@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Added
+
+- **Create database and collection** — right-click a connection to add a database, or a
+  database to create a collection. A new database stays in the tree until refresh or
+  reconnect; creating its first collection persists it on the server.
+- **New query** — right-click a database to open an empty query tab bound to it, or a
+  collection to open a tab with a ready-to-run `find` query, as with a double-click.
+- **Empty database discovery** — the tree also lists databases known from the connection
+  URI, authentication source and granted privileges that the server's catalog omits.
+
+### Changed
+
+- Collection query tabs start from `db.getCollection(...)`; mongosh already runs with the
+  tab's database, so the `getSiblingDB` wrapper is no longer inserted into the template.
+- Index creation uses **Unique** and **Background** checkboxes instead of a `y/n` text field.
+
 ### Fixed
 
 - Preserve the original document id during editing and deletion; reject id changes and

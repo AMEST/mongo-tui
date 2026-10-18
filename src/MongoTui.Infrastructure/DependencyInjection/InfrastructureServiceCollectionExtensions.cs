@@ -50,6 +50,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ISshTunnelFactory, SshCliTunnelFactory>();
         services.AddSingleton<IMongoShellSessionFactory, MongoShellSessionFactory>();
 
+        services.AddSingleton<MongoDatabaseDiscovery>();
         services.AddSingleton<IDriverMongoGateway, DriverMongoGateway>();
         services.AddSingleton<ICliMongoTransferGateway, CliMongoGateway>();
         services.AddSingleton<CompositeMongoGateway>();

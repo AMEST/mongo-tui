@@ -80,7 +80,8 @@
   <data name="Indexes.Drop" xml:space="preserve"><value>Drop</value></data>
   <data name="Indexes.Field.Keys" xml:space="preserve"><value>Keys (JSON)</value></data>
   <data name="Indexes.Field.Name" xml:space="preserve"><value>Name</value></data>
-  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Unique (y/n)</value></data>
+  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Unique</value></data>
+  <data name="Indexes.Field.Background" xml:space="preserve"><value>Background</value></data>
   <data name="Stats.Documents" xml:space="preserve"><value>Documents</value></data>
   <data name="Stats.Indexes" xml:space="preserve"><value>Indexes</value></data>
   <data name="Error.NameRequired" xml:space="preserve"><value>Name is required.</value></data>
@@ -155,6 +156,15 @@
   <data name="Common.Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Common.No" xml:space="preserve"><value>No</value></data>
   <data name="Tree.ContextMenu" xml:space="preserve"><value>Actions</value></data>
+  <data name="Tree.CreateDatabase" xml:space="preserve"><value>Create database...</value></data>
+  <data name="Tree.CreateCollection" xml:space="preserve"><value>Create collection...</value></data>
+  <data name="Tree.NewQuery" xml:space="preserve"><value>New query</value></data>
+  <data name="Create.DatabaseTitle" xml:space="preserve"><value>Create database</value></data>
+  <data name="Create.CollectionTitle" xml:space="preserve"><value>Create collection</value></data>
+  <data name="Create.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Create.Submit" xml:space="preserve"><value>Create</value></data>
+  <data name="Status.DatabaseCreated" xml:space="preserve"><value>Added database {0}</value></data>
+  <data name="Status.CollectionCreated" xml:space="preserve"><value>Created collection {0}</value></data>
   <data name="Tree.Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Tree.Disconnect" xml:space="preserve"><value>Disconnect</value></data>
   <data name="Tree.Statistics" xml:space="preserve"><value>Statistics</value></data>

@@ -23,7 +23,7 @@ public sealed class QueryAutocompleteTests(MongoFixture fixture) : IClassFixture
     [InlineData("constructor")]
     public async Task Should_ExecuteCompletedQuery_WhenCollectionNameNeedsExplicitAccess(string name)
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection(name);
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -53,7 +53,7 @@ public sealed class QueryAutocompleteTests(MongoFixture fixture) : IClassFixture
     [InlineData("order-items", "order\\x2ditems")]
     public async Task Should_LoadFields_WhenDatabaseAndCollectionLiteralsContainEscapes(string name, string literal)
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection(name);
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);

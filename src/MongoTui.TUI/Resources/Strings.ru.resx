@@ -80,7 +80,8 @@
   <data name="Indexes.Drop" xml:space="preserve"><value>Удалить</value></data>
   <data name="Indexes.Field.Keys" xml:space="preserve"><value>Ключи (JSON)</value></data>
   <data name="Indexes.Field.Name" xml:space="preserve"><value>Имя</value></data>
-  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Уникальный (д/н)</value></data>
+  <data name="Indexes.Field.Unique" xml:space="preserve"><value>Уникальный</value></data>
+  <data name="Indexes.Field.Background" xml:space="preserve"><value>Фоновый</value></data>
   <data name="Stats.Documents" xml:space="preserve"><value>Документов</value></data>
   <data name="Stats.Indexes" xml:space="preserve"><value>Индексов</value></data>
   <data name="Error.NameRequired" xml:space="preserve"><value>Имя обязательно.</value></data>
@@ -155,6 +156,15 @@
   <data name="Common.Yes" xml:space="preserve"><value>Да</value></data>
   <data name="Common.No" xml:space="preserve"><value>Нет</value></data>
   <data name="Tree.ContextMenu" xml:space="preserve"><value>Действия</value></data>
+  <data name="Tree.CreateDatabase" xml:space="preserve"><value>Создать базу данных...</value></data>
+  <data name="Tree.CreateCollection" xml:space="preserve"><value>Создать коллекцию...</value></data>
+  <data name="Tree.NewQuery" xml:space="preserve"><value>Новый запрос</value></data>
+  <data name="Create.DatabaseTitle" xml:space="preserve"><value>Создание базы данных</value></data>
+  <data name="Create.CollectionTitle" xml:space="preserve"><value>Создание коллекции</value></data>
+  <data name="Create.Name" xml:space="preserve"><value>Имя</value></data>
+  <data name="Create.Submit" xml:space="preserve"><value>Создать</value></data>
+  <data name="Status.DatabaseCreated" xml:space="preserve"><value>Добавлена база данных {0}</value></data>
+  <data name="Status.CollectionCreated" xml:space="preserve"><value>Создана коллекция {0}</value></data>
   <data name="Tree.Refresh" xml:space="preserve"><value>Обновить</value></data>
   <data name="Tree.Disconnect" xml:space="preserve"><value>Отключиться</value></data>
   <data name="Tree.Statistics" xml:space="preserve"><value>Статистика</value></data>

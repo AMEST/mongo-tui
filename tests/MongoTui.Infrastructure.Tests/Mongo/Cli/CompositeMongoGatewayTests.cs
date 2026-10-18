@@ -53,6 +53,19 @@ public sealed class CompositeMongoGatewayTests
             .MustNotHaveHappened();
     }
 
+    [Fact]
+    public async Task Should_RouteCollectionCreationToDriver_WhenRequested()
+    {
+        var driver = A.Fake<IDriverMongoGateway>();
+        var sut = new CompositeMongoGateway(driver, A.Fake<ICliMongoTransferGateway>());
+        var collection = NewCollection();
+
+        await sut.CreateCollectionAsync(Target, collection, CancellationToken.None);
+
+        A.CallTo(() => driver.CreateCollectionAsync(Target, collection, CancellationToken.None))
+            .MustHaveHappenedOnceExactly();
+    }
+
     private static CollectionRef NewCollection() =>
         new(DatabaseName.Create("app"), CollectionName.Create("users"));
 }

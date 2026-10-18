@@ -4,6 +4,7 @@ using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
+using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.TUI.ViewModels;
 
@@ -147,6 +148,64 @@ public sealed class TreeViewModelTests
 
         _sut.BuildRows().Where(row => row.Kind == TreeRowKind.Collection).Select(row => row.Collection)
             .Should().Equal("orders");
+    }
+
+    [Fact]
+    public void Should_ShowTemporaryDatabase_WhenAddedToCollapsedConnection()
+    {
+        var connection = NewConnection("local", "admin");
+        _sut.AddOrReplace(connection);
+        _sut.ToggleConnection(connection.Profile.Id);
+
+        _sut.AddDatabase(connection.Profile.Id, DatabaseName.Create("draft"));
+
+        _sut.BuildRows().Where(row => row.Kind == TreeRowKind.Database).Select(row => row.Database)
+            .Should().Equal("admin", "draft");
+        _sut.BuildRows().Single(row => row.Database == "draft").Text.Should().EndWith("(empty)");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Should_RemoveTemporaryDatabase_WhenRefreshingOrReconnecting(bool reconnect)
+    {
+        var connection = NewConnection("local", "admin");
+        _sut.AddOrReplace(connection);
+        _sut.AddDatabase(connection.Profile.Id, DatabaseName.Create("draft"));
+
+        if (reconnect) _sut.AddOrReplace(connection);
+        else _sut.UpdateDatabases(connection.Profile.Id, connection.Databases);
+
+        _sut.BuildRows().Should().NotContain(row => row.Database == "draft");
+    }
+
+    [Fact]
+    public void ShouldThrow_DomainException_WhenDatabaseAlreadyListed()
+    {
+        var connection = NewConnection("local", "app");
+        _sut.AddOrReplace(connection);
+
+        var act = () => _sut.AddDatabase(connection.Profile.Id, DatabaseName.Create("app"));
+
+        act.Should().Throw<DomainException>();
+        _sut.Connections.Single().Databases.Should().ContainSingle().Which.IsEmpty.Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_KeepTemporaryDatabaseAndUpdateEmptyMarker_WhenCollectionsReloaded(bool hasCollections)
+    {
+        var connection = NewConnection("local");
+        _sut.AddOrReplace(connection);
+        _sut.AddDatabase(connection.Profile.Id, DatabaseName.Create("draft"));
+        A.CallTo(() => _gateway.ListCollectionsAsync(Target, DatabaseName.Create("draft"), A<CancellationToken>._))
+            .Returns(hasCollections ? new[] { "users" } : []);
+
+        await _sut.ReloadCollectionsAsync(connection.Profile.Id, Target, "draft", CancellationToken.None);
+
+        _sut.Connections.Single().Databases.Should().ContainSingle()
+            .Which.Should().Be(new DatabaseInfo("draft", !hasCollections));
     }
 
     private static ActiveConnection NewConnection(string name, params string[] databases)

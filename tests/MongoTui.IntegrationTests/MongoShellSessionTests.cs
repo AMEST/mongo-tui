@@ -18,7 +18,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [InlineData("'use strict'; const items = db.getCollection('items'); items.find({}).toArray()")]
     public async Task Should_QuerySelectedDatabase_WhenScriptUsesUnqualifiedDb(string script)
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -32,7 +32,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_UseExplicitDatabase_WhenScriptOverridesTabDatabase()
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -47,7 +47,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_KeepConnectionDatabase_WhenTabHasNoSelectedDatabase()
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var collection = NewCollection();
         var connection = new MongoUrlBuilder(fixture.ConnectionString)
         {
@@ -66,7 +66,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_UseChangedDatabase_WhenSessionReused()
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var first = NewCollection();
         var second = NewCollection();

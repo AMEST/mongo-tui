@@ -36,4 +36,10 @@ public sealed class DatabaseService
         CollectionRef collection,
         CancellationToken cancellationToken) =>
         _gateway.ClearCollectionAsync(target, collection, cancellationToken);
+
+    public Task CreateCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        _gateway.CreateCollectionAsync(target, collection, cancellationToken);
 }

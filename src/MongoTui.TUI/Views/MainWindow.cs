@@ -25,6 +25,8 @@ namespace MongoTui.TUI.Views;
 /// <summary>Root window of the application shell.</summary>
 public sealed partial class MainWindow : Window
 {
+    private const string EmptyQueryScript = "// write your query below this line";
+
     private readonly ILocalizer _localizer;
     private readonly ConnectionService _connections;
     private readonly DocumentService _documents;
@@ -519,13 +521,19 @@ public sealed partial class MainWindow : Window
 
     private void OpenCollectionTab(TreeRow row)
     {
-        var script = BuildCollectionScript(row.Database!, row.Collection!);
+        var script = BuildCollectionScript(row.Collection!);
         _queryTabs.AddTab(row.Owner.Profile.Id, row.Owner.Target, row.Database, row.Collection, script);
         SetStatus($"{row.Database}.{row.Collection}");
     }
 
-    private static string BuildCollectionScript(string database, string collection) =>
-        $"db.getSiblingDB(\"{database}\").getCollection(\"{collection}\").find({{}}).limit(50).toArray()";
+    private void OpenDatabaseQueryTab(TreeRow row)
+    {
+        _queryTabs.AddTab(row.Owner.Profile.Id, row.Owner.Target, row.Database, collection: null, EmptyQueryScript);
+        SetStatus(row.Database!);
+    }
+
+    private static string BuildCollectionScript(string collection) =>
+        $"db.getCollection(\"{collection}\").find({{}}).limit(50).toArray()";
 
     private void OnTreeMouseEvent(object? sender, Mouse mouse)
     {
@@ -578,15 +586,27 @@ public sealed partial class MainWindow : Window
         switch (row.Kind)
         {
             case TreeRowKind.Connection:
+                actions.Add((_localizer.Get("Tree.CreateDatabase"), () => CreateDatabaseAsync(connection)));
                 actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshConnectionAsync(connection)));
                 actions.Add((_localizer.Get("Tree.Disconnect"), () => DisconnectAsync(connection)));
                 break;
             case TreeRowKind.Database:
+                actions.Add((_localizer.Get("Tree.NewQuery"), () =>
+                {
+                    OpenDatabaseQueryTab(row);
+                    return Task.CompletedTask;
+                }));
+                actions.Add((_localizer.Get("Tree.CreateCollection"), () => CreateCollectionAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshDatabaseAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.Statistics"), () => ShowDatabaseStatsAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.DropDatabase"), () => DropDatabaseAsync(connection, row.Database!)));
                 break;
             case TreeRowKind.Collection:
+                actions.Add((_localizer.Get("Tree.NewQuery"), () =>
+                {
+                    OpenCollectionTab(row);
+                    return Task.CompletedTask;
+                }));
                 actions.Add((_localizer.Get("Tree.Statistics"), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get("Tree.Indexes"), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get("Tree.ClearCollection"), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));

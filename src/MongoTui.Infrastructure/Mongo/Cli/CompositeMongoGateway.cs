@@ -69,14 +69,21 @@ public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway
         CancellationToken cancellationToken) =>
         _driver.ClearCollectionAsync(target, collection, cancellationToken);
 
+    public Task CreateCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken) =>
+        _driver.CreateCollectionAsync(target, collection, cancellationToken);
+
     public Task CreateIndexAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
         string indexKeysJson,
         string? name,
         bool unique,
+        bool background,
         CancellationToken cancellationToken) =>
-        _driver.CreateIndexAsync(target, collection, indexKeysJson, name, unique, cancellationToken);
+        _driver.CreateIndexAsync(target, collection, indexKeysJson, name, unique, background, cancellationToken);
 
     public Task DropIndexAsync(
         MongoConnectionTarget target,

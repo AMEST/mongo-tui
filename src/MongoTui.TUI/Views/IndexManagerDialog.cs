@@ -21,7 +21,8 @@ public sealed class IndexManagerDialog : ThemedDialog
     private readonly Label _stats = new();
     private readonly TextField _keysField = new();
     private readonly TextField _nameField = new();
-    private readonly TextField _uniqueField = new();
+    private readonly CheckBox _uniqueCheck = new();
+    private readonly CheckBox _backgroundCheck = new();
     private readonly Label _error = new();
 
     private IReadOnlyList<IndexInfo> _indexInfos = [];
@@ -66,11 +67,15 @@ public sealed class IndexManagerDialog : ThemedDialog
         _nameField.Width = Dim.Fill();
         Add(_nameField);
 
-        Add(FieldLabel("Indexes.Field.Unique", 13));
-        _uniqueField.X = 20;
-        _uniqueField.Y = 13;
-        _uniqueField.Width = 10;
-        Add(_uniqueField);
+        _uniqueCheck.Text = _localizer.Get("Indexes.Field.Unique");
+        _uniqueCheck.X = 1;
+        _uniqueCheck.Y = 13;
+        Add(_uniqueCheck);
+
+        _backgroundCheck.Text = _localizer.Get("Indexes.Field.Background");
+        _backgroundCheck.X = 1;
+        _backgroundCheck.Y = 15;
+        Add(_backgroundCheck);
 
         _error.X = 1;
         _error.Y = Pos.AnchorEnd(3);
@@ -102,7 +107,6 @@ public sealed class IndexManagerDialog : ThemedDialog
 
     private async Task CreateAsync()
     {
-        var unique = _uniqueField.Text?.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase) == true;
         var name = string.IsNullOrWhiteSpace(_nameField.Text) ? null : _nameField.Text;
 
         await _indexes.CreateAsync(
@@ -110,7 +114,8 @@ public sealed class IndexManagerDialog : ThemedDialog
             _collection,
             _keysField.Text ?? "{}",
             name,
-            unique,
+            _uniqueCheck.Value == CheckState.Checked,
+            _backgroundCheck.Value == CheckState.Checked,
             CancellationToken.None);
 
         await LoadAsync();

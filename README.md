@@ -18,6 +18,8 @@ with English and Russian interfaces.
 
 - Saved connections with encrypted passwords, a master password and SSH/TPAM support with 2FA.
 - Database and collection browser, index management and statistics.
+  Empty databases known from the URI, authentication source or user privileges remain visible in the tree.
+  Right-click a connection to add a database, or a database to create a collection or open an empty query tab bound to it. A new database stays in the tree until refresh or reconnect; creating its first collection persists it on the server.
 - JavaScript query tabs with autocomplete and query history.
 - Table, Tree and JSON result views; document editing as JSON.
 - Collection import and export in JSON.
@@ -75,7 +77,8 @@ Queries use the tab's database. For example:
 db.getCollection('users').find({ active: true }).limit(50).toArray()
 ```
 
-Right-click a tree node or result to see its available actions.
+Right-click a tree node or result to see its available actions. **New query** on a database
+opens an empty tab bound to that database; on a collection it opens the same tab as a double-click.
 
 ### Keyboard shortcuts
 

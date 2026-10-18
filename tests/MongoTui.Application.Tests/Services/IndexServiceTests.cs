@@ -40,9 +40,9 @@ public sealed class IndexServiceTests
     [Fact]
     public async Task Should_CreateIndex_When_Requested()
     {
-        await _sut.CreateAsync(Target, Collection, "{ \"a\": 1 }", "a_1", true, CancellationToken.None);
+        await _sut.CreateAsync(Target, Collection, "{ \"a\": 1 }", "a_1", true, true, CancellationToken.None);
 
-        A.CallTo(() => _gateway.CreateIndexAsync(Target, Collection, "{ \"a\": 1 }", "a_1", true, A<CancellationToken>._))
+        A.CallTo(() => _gateway.CreateIndexAsync(Target, Collection, "{ \"a\": 1 }", "a_1", true, true, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 

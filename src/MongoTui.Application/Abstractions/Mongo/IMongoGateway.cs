@@ -46,6 +46,11 @@ public interface IMongoGateway
         CollectionRef collection,
         CancellationToken cancellationToken);
 
+    Task CreateCollectionAsync(
+        MongoConnectionTarget target,
+        CollectionRef collection,
+        CancellationToken cancellationToken);
+
     Task ClearCollectionAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
@@ -57,6 +62,7 @@ public interface IMongoGateway
         string indexKeysJson,
         string? name,
         bool unique,
+        bool background,
         CancellationToken cancellationToken);
 
     Task DropIndexAsync(

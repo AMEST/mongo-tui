@@ -20,7 +20,7 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     [InlineData("db.getCollection('items').find({}).so|rt({name: 1}).limit(1).toArray()", "sort", 1)]
     public async Task Should_ReturnDocuments_WhenCompletedMethodChainExecuted(string marked, string method, int count)
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -39,7 +39,7 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     [InlineData("db.getCollection('items').countD|", "countDocuments")]
     public async Task Should_ReturnCount_WhenCompletedCountMethodExecuted(string marked, string method)
     {
-        using var gateway = new DriverMongoGateway();
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
