@@ -19,6 +19,7 @@ public sealed class ConnectionFormViewModelTests
     private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
     private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
+    private readonly ConnectionService _service;
     private readonly ConnectionFormViewModel _sut;
 
     public ConnectionFormViewModelTests()
@@ -27,9 +28,9 @@ public sealed class ConnectionFormViewModelTests
             .Returns((StoredConnection?)null);
 
         var secrets = new SecretKeyService(_keyProvider, _crypto);
-        var service = new ConnectionService(_repository, secrets, _gateway,
+        _service = new ConnectionService(_repository, secrets, _gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
-        _sut = new ConnectionFormViewModel(service);
+        _sut = new ConnectionFormViewModel(_service);
         _sut.LoadNew();
     }
 
@@ -144,5 +145,65 @@ public sealed class ConnectionFormViewModelTests
 
         applied.Should().BeFalse();
         _sut.ValidationError.Should().NotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public void Should_FillEmptyFieldsFromUri_When_MergingCredentials()
+    {
+        _sut.Uri = "mongodb://bob:pw@localhost:27017/app?authSource=admin";
+
+        _sut.MergeCredentialsFromUri();
+
+        _sut.Uri.Should().Be("mongodb://localhost:27017/app?authSource=admin");
+        _sut.Username.Should().Be("bob");
+        _sut.Password.Should().Be("pw");
+        _sut.AuthDatabase.Should().Be("admin");
+        _sut.AuthKind.Should().Be(AuthKind.ScramSha256);
+    }
+
+    [Fact]
+    public void Should_KeepTypedCredentials_When_MergingUriCredentials()
+    {
+        _sut.Username = "typed";
+        _sut.Password = "typed-pw";
+        _sut.Uri = "mongodb://bob:pw@localhost:27017";
+
+        _sut.MergeCredentialsFromUri();
+
+        _sut.Username.Should().Be("typed");
+        _sut.Password.Should().Be("typed-pw");
+        _sut.Uri.Should().Be("mongodb://bob:pw@localhost:27017");
+    }
+
+    [Fact]
+    public void Should_DoNothing_When_UriHasNoCredentials()
+    {
+        _sut.Uri = "mongodb://localhost:27017";
+
+        _sut.MergeCredentialsFromUri();
+
+        _sut.Username.Should().BeNull();
+        _sut.Password.Should().BeNull();
+        _sut.Uri.Should().Be("mongodb://localhost:27017");
+    }
+
+    [Fact]
+    public async Task Should_FillFieldsFromUri_When_SavingWithEmptyCredentials()
+    {
+        A.CallTo(() => _keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._))
+            .Returns(new byte[32]);
+        await _service.UnlockAsync("master", CancellationToken.None);
+        var nonce = new byte[] { 1, 2, 3 };
+        A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out nonce)).Returns([9, 9]);
+        _sut.Name = "local";
+        _sut.Uri = "mongodb://bob:pw@localhost:27017/app";
+
+        var saved = await _sut.SaveAsync(CancellationToken.None);
+
+        saved.Should().BeTrue();
+        _sut.Uri.Should().Be("mongodb://localhost:27017/app");
+        _sut.Username.Should().Be("bob");
+        _sut.Password.Should().Be("pw");
+        _sut.AuthKind.Should().Be(AuthKind.ScramSha256);
     }
 }

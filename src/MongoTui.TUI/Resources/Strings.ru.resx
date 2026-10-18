@@ -21,7 +21,7 @@
   <data name="About.License" xml:space="preserve"><value>MIT License</value></data>
   <data name="About.Copyright" xml:space="preserve"><value>Copyright (c) 2026 Klabukov Erik (AMEST)</value></data>
   <data name="Status.Ready" xml:space="preserve"><value>Готово</value></data>
-  <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+Enter Выполнить · Ctrl+T Новая вкладка · Ctrl+W Закрыть · Ctrl+O Подключения · Ctrl+Q Выход</value></data>
+  <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+R Выполнить · Ctrl+T Новая вкладка · Ctrl+W Закрыть · Ctrl+O Подключения · Ctrl+Q Выход</value></data>
   <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Ошибка</value></data>
   <data name="Menu.File" xml:space="preserve"><value>Файл</value></data>
@@ -32,7 +32,7 @@
   <data name="Menu.Connection.Refresh" xml:space="preserve"><value>Обновить</value></data>
   <data name="Menu.Query" xml:space="preserve"><value>Запрос</value></data>
   <data name="Menu.Query.New" xml:space="preserve"><value>Новая вкладка</value></data>
-  <data name="Menu.Query.Run" xml:space="preserve"><value>Выполнить (F5, Ctrl+Enter)</value></data>
+  <data name="Menu.Query.Run" xml:space="preserve"><value>Выполнить (F5, Ctrl+R)</value></data>
   <data name="Menu.Query.Close" xml:space="preserve"><value>Закрыть вкладку</value></data>
   <data name="Menu.Document" xml:space="preserve"><value>Документ</value></data>
   <data name="Menu.Document.Insert" xml:space="preserve"><value>Добавить документ...</value></data>
@@ -145,7 +145,7 @@
   <data name="ChangePassword.Change" xml:space="preserve"><value>Сменить</value></data>
   <data name="ChangePassword.Changed" xml:space="preserve"><value>Мастер-пароль изменён.</value></data>
   <data name="Database.Empty" xml:space="preserve"><value>(пустая)</value></data>
-  <data name="Query.Pane" xml:space="preserve"><value>Запрос  (F5/Ctrl+Enter: выполнить, Ctrl+W: закрыть)</value></data>
+  <data name="Query.Pane" xml:space="preserve"><value>Запрос  (F5/Ctrl+R: выполнить, Ctrl+W: закрыть)</value></data>
   <data name="Query.Result" xml:space="preserve"><value>Результат</value></data>
   <data name="Result.Table" xml:space="preserve"><value>Таблица</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Дерево</value></data>

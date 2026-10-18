@@ -21,6 +21,10 @@ All notable changes to this project are documented in this file.
 - Collection query tabs start from `db.getCollection(...)`; mongosh already runs with the
   tab's database, so the `getSiblingDB` wrapper is no longer inserted into the template.
 - Index creation uses **Unique** and **Background** checkboxes instead of a `y/n` text field.
+- Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`, which some terminal
+  emulators, notably on macOS, intercept for their own context menu.
+- Saving or testing a connection fills empty login and password fields from credentials
+  embedded in the URI, so a pasted connection string works without the **From URI** button.
 
 ### Fixed
 

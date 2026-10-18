@@ -16,6 +16,7 @@ using MongoTui.TUI.Bootstrap;
 using MongoTui.TUI.ViewModels;
 using MongoTui.TUI.Views;
 using Terminal.Gui.Drivers;
+using Terminal.Gui.Input;
 
 namespace MongoTui.TUI.Tests.Views;
 
@@ -99,6 +100,15 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         tabs.ActiveTab.Collection.Should().Be("c1");
         tabs.ActiveTab.Script.Should().Be("db.getCollection(\"c1\").find({}).limit(50).toArray()");
         tabs.ActiveTab.Script.Should().NotContain("getSiblingDB");
+    }
+
+    [Fact]
+    public void Should_BindRunQueryToCtrlR_WhenShortcutsAreBuilt()
+    {
+        var shortcuts = (Dictionary<Key, Action>)Field(_window, "_shortcuts");
+
+        shortcuts.Keys.Should().Contain(new Key(KeyCode.R | KeyCode.CtrlMask));
+        shortcuts.Keys.Should().NotContain(new Key(KeyCode.Enter | KeyCode.CtrlMask));
     }
 
     private TreeViewModel _tree => (TreeViewModel)Field(_window, "_tree");

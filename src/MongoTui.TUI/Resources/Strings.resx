@@ -21,7 +21,7 @@
   <data name="About.License" xml:space="preserve"><value>MIT License</value></data>
   <data name="About.Copyright" xml:space="preserve"><value>Copyright (c) 2026 Klabukov Erik (AMEST)</value></data>
   <data name="Status.Ready" xml:space="preserve"><value>Ready</value></data>
-  <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+Enter Run · Ctrl+T New tab · Ctrl+W Close · Ctrl+O Connections · Ctrl+Q Quit</value></data>
+  <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+R Run · Ctrl+T New tab · Ctrl+W Close · Ctrl+O Connections · Ctrl+Q Quit</value></data>
   <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Error</value></data>
   <data name="Menu.File" xml:space="preserve"><value>File</value></data>
@@ -32,7 +32,7 @@
   <data name="Menu.Connection.Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Menu.Query" xml:space="preserve"><value>Query</value></data>
   <data name="Menu.Query.New" xml:space="preserve"><value>New tab</value></data>
-  <data name="Menu.Query.Run" xml:space="preserve"><value>Run (F5, Ctrl+Enter)</value></data>
+  <data name="Menu.Query.Run" xml:space="preserve"><value>Run (F5, Ctrl+R)</value></data>
   <data name="Menu.Query.Close" xml:space="preserve"><value>Close tab</value></data>
   <data name="Menu.Document" xml:space="preserve"><value>Document</value></data>
   <data name="Menu.Document.Insert" xml:space="preserve"><value>Insert document...</value></data>
@@ -145,7 +145,7 @@
   <data name="ChangePassword.Change" xml:space="preserve"><value>Change</value></data>
   <data name="ChangePassword.Changed" xml:space="preserve"><value>Master password changed.</value></data>
   <data name="Database.Empty" xml:space="preserve"><value>(empty)</value></data>
-  <data name="Query.Pane" xml:space="preserve"><value>Query  (F5/Ctrl+Enter: run, Ctrl+W: close)</value></data>
+  <data name="Query.Pane" xml:space="preserve"><value>Query  (F5/Ctrl+R: run, Ctrl+W: close)</value></data>
   <data name="Query.Result" xml:space="preserve"><value>Result</value></data>
   <data name="Result.Table" xml:space="preserve"><value>Table</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Tree</value></data>

@@ -26,7 +26,7 @@ public sealed class ShortcutsDialogTests
         var text = dialog.SubViews.OfType<TextView>().Single().Text;
 
         dialog.Title.Should().Be(title);
-        text.Should().Contain("F5 / Ctrl+Enter");
+        text.Should().Contain("F5 / Ctrl+R");
         text.Should().Contain("Ctrl+C");
         text.Should().Contain("Ctrl+V / Cmd+V");
         text.Should().Contain("F10");

@@ -68,7 +68,7 @@ Run `mongo-tui.exe`.
    **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
 3. Expand a database and open a collection with **Enter** or a double-click. A query tab opens
    with a ready-to-run `find` query.
-4. Edit the query and press **F5** or **Ctrl+Enter**. Choose Table, Tree or JSON in
+4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree or JSON in
    **Settings → Result view**.
 
 Queries use the tab's database. For example:
@@ -86,7 +86,7 @@ opens an empty tab bound to that database; on a collection it opens the same tab
 |---|---|
 | `Ctrl+O` | Connection manager |
 | `Ctrl+T` / `Ctrl+W` | New / close query tab |
-| `F5` / `Ctrl+Enter` | Run query |
+| `F5` / `Ctrl+R` | Run query |
 | `Ctrl+Space` | Autocomplete in the editor; context menu in the tree |
 | `Ctrl+H` | Query history |
 | `F2` / `F3` | Export / import |

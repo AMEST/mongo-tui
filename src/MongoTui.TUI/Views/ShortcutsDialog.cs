@@ -14,7 +14,7 @@ public sealed class ShortcutsDialog : ThemedDialog
 
     private static readonly (string Key, string Shortcut)[] Entries =
     [
-        ("Shortcuts.Run", "F5 / Ctrl+Enter"),
+        ("Shortcuts.Run", "F5 / Ctrl+R"),
         ("Shortcuts.NewTab", "Ctrl+T"),
         ("Shortcuts.CloseTab", "Ctrl+W"),
         ("Shortcuts.Connections", "Ctrl+O"),

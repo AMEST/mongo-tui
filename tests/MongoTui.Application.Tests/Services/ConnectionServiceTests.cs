@@ -56,6 +56,28 @@ public sealed class ConnectionServiceTests
     }
 
     [Fact]
+    public async Task Should_ExtractUriCredentials_When_FieldsEmpty()
+    {
+        await UnlockAsync();
+        StoredConnection? saved = null;
+        var nonce = new byte[] { 1, 2, 3 };
+        A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out nonce)).Returns([9, 9]);
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._))
+            .Invokes((StoredConnection value, CancellationToken _) => saved = value);
+        var profile = ConnectionProfile.Create(
+            ConnectionId.New(), "local", "mongodb://alice:s3cret@localhost:27017/mydb");
+
+        await _sut.SaveAsync(profile, null, CancellationToken.None);
+
+        var stored = saved!;
+        stored.Profile.Uri.Should().Be("mongodb://localhost:27017/mydb");
+        stored.Profile.Auth.Username.Should().Be("alice");
+        stored.Profile.Auth.Kind.Should().Be(AuthKind.ScramSha256);
+        stored.Profile.Auth.AuthDatabase.Should().Be("mydb");
+        stored.Secret.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task Should_UpdateExisting_When_ProfileAlreadyStored()
     {
         var profile = NewProfile();

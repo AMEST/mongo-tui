@@ -167,6 +167,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         else
         {
             _error.Text = _viewModel.ValidationError ?? string.Empty;
+            PopulateFromViewModel();
         }
     }
 
@@ -183,6 +184,11 @@ public sealed class ConnectionFormDialog : ThemedDialog
         try
         {
             var error = await _viewModel.TestAsync(cancellation.Token);
+            if (!_closing)
+            {
+                PopulateFromViewModel();
+            }
+
             SetTestStatus(error ?? _localizer.Get("Common.Ok"));
         }
         catch (OperationCanceledException)

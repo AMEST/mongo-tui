@@ -359,7 +359,7 @@ public sealed partial class MainWindow : Window
             new((selected ? "\u2022 " : "   ") + text, string.Empty, action);
 
         var runQuery = () => Safe(RunActiveQueryAsync);
-        _shortcuts[Ctrl(KeyCode.Enter)] = runQuery;
+        _shortcuts[Ctrl(KeyCode.R)] = runQuery;
 
         return
         [
