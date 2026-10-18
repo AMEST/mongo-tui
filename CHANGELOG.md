@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## v0.5.0 — since v0.4.0
 
 ### Added
 
@@ -13,6 +13,8 @@ All notable changes to this project are documented in this file.
   collection to open a tab with a ready-to-run `find` query, as with a double-click.
 - **Empty database discovery** — the tree also lists databases known from the connection
   URI, authentication source and granted privileges that the server's catalog omits.
+- **Keyboard shortcuts dialog** — **Help → Keyboard shortcuts…** lists every command and its
+  hotkey, including why copy uses `Ctrl+C` on macOS.
 
 ### Changed
 
@@ -30,6 +32,9 @@ All notable changes to this project are documented in this file.
   Roll back on failure or cancellation and serialize concurrent secret storage operations.
 - Extract and encrypt credentials from full connection URIs before saving; migrate legacy
   profiles after unlock. Remove scripts, raw diagnostics and exception contents from logs.
+- Copy the selected text to the system clipboard with **Ctrl+C** in the editor, results and
+  dialogs. When the platform clipboard is unavailable (headless Linux, SSH without `xclip`),
+  the text is written through the OSC 52 terminal escape sequence instead of being dropped.
 
 ## v0.4.0 — since v0.3.0
 

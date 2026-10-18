@@ -317,6 +317,17 @@ public sealed partial class MainWindow : Window
         Application.Run(dialog);
     }
 
+    private void OpenShortcuts()
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        using var dialog = new ShortcutsDialog(_localizer, Application);
+        Application.Run(dialog);
+    }
+
     private MenuBar BuildMenuBar(ILocalizer localizer) =>
         new(BuildMenuItems(localizer))
         {
@@ -412,6 +423,7 @@ public sealed partial class MainWindow : Window
             ]),
             new MenuBarItem(localizer.Get("Menu.Help"),
             [
+                Item(localizer.Get("Menu.Help.Shortcuts"), Key.Empty, OpenShortcuts),
                 Item(localizer.Get("Menu.Help.About"), Key.Empty, OpenAbout),
             ]),
         ];

@@ -32,6 +32,7 @@ public sealed class AppHost
 
         using var application = Terminal.Gui.App.Application.Create();
         application.Init();
+        InstallClipboardFallback(application);
         _sshPrompt.Application = application;
 
         try
@@ -58,6 +59,17 @@ public sealed class AppHost
             await _tunnels.DisposeAsync();
             _sshPrompt.Application = null;
             _logger.LogInformation("MongoTui stopped");
+        }
+    }
+
+    // Terminal.Gui reports no clipboard when the OS integration is missing (e.g. xclip is not
+    // installed over SSH). Wrapping the driver clipboard with the OSC 52 fallback keeps copy
+    // working from the editor, results and dialogs in those environments.
+    private static void InstallClipboardFallback(IApplication application)
+    {
+        if (application.Driver is { } driver)
+        {
+            driver.Clipboard = new TerminalClipboard(driver.Clipboard, driver.WriteRaw);
         }
     }
 

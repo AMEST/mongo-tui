@@ -92,11 +92,23 @@ opens an empty tab bound to that database; on a collection it opens the same tab
 | `F2` / `F3` | Export / import |
 | `F9` | Refresh |
 | `Tab` / `Shift+Tab` | Move between the tree, editor and results |
+| `F10` | Focus the menu bar |
+| `Ctrl+C` | Copy the selected text (Ctrl+C on macOS; the terminal reserves Cmd+C) |
+| `Ctrl+V` / `Cmd+V` | Paste from the clipboard |
 | `Ctrl+Q` | Exit |
 
 For autocomplete, use **↑/↓** to choose, **Enter** or **Tab** to insert, and **Esc** to dismiss.
 Database, collection and field names are available through `Ctrl+Space`; method suggestions
 also appear while typing.
+
+The full list is always available in the app under **Help → Keyboard shortcuts**. Shortcuts act on
+the focused pane, so the same `Ctrl+C` copies from the editor, the results or a dialog field.
+
+**Copy on macOS.** Terminals intercept `Cmd+C` for their own copy and never forward it to the
+application, so MongoTui copies with `Ctrl+C` (into the system clipboard via `pbcopy`). To reuse
+`Cmd+C`, remap it in the terminal to send `Ctrl+C` (`0x03`) — in Terminal.app via
+*Settings → Profiles → Keyboard* and in iTerm2 via *Settings → Keys*. On Linux and over SSH
+without `xclip`, copy falls back to the OSC 52 escape sequence, which modern terminals support.
 
 ## Optional setup
 

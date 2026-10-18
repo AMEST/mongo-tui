@@ -238,4 +238,31 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Autocomplete.NoContext" xml:space="preserve"><value>Дополните имя базы, коллекции, поля запроса или метод после db., коллекции или курсора.</value></data>
   <data name="Autocomplete.NoMatches" xml:space="preserve"><value>Подходящие имена не найдены.</value></data>
   <data name="Autocomplete.Failed" xml:space="preserve"><value>Не удалось загрузить подсказки. Проверьте подключение и права на чтение.</value></data>
+  <data name="Menu.Help.Shortcuts" xml:space="preserve"><value>Горячие клавиши...</value></data>
+  <data name="Shortcuts.Title" xml:space="preserve"><value>Горячие клавиши</value></data>
+  <data name="Shortcuts.MacNote" xml:space="preserve"><value>macOS: используйте Ctrl+C — терминал перехватывает Cmd+C.</value></data>
+  <data name="Shortcuts.Run" xml:space="preserve"><value>Выполнить запрос</value></data>
+  <data name="Shortcuts.NewTab" xml:space="preserve"><value>Новая вкладка</value></data>
+  <data name="Shortcuts.CloseTab" xml:space="preserve"><value>Закрыть вкладку</value></data>
+  <data name="Shortcuts.Connections" xml:space="preserve"><value>Менеджер подключений</value></data>
+  <data name="Shortcuts.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Shortcuts.Autocomplete" xml:space="preserve"><value>Автодополнение</value></data>
+  <data name="Shortcuts.History" xml:space="preserve"><value>История запросов</value></data>
+  <data name="Shortcuts.Ai" xml:space="preserve"><value>ИИ-помощник</value></data>
+  <data name="Shortcuts.Translate" xml:space="preserve"><value>Перевод запроса</value></data>
+  <data name="Shortcuts.Export" xml:space="preserve"><value>Экспорт</value></data>
+  <data name="Shortcuts.Import" xml:space="preserve"><value>Импорт</value></data>
+  <data name="Shortcuts.Indexes" xml:space="preserve"><value>Индексы коллекции</value></data>
+  <data name="Shortcuts.Insert" xml:space="preserve"><value>Добавить документ</value></data>
+  <data name="Shortcuts.Edit" xml:space="preserve"><value>Изменить документ</value></data>
+  <data name="Shortcuts.Delete" xml:space="preserve"><value>Удалить документ</value></data>
+  <data name="Shortcuts.MoveFocus" xml:space="preserve"><value>Сменить панель</value></data>
+  <data name="Shortcuts.MenuBar" xml:space="preserve"><value>Фокус на меню</value></data>
+  <data name="Shortcuts.InsertTab" xml:space="preserve"><value>Вставить табуляцию</value></data>
+  <data name="Shortcuts.Copy" xml:space="preserve"><value>Копировать выделение</value></data>
+  <data name="Shortcuts.Paste" xml:space="preserve"><value>Вставить</value></data>
+  <data name="Shortcuts.Cut" xml:space="preserve"><value>Вырезать выделение</value></data>
+  <data name="Shortcuts.Unlock" xml:space="preserve"><value>Разблокировать секреты</value></data>
+  <data name="Shortcuts.ChangePassword" xml:space="preserve"><value>Сменить мастер-пароль</value></data>
+  <data name="Shortcuts.Quit" xml:space="preserve"><value>Выход</value></data>
 </root>
