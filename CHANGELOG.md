@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.5.1 — since v0.5.0
+
+### Changed
+
+- Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`; some terminal emulators,
+  notably on macOS, intercept `Ctrl+Enter` for their own context menu, and report
+  `Shift+Enter` as a plain newline.
+- Saving or testing a connection fills empty login and password fields from credentials
+  embedded in the URI, so a pasted connection string works without the **From URI** button.
+
 ## v0.5.0 — since v0.4.0
 
 ### Added
@@ -21,10 +31,6 @@ All notable changes to this project are documented in this file.
 - Collection query tabs start from `db.getCollection(...)`; mongosh already runs with the
   tab's database, so the `getSiblingDB` wrapper is no longer inserted into the template.
 - Index creation uses **Unique** and **Background** checkboxes instead of a `y/n` text field.
-- Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`, which some terminal
-  emulators, notably on macOS, intercept for their own context menu.
-- Saving or testing a connection fills empty login and password fields from credentials
-  embedded in the URI, so a pasted connection string works without the **From URI** button.
 
 ### Fixed
 
@@ -165,6 +171,8 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.5.0 to v0.5.1]: https://github.com/AMEST/mongo-tui/compare/v0.5.0...v0.5.1
+[v0.4.0 to v0.5.0]: https://github.com/AMEST/mongo-tui/compare/v0.4.0...v0.5.0
 [v0.3.0 to v0.4.0]: https://github.com/AMEST/mongo-tui/compare/v0.3.0...v0.4.0
 [v0.2.0 to v0.3.0]: https://github.com/AMEST/mongo-tui/compare/v0.2.0...v0.3.0
 [v0.1.0 to v0.2.0]: https://github.com/AMEST/mongo-tui/compare/v0.1.0...v0.2.0
