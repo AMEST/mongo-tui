@@ -15,6 +15,7 @@ public sealed class ResultViewModel : ObservableObject
     private IReadOnlyList<string> _columns = [];
     private IReadOnlyList<IReadOnlyList<string>> _rows = [];
     private string _json = string.Empty;
+    private string _raw = string.Empty;
     private string? _error;
     private TimeSpan _elapsed;
     private ResultViewMode _mode = ResultViewMode.Table;
@@ -49,6 +50,13 @@ public sealed class ResultViewModel : ObservableObject
         private set => SetProperty(ref _json, value);
     }
 
+    /// <summary>Verbatim stdout from the shell, shown by the raw view.</summary>
+    public string Raw
+    {
+        get => _raw;
+        private set => SetProperty(ref _raw, value);
+    }
+
     public string? Error
     {
         get => _error;
@@ -80,6 +88,7 @@ public sealed class ResultViewModel : ObservableObject
         Kind = result.Kind;
         Documents = result.Documents;
         Elapsed = result.Elapsed;
+        Raw = result.RawOutput;
         Error = null;
 
         Rebuild();
@@ -90,6 +99,7 @@ public sealed class ResultViewModel : ObservableObject
         Kind = QueryResultKind.Scalar;
         Documents = [];
         Elapsed = TimeSpan.Zero;
+        Raw = string.Empty;
         Error = message;
 
         Rebuild();
@@ -101,7 +111,7 @@ public sealed class ResultViewModel : ObservableObject
     /// </summary>
     public int? DocumentIndexAtRow(int row)
     {
-        if (row < 0 || Documents.Count == 0)
+        if (row < 0 || Documents.Count == 0 || Mode == ResultViewMode.Raw)
         {
             return null;
         }
@@ -143,6 +153,7 @@ public sealed class ResultViewModel : ObservableObject
         return Mode switch
         {
             ResultViewMode.Json => Json,
+            ResultViewMode.Raw => Raw,
             ResultViewMode.Tree => string.Join("\n", Documents.Select(document => document.ToJson(IndentedJson))),
             _ => RenderTable(),
         };

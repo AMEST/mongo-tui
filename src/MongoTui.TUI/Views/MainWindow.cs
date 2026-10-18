@@ -396,6 +396,7 @@ public sealed partial class MainWindow : Window
                         Choice(localizer.Get("Result.Table"), _resultViewMode == ResultViewMode.Table, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Table))),
                         Choice(localizer.Get("Result.Tree"), _resultViewMode == ResultViewMode.Tree, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Tree))),
                         Choice(localizer.Get("Result.Json"), _resultViewMode == ResultViewMode.Json, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Json))),
+                        Choice(localizer.Get("Result.Raw"), _resultViewMode == ResultViewMode.Raw, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Raw))),
                     ]),
                 },
                 new MenuItem
@@ -870,7 +871,8 @@ public sealed partial class MainWindow : Window
     {
         ResultViewMode.Table => "Result.Table",
         ResultViewMode.Tree => "Result.Tree",
-        _ => "Result.Json",
+        ResultViewMode.Json => "Result.Json",
+        _ => "Result.Raw",
     };
 
     private void NewTab()

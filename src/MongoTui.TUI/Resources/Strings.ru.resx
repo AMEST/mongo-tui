@@ -150,6 +150,7 @@
   <data name="Result.Table" xml:space="preserve"><value>Таблица</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Дерево</value></data>
   <data name="Result.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Result.Raw" xml:space="preserve"><value>Raw (stdout)</value></data>
   <data name="Result.CopyAll" xml:space="preserve"><value>Копировать всё</value></data>
   <data name="Result.CopyDocument" xml:space="preserve"><value>Копировать документ (JSON)</value></data>
   <data name="Result.Export" xml:space="preserve"><value>Экспорт результатов...</value></data>

@@ -32,6 +32,16 @@ public sealed class MongoShellSessionTests
     }
 
     [Fact]
+    public async Task Should_CaptureRawStdout_When_MongoshPrintsText()
+    {
+        var session = CreateSession(new ProcessResult(0, "migration complete\n", string.Empty));
+
+        var result = await session.EvaluateAsync("print('migration complete')", null, CancellationToken.None);
+
+        result.RawOutput.Should().Be("migration complete");
+    }
+
+    [Fact]
     public async Task Should_Throw_When_MongoshReportsError()
     {
         const string stdout = "{ \"message\": \"oops\", \"name\": \"MongoServerError\" }";

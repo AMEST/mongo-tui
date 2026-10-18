@@ -150,6 +150,7 @@
   <data name="Result.Table" xml:space="preserve"><value>Table</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Tree</value></data>
   <data name="Result.Json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Result.Raw" xml:space="preserve"><value>Raw (stdout)</value></data>
   <data name="Result.CopyAll" xml:space="preserve"><value>Copy all</value></data>
   <data name="Result.CopyDocument" xml:space="preserve"><value>Copy document (JSON)</value></data>
   <data name="Result.Export" xml:space="preserve"><value>Export results...</value></data>

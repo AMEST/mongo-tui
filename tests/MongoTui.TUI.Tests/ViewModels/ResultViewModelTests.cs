@@ -98,6 +98,21 @@ public sealed class ResultViewModelTests
     }
 
     [Fact]
+    public void Should_RenderRawOutput_When_RawMode()
+    {
+        _sut.Load(new QueryResult
+        {
+            Kind = QueryResultKind.Scalar,
+            Documents = [],
+            RawOutput = "migration complete\n42 documents updated",
+        });
+        _sut.Mode = ResultViewMode.Raw;
+
+        _sut.Render().Should().Be("migration complete\n42 documents updated");
+        _sut.DocumentIndexAtRow(0).Should().BeNull();
+    }
+
+    [Fact]
     public void Should_RenderError_When_HasError()
     {
         _sut.LoadError("boom");

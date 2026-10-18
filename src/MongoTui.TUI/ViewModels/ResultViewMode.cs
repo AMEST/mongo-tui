@@ -6,4 +6,5 @@ public enum ResultViewMode
     Table,
     Tree,
     Json,
+    Raw,
 }

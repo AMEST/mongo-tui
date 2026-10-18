@@ -53,7 +53,7 @@ public sealed class MongoShellSession : IMongoShellSession
             Log.Warning("mongosh wrote {StderrChars} stderr characters", result.StandardError.Length);
         }
 
-        return ParseResult(result.StandardOutput.Trim());
+        return ParseResult(result.StandardOutput);
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -109,12 +109,17 @@ public sealed class MongoShellSession : IMongoShellSession
         return null;
     }
 
-    private static QueryResult ParseResult(string text) =>
-        new()
+    private static QueryResult ParseResult(string raw)
+    {
+        var text = raw.Trim();
+
+        return new()
         {
             Kind = QueryResultKind.Scalar,
             Documents = ParseDocuments(text),
+            RawOutput = text,
         };
+    }
 
     private static IReadOnlyList<BsonDocument> ParseDocuments(string text)
     {
