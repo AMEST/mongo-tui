@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## v0.5.1 — since v0.5.0
+## Unreleased
 
 ### Added
 
@@ -11,14 +11,6 @@ All notable changes to this project are documented in this file.
 - The AI assistant dialog shows a requesting state and disables **Ask** while a request is
   in flight.
 
-### Changed
-
-- Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`; some terminal emulators,
-  notably on macOS, intercept `Ctrl+Enter` for their own context menu, and report
-  `Shift+Enter` as a plain newline.
-- Saving or testing a connection fills empty login and password fields from credentials
-  embedded in the URI, so a pasted connection string works without the **From URI** button.
-
 ### Fixed
 
 - In the AI assistant dialog, **Enter** in the prompt runs the request instead of closing
@@ -26,6 +18,16 @@ All notable changes to this project are documented in this file.
 - The AI assistant runs the request off the UI thread and applies the response from the
   dialog's main loop, so the answer is shown and the dialog no longer stays stuck on
   **Requesting…**.
+
+## v0.5.1 — since v0.5.0
+
+### Changed
+
+- Running a query uses **Ctrl+R** (or `F5`) instead of `Ctrl+Enter`; some terminal emulators,
+  notably on macOS, intercept `Ctrl+Enter` for their own context menu, and report
+  `Shift+Enter` as a plain newline.
+- Saving or testing a connection fills empty login and password fields from credentials
+  embedded in the URI, so a pasted connection string works without the **From URI** button.
 
 ## v0.5.0 — since v0.4.0
 
