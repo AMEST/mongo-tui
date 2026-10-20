@@ -98,15 +98,23 @@ public sealed class ConnectionManagerDialogTests
     }
 
     [Fact]
-    public async Task Should_KeepClipboardUnchanged_WhenNoConnectionsSaved()
+    public async Task Should_HideCopyUriButton_WhenNoConnectionsSaved()
     {
         using var dialog = await CreateDialogAsync();
 
-        CopyButton(dialog).InvokeCommand(Command.Accept);
-
-        Status(dialog).Should().Be("No saved connections.");
+        CopyButton(dialog).Visible.Should().BeFalse();
+        CopyButton(dialog).Enabled.Should().BeFalse();
         A.CallTo(() => _clipboard.TrySetClipboardData(A<string>._)).MustNotHaveHappened();
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_ShowCopyUriButton_WhenConnectionSelected()
+    {
+        using var dialog = await CreateDialogAsync(new StoredConnection(NewProfile(), null));
+
+        CopyButton(dialog).Visible.Should().BeTrue();
+        CopyButton(dialog).Enabled.Should().BeTrue();
     }
 
     [Theory]

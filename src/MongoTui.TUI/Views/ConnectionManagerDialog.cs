@@ -20,6 +20,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
     private readonly Label _status = new();
 
     private IReadOnlyList<ConnectionProfile> _profiles = [];
+    private Button? _copyUriButton;
 
     public ConnectionManagerDialog(ConnectionService connections, ILocalizer localizer, IApplication application)
     {
@@ -35,6 +36,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         _list.Y = 1;
         _list.Width = Dim.Fill();
         _list.Height = Dim.Fill(6);
+        _list.ValueChanged += (_, _) => UpdateCopyUriButton();
         Add(_list);
 
         _status.X = 1;
@@ -47,9 +49,9 @@ public sealed class ConnectionManagerDialog : ThemedDialog
 
     private void AddActions()
     {
-        var copyButton = new Button { Text = _localizer.Get("Connections.CopyUri"), X = 1, Y = Pos.AnchorEnd(5) };
-        copyButton.OnAcceptAsync(() => GuardedAsync(CopyUriAsync));
-        Add(copyButton);
+        _copyUriButton = new Button { Text = _localizer.Get("Connections.CopyUri"), X = 1, Y = Pos.AnchorEnd(5) };
+        _copyUriButton.OnAcceptAsync(() => GuardedAsync(CopyUriAsync));
+        Add(_copyUriButton);
 
         var connectButton = new Button { Text = _localizer.Get("Connections.Connect"), IsDefault = true };
         connectButton.OnAcceptAsync(ConnectAsync);
@@ -63,6 +65,20 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         closeButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(connectButton, newButton, editButton, deleteButton, closeButton);
+
+        UpdateCopyUriButton();
+    }
+
+    private void UpdateCopyUriButton()
+    {
+        if (_copyUriButton is null)
+        {
+            return;
+        }
+
+        var hasSelection = SelectedIndex() is not null;
+        _copyUriButton.Visible = hasSelection;
+        _copyUriButton.Enabled = hasSelection;
     }
 
     /// <summary>The profile chosen for connection, if any.</summary>
@@ -81,9 +97,15 @@ public sealed class ConnectionManagerDialog : ThemedDialog
             : _profiles.Select(profile => profile.Name).ToList();
 
         _list.SetSource(new ObservableCollection<string>(names));
+        _list.SelectedItem = _profiles.Count > 0 ? 0 : null;
+        UpdateCopyUriButton();
     }
 
-    private int? SelectedIndex() => _profiles.Count == 0 ? null : _list.SelectedItem;
+    private int? SelectedIndex()
+    {
+        var selected = _list.SelectedItem;
+        return selected is int index && index >= 0 && index < _profiles.Count ? index : null;
+    }
 
     private async Task CreateAsync()
     {
