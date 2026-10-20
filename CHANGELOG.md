@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.5.3 — since v0.5.2
+
+### Fixed
+
+- The connection manager shows and enables **Copy URI** only when a saved connection is
+  selected; the button is hidden when no connection is selected or the list is empty.
+
 ## v0.5.2 — since v0.5.1
 
 ### Added
@@ -193,6 +200,7 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.5.2 to v0.5.3]: https://github.com/AMEST/mongo-tui/compare/v0.5.2...v0.5.3
 [v0.5.1 to v0.5.2]: https://github.com/AMEST/mongo-tui/compare/v0.5.1...v0.5.2
 [v0.5.0 to v0.5.1]: https://github.com/AMEST/mongo-tui/compare/v0.5.0...v0.5.1
 [v0.4.0 to v0.5.0]: https://github.com/AMEST/mongo-tui/compare/v0.4.0...v0.5.0
