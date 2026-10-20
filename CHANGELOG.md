@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## v0.5.2 — since v0.5.1
 
 ### Added
 
@@ -10,6 +10,11 @@ All notable changes to this project are documented in this file.
   field names with their BSON types, so it can generate queries against the real schema.
 - The AI assistant dialog shows a requesting state and disables **Ask** while a request is
   in flight.
+
+### Changed
+
+- Release archives ship without debug symbols: publishing disables `DebugType` /
+  `DebugSymbols` and removes leftover `.pdb` files from the artifact directory.
 
 ### Fixed
 
@@ -188,6 +193,7 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.5.1 to v0.5.2]: https://github.com/AMEST/mongo-tui/compare/v0.5.1...v0.5.2
 [v0.5.0 to v0.5.1]: https://github.com/AMEST/mongo-tui/compare/v0.5.0...v0.5.1
 [v0.4.0 to v0.5.0]: https://github.com/AMEST/mongo-tui/compare/v0.4.0...v0.5.0
 [v0.3.0 to v0.4.0]: https://github.com/AMEST/mongo-tui/compare/v0.3.0...v0.4.0
