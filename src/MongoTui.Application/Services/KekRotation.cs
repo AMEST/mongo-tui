@@ -4,17 +4,17 @@ using MongoTui.Application.Models;
 namespace MongoTui.Application.Services;
 
 /// <summary>
-/// Re-encrypts secrets from the old KEK to the new KEK during a master-password change.
-/// Call <see cref="Commit"/> once every store has been re-encrypted.
+/// Re-encrypts secrets from the old KEK to the new KEK during a security mode change or a
+/// master-password change. Call <see cref="Commit"/> once every store has been re-encrypted.
 /// </summary>
-public sealed class MasterPasswordRotation
+public sealed class KekRotation
 {
     private readonly ICryptoService _cryptoService;
     private readonly SecretKeyService _owner;
     private readonly byte[] _oldKek;
     private readonly byte[] _newKek;
 
-    internal MasterPasswordRotation(
+    internal KekRotation(
         ICryptoService cryptoService,
         SecretKeyService owner,
         byte[] oldKek,

@@ -17,15 +17,15 @@ public sealed class ConnectionServiceTests
 {
     private readonly IConnectionRepository _repository = A.Fake<IConnectionRepository>();
     private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
-    private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
+    private readonly SecretKeyService _secrets;
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
     private readonly ISshTunnelFactory _tunnelFactory = A.Fake<ISshTunnelFactory>();
     private readonly ConnectionService _sut;
 
     public ConnectionServiceTests()
     {
-        var secrets = new SecretKeyService(_keyProvider, _crypto);
-        _sut = new ConnectionService(_repository, secrets, _gateway,
+        _secrets = new SecretKeyService(_crypto);
+        _sut = new ConnectionService(_repository, _secrets, _gateway,
             new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>(), _gateway));
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
@@ -185,46 +185,10 @@ public sealed class ConnectionServiceTests
         await act.Should().ThrowAsync<DomainException>();
     }
 
-    [Fact]
-    public async Task Should_AutoUnlockFromKeyring_When_KeyringAvailable()
+    private Task UnlockAsync()
     {
-        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(true);
-        A.CallTo(() => _keyProvider.GetOrCreateKekAsync(A<CancellationToken>._)).Returns(new byte[32]);
-
-        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
-
-        unlocked.Should().BeTrue();
-        _sut.IsUnlocked.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Should_RequireMasterPassword_When_KeyringUnavailable()
-    {
-        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(false);
-
-        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
-
-        unlocked.Should().BeFalse();
-        _sut.IsUnlocked.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Should_ReturnTrueWithoutKeyring_When_AlreadyUnlocked()
-    {
-        A.CallTo(() => _keyProvider.IsKeyringAvailable).Returns(false);
-        await UnlockAsync();
-
-        var unlocked = await _sut.TryAutoUnlockAsync(CancellationToken.None);
-
-        unlocked.Should().BeTrue();
-        A.CallTo(() => _keyProvider.GetOrCreateKekAsync(A<CancellationToken>._)).MustNotHaveHappened();
-    }
-
-    private async Task UnlockAsync()
-    {
-        A.CallTo(() => _keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._))
-            .Returns(new byte[32]);
-        await _sut.UnlockAsync("master", CancellationToken.None);
+        _secrets.SetKek(new byte[32]);
+        return Task.CompletedTask;
     }
 
     private static ConnectionProfile NewProfile() =>

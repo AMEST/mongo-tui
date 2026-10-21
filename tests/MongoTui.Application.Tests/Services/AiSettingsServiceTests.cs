@@ -10,7 +10,6 @@ namespace MongoTui.Application.Tests.Services;
 public sealed class AiSettingsServiceTests
 {
     private readonly ISettingsStore _settings = A.Fake<ISettingsStore>();
-    private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
     private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
     private readonly Dictionary<string, string> _values = new(StringComparer.Ordinal);
     private readonly SecretKeyService _secrets;
@@ -18,7 +17,7 @@ public sealed class AiSettingsServiceTests
 
     public AiSettingsServiceTests()
     {
-        _secrets = new SecretKeyService(_keyProvider, _crypto);
+        _secrets = new SecretKeyService(_crypto);
         _sut = new AiSettingsService(_settings, _secrets);
 
         A.CallTo(() => _settings.GetAsync(A<string>._, A<CancellationToken>._))
@@ -68,9 +67,9 @@ public sealed class AiSettingsServiceTests
         (await _sut.IsConfiguredAsync(CancellationToken.None)).Should().BeFalse();
     }
 
-    private async Task UnlockAsync()
+    private Task UnlockAsync()
     {
-        A.CallTo(() => _keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._)).Returns(new byte[32]);
-        await _secrets.UnlockAsync("master", CancellationToken.None);
+        _secrets.SetKek(new byte[32]);
+        return Task.CompletedTask;
     }
 }

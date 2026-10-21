@@ -17,7 +17,7 @@ public sealed class ConnectionFormViewModelTests
 {
     private readonly IConnectionRepository _repository = A.Fake<IConnectionRepository>();
     private readonly ICryptoService _crypto = A.Fake<ICryptoService>();
-    private readonly IKeyProvider _keyProvider = A.Fake<IKeyProvider>();
+    private readonly SecretKeyService _secrets;
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
     private readonly ConnectionService _service;
     private readonly ConnectionFormViewModel _sut;
@@ -27,8 +27,8 @@ public sealed class ConnectionFormViewModelTests
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
 
-        var secrets = new SecretKeyService(_keyProvider, _crypto);
-        _service = new ConnectionService(_repository, secrets, _gateway,
+        _secrets = new SecretKeyService(_crypto);
+        _service = new ConnectionService(_repository, _secrets, _gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
         _sut = new ConnectionFormViewModel(_service);
         _sut.LoadNew();
@@ -190,9 +190,7 @@ public sealed class ConnectionFormViewModelTests
     [Fact]
     public async Task Should_FillFieldsFromUri_When_SavingWithEmptyCredentials()
     {
-        A.CallTo(() => _keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._))
-            .Returns(new byte[32]);
-        await _service.UnlockAsync("master", CancellationToken.None);
+        _secrets.SetKek(new byte[32]);
         var nonce = new byte[] { 1, 2, 3 };
         A.CallTo(() => _crypto.Encrypt(A<byte[]>._, A<byte[]>._, out nonce)).Returns([9, 9]);
         _sut.Name = "local";

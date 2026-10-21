@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+
+- **Security modes** — choose on first launch how the encryption key is protected: a master
+  password (default), the OS keyring on macOS and Windows, or a local KEK file with user-only
+  permissions. The mode can be changed later in **Settings → Security…**; switching modes
+  re-encrypts all saved secrets in one transaction.
+- Keyring integration on macOS and Windows via Latchkey. Linux supports the master-password
+  and local-key-file modes.
+- **Reset secrets** in the security settings removes saved connection passwords and the AI API
+  key, then lets you choose a new security mode.
+- Existing master-password installations are detected automatically and keep working without
+  re-entering secrets.
+
+### Changed
+
+- **Unlock secrets** (`F8`) and **Change master password** (`Ctrl+P`) are available only in
+  master-password mode.
+
 ## v0.5.3 — since v0.5.2
 
 ### Fixed

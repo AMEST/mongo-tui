@@ -11,16 +11,11 @@ namespace MongoTui.Application.Services;
 /// </summary>
 public sealed class SecretKeyService
 {
-    private readonly IKeyProvider _keyProvider;
     private readonly ICryptoService _cryptoService;
     private byte[]? _kek;
     private readonly SemaphoreSlim _operation = new(1, 1);
 
-    public SecretKeyService(IKeyProvider keyProvider, ICryptoService cryptoService)
-    {
-        _keyProvider = keyProvider;
-        _cryptoService = cryptoService;
-    }
+    public SecretKeyService(ICryptoService cryptoService) => _cryptoService = cryptoService;
 
     public bool IsUnlocked => _kek is not null;
 
@@ -40,29 +35,6 @@ public sealed class SecretKeyService
         finally { _operation.Release(); }
     }
 
-    public async Task UnlockAsync(string masterPassword, CancellationToken cancellationToken) =>
-        _kek = await _keyProvider.UnlockWithMasterPasswordAsync(masterPassword, cancellationToken);
-
-    /// <summary>
-    /// Tries to unlock without user input. Returns true when already unlocked or when an
-    /// OS keyring supplied the KEK; false when a master password is required.
-    /// </summary>
-    public async Task<bool> TryAutoUnlockAsync(CancellationToken cancellationToken)
-    {
-        if (_kek is not null)
-        {
-            return true;
-        }
-
-        if (!_keyProvider.IsKeyringAvailable)
-        {
-            return false;
-        }
-
-        _kek = await _keyProvider.GetOrCreateKekAsync(cancellationToken);
-        return true;
-    }
-
     public void Lock() => _kek = null;
 
     /// <summary>Encrypts <paramref name="plaintext"/> with the current KEK.</summary>
@@ -77,21 +49,23 @@ public sealed class SecretKeyService
         Encoding.UTF8.GetString(_cryptoService.Decrypt(secret.CipherText, secret.Nonce, RequiredKek()));
 
     /// <summary>
-    /// Starts a master-password change. The caller re-encrypts stored secrets with the returned
-    /// rotation and then calls <see cref="MasterPasswordRotation.Commit"/>.
+    /// Starts a KEK rotation. The caller re-encrypts stored secrets with the returned
+    /// rotation and then calls <see cref="KekRotation.Commit"/>.
     /// </summary>
-    public async Task<MasterPasswordRotation> ChangeMasterPasswordAsync(
-        string newPassword,
-        CancellationToken cancellationToken)
+    public KekRotation BeginRotation(byte[] newKek)
     {
-        var oldKek = RequiredKek();
-        var newKek = await _keyProvider.ChangeMasterPasswordAsync(newPassword, cancellationToken);
+        ArgumentNullException.ThrowIfNull(newKek);
+        if (newKek.Length == 0)
+        {
+            throw new ArgumentException("The new KEK must not be empty.", nameof(newKek));
+        }
 
-        return new MasterPasswordRotation(_cryptoService, this, oldKek, newKek);
+        var oldKek = RequiredKek();
+        return new KekRotation(_cryptoService, this, oldKek.ToArray(), newKek.ToArray());
     }
 
     internal void SetKek(byte[] kek) => _kek = kek;
 
     private byte[] RequiredKek() =>
-        _kek ?? throw new DomainException("Secrets are locked; unlock with the master password first.");
+        _kek ?? throw new DomainException("Secrets are locked; unlock them first.");
 }

@@ -3,6 +3,7 @@ using System.Text;
 using Konscious.Security.Cryptography;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Security;
+using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
 
 namespace MongoTui.Infrastructure.Security;
@@ -12,7 +13,7 @@ namespace MongoTui.Infrastructure.Security;
 /// persisted so the same password always yields the same KEK. A small encrypted
 /// check value lets us detect a wrong password at unlock time.
 /// </summary>
-public sealed class MasterPasswordKeyProvider : IKeyProvider
+public sealed class PasswordKekSource : IKekSource
 {
     internal const string SaltSettingKey = "security.kek_salt";
     internal const string CheckSettingKey = "security.kek_check";
@@ -26,7 +27,7 @@ public sealed class MasterPasswordKeyProvider : IKeyProvider
     private readonly ICryptoService _cryptoService;
     private readonly Argon2Parameters _parameters;
 
-    public MasterPasswordKeyProvider(
+    public PasswordKekSource(
         ISettingsStore settings,
         ICryptoService cryptoService,
         Argon2Parameters parameters)
@@ -36,16 +37,21 @@ public sealed class MasterPasswordKeyProvider : IKeyProvider
         _parameters = parameters;
     }
 
-    public bool IsKeyringAvailable => false;
+    public SecurityMode Mode => SecurityMode.Password;
 
-    public Task<byte[]> GetOrCreateKekAsync(CancellationToken cancellationToken) =>
-        throw new NotSupportedException("No OS keyring is available; unlock with a master password instead.");
+    public bool IsAvailable => true;
 
-    public async Task<byte[]> UnlockWithMasterPasswordAsync(string password, CancellationToken cancellationToken)
+    public async Task<bool> HasMaterialAsync(CancellationToken cancellationToken) =>
+        await _settings.GetAsync(SaltSettingKey, cancellationToken) is not null;
+
+    public Task<byte[]?> TryGetKekAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<byte[]?>(null);
+
+    public async Task<byte[]> UnlockAsync(string? password, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(password))
         {
-            throw new ArgumentException("Master password must not be empty.", nameof(password));
+            throw new DomainException("Master password must not be empty.");
         }
 
         var salt = await GetOrCreateSaltAsync(cancellationToken);
@@ -56,21 +62,26 @@ public sealed class MasterPasswordKeyProvider : IKeyProvider
         return kek;
     }
 
-    public async Task<byte[]> ChangeMasterPasswordAsync(string newPassword, CancellationToken cancellationToken)
+    public async Task<byte[]> CreateAsync(string? password, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(newPassword))
+        if (string.IsNullOrEmpty(password))
         {
-            throw new ArgumentException("Master password must not be empty.", nameof(newPassword));
+            throw new DomainException("Master password must not be empty.");
         }
 
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
         await _settings.SetAsync(SaltSettingKey, Convert.ToBase64String(salt), cancellationToken);
 
-        var kek = DeriveKey(newPassword, salt);
+        var kek = DeriveKey(password, salt);
         await StoreCheckAsync(kek, cancellationToken);
 
         return kek;
     }
+
+    public Task DeleteAsync(CancellationToken cancellationToken) =>
+        Task.WhenAll(
+            _settings.DeleteAsync(SaltSettingKey, cancellationToken),
+            _settings.DeleteAsync(CheckSettingKey, cancellationToken));
 
     private async Task<byte[]> GetOrCreateSaltAsync(CancellationToken cancellationToken)
     {

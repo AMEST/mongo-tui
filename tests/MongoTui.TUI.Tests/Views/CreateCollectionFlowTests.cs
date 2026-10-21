@@ -43,7 +43,6 @@ public sealed class CreateCollectionFlowTests : IDisposable
         services.AddSingleton(gateway);
         services.AddSingleton(A.Fake<IMongoTransferGateway>());
         services.AddSingleton(A.Fake<IConnectionRepository>());
-        services.AddSingleton(A.Fake<IKeyProvider>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());
         services.AddSingleton(A.Fake<IAiAssistant>());

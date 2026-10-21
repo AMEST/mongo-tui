@@ -65,12 +65,8 @@ public sealed class OpenAiCompatibleAssistantTests
     private static async Task<OpenAiCompatibleAssistant> CreateAssistantAsync(StubHandler handler, string? apiKey = "test-key")
     {
         var httpClient = new HttpClient(handler);
-        var keyProvider = A.Fake<IKeyProvider>();
-        A.CallTo(() => keyProvider.UnlockWithMasterPasswordAsync(A<string>._, A<CancellationToken>._))
-            .Returns(new byte[32]);
-
-        var secrets = new SecretKeyService(keyProvider, new AesGcmCryptoService());
-        await secrets.UnlockAsync("master", CancellationToken.None);
+        var secrets = new SecretKeyService(new AesGcmCryptoService());
+        secrets.SetKek(new byte[32]);
 
         var settings = new AiSettingsService(new InMemorySettingsStore(), secrets);
         await settings.SaveAsync("https://api.test/v1", "gpt-4o-mini", apiKey, CancellationToken.None);

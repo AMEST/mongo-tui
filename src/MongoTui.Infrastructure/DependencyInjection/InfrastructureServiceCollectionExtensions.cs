@@ -38,10 +38,23 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IQueryHistoryRepository, SqliteQueryHistoryRepository>();
         services.AddSingleton<ICryptoService, AesGcmCryptoService>();
         services.AddSingleton(Argon2Parameters.Default);
-        services.AddSingleton<IKeyring, UnavailableKeyring>();
-        services.AddSingleton<KeyringKeyProvider>();
-        services.AddSingleton<MasterPasswordKeyProvider>();
-        services.AddSingleton<IKeyProvider, FallbackKeyProvider>();
+        services.AddSingleton<PasswordKekSource>();
+        services.AddSingleton<IKekSource>(provider => provider.GetRequiredService<PasswordKekSource>());
+        services.AddSingleton<FileKekFileStore>();
+        services.AddSingleton<IKekFileStore>(provider => provider.GetRequiredService<FileKekFileStore>());
+        services.AddSingleton<FileKekSource>();
+        services.AddSingleton<IKekSource>(provider => provider.GetRequiredService<FileKekSource>());
+
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS())
+        {
+            services.AddSingleton<IKeyring>(_ => CreateKeyring());
+            services.AddSingleton<KeyringKekSource>();
+            services.AddSingleton<IKekSource>(provider => provider.GetRequiredService<KeyringKekSource>());
+        }
+        else
+        {
+            services.AddSingleton<IKeyring, UnavailableKeyring>();
+        }
 
         services.AddSingleton<MongoToolsOptions>();
         services.AddSingleton<MongoToolsLocator>();
@@ -61,5 +74,17 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddHttpClient<IAiAssistant, OpenAiCompatibleAssistant>();
 
         return services;
+    }
+
+    private static IKeyring CreateKeyring()
+    {
+        try
+        {
+            return LatchkeyKeyring.Create();
+        }
+        catch (Exception)
+        {
+            return new UnavailableKeyring();
+        }
     }
 }

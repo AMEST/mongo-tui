@@ -15,7 +15,7 @@ public sealed class ConnectionCredentialStorageTests
     public async Task Should_EncryptUriPassword_When_SavingFullUri(string uri)
     {
         await using var fixture = new SecretStorageFixture();
-        await fixture.Connections.UnlockAsync("master", CancellationToken.None);
+        fixture.Secrets.SetKek(new byte[32]);
         var profile = ConnectionProfile.Create(fixture.Id, "test", uri);
 
         await fixture.Connections.SaveAsync(profile, null, CancellationToken.None);
@@ -31,10 +31,11 @@ public sealed class ConnectionCredentialStorageTests
     public async Task Should_MigrateLegacyCredentials_When_SecretsUnlocked()
     {
         await using var fixture = new SecretStorageFixture();
+        fixture.Secrets.SetKek(new byte[32]);
         var profile = ConnectionProfile.Create(fixture.Id, "legacy", "mongodb://alice:password@localhost/app");
         await fixture.Repository.AddAsync(new StoredConnection(profile, null), CancellationToken.None);
 
-        await fixture.Connections.UnlockAsync("master", CancellationToken.None);
+        await fixture.Connections.MigrateCredentialsAsync(CancellationToken.None);
 
         var stored = await fixture.Repository.GetAsync(profile.Id, CancellationToken.None);
         stored!.Profile.Uri.Should().Be("mongodb://localhost/app");
@@ -56,16 +57,16 @@ public sealed class ConnectionCredentialStorageTests
     }
 
     [Fact]
-    public async Task Should_MigrateLegacyCredentials_When_AutomaticUnlockSucceeds()
+    public async Task Should_MigrateLegacyCredentials_When_PasswordUnlocks()
     {
         await using var fixture = new SecretStorageFixture();
-        await fixture.Connections.UnlockAsync("master", CancellationToken.None);
+        await fixture.Security.InitializeAsync(SecurityMode.Password, "master", CancellationToken.None);
         var profile = ConnectionProfile.Create(fixture.Id, "legacy", "mongodb://alice:password@localhost/app");
         await fixture.Repository.AddAsync(new StoredConnection(profile, null), CancellationToken.None);
+        fixture.Secrets.Lock();
 
-        var unlocked = await fixture.Connections.TryAutoUnlockAsync(CancellationToken.None);
+        await fixture.Security.UnlockWithPasswordAsync("master", CancellationToken.None);
 
-        unlocked.Should().BeTrue();
         var stored = await fixture.Repository.GetAsync(profile.Id, CancellationToken.None);
         stored!.Profile.Uri.Should().NotContain("password");
         fixture.Secrets.Unprotect(stored.Secret!).Should().Be("password");

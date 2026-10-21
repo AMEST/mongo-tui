@@ -30,6 +30,16 @@ public sealed class SqliteSettingsStore : ISettingsStore
         await db.InsertOrReplaceAsync(new SettingRow { Key = key, Value = value }, token: cancellationToken);
     }
 
+    public async Task DeleteAsync(string key, CancellationToken cancellationToken)
+    {
+        await using var session = _database.OpenSession();
+        var db = session.Connection;
+
+        await db.Settings
+            .Where(setting => setting.Key == key)
+            .DeleteAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken)
     {
         await using var session = _database.OpenSession();

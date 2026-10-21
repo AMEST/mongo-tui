@@ -13,4 +13,6 @@ public static class AppPaths
     public static string LogFilePattern => Path.Combine(LogsDirectory, "app-.log");
 
     public static string DatabaseFile => Path.Combine(RootDirectory, "mongotui.db");
+
+    public static string KekFile => Path.Combine(RootDirectory, "kek.key");
 }

@@ -16,6 +16,12 @@ public sealed class InMemorySettingsStore : ISettingsStore
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(string key, CancellationToken cancellationToken)
+    {
+        _values.Remove(key);
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>(_values, StringComparer.Ordinal));
 }
