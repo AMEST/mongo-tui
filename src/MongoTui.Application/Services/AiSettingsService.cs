@@ -89,6 +89,15 @@ public sealed class AiSettingsService
     public Task ClearApiKeyAsync(CancellationToken cancellationToken) =>
         _settings.SetAsync(ApiKeyKey, string.Empty, cancellationToken);
 
+    internal async Task ValidateKekAsync(byte[] kek, CancellationToken cancellationToken)
+    {
+        var stored = await _settings.GetAsync(ApiKeyKey, cancellationToken);
+        if (!string.IsNullOrEmpty(stored))
+        {
+            _secrets.ValidateKek(Unpack(stored), kek);
+        }
+    }
+
     private async Task<string?> GetApiKeyAsync(CancellationToken cancellationToken)
     {
         if (!_secrets.IsUnlocked)

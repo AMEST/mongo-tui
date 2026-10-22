@@ -84,61 +84,55 @@ public sealed class SecurityModeService
         }, cancellationToken);
 
     public Task<AutoUnlockResult> TryAutoUnlockAsync(CancellationToken cancellationToken) =>
-        _secrets.RunExclusiveAsync(async token =>
+        _secrets.RunExclusiveAsync(AutoUnlockCoreAsync, cancellationToken);
+
+    private async Task<AutoUnlockResult> AutoUnlockCoreAsync(CancellationToken cancellationToken)
+    {
+        if (_secrets.IsUnlocked) return AutoUnlockResult.Unlocked;
+        if (CurrentMode is null) await DetectAsync(cancellationToken);
+        if (CurrentMode is not { } mode) return AutoUnlockResult.KeyMaterialUnavailable;
+        if (mode == SecurityMode.Password) return AutoUnlockResult.PasswordRequired;
+
+        if (!_sources.TryGetValue(mode, out var source) || !source.IsAvailable)
         {
-            if (_secrets.IsUnlocked)
-            {
-                return AutoUnlockResult.Unlocked;
-            }
+            return AutoUnlockResult.KeyMaterialUnavailable;
+        }
 
-            if (CurrentMode is null)
-            {
-                await DetectAsync(token);
-            }
+        return await UnlockFromSourceAsync(source, cancellationToken);
+    }
 
-            if (CurrentMode is not { } mode)
+    private async Task<AutoUnlockResult> UnlockFromSourceAsync(IKekSource source, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var kek = await source.TryGetKekAsync(cancellationToken);
+            if (kek is null)
             {
-                return AutoUnlockResult.KeyMaterialUnavailable;
-            }
-
-            if (mode == SecurityMode.Password)
-            {
-                return AutoUnlockResult.PasswordRequired;
-            }
-
-            if (!_sources.TryGetValue(mode, out var source) || !source.IsAvailable)
-            {
-                return AutoUnlockResult.KeyMaterialUnavailable;
-            }
-
-            try
-            {
-                var kek = await source.TryGetKekAsync(token);
-                if (kek is null)
+                if (await HasSecretsAsync(cancellationToken))
                 {
-                    if (await HasSecretsAsync(token))
-                    {
-                        return AutoUnlockResult.KeyMaterialUnavailable;
-                    }
-
-                    kek = await source.CreateAsync(null, token);
+                    return AutoUnlockResult.KeyMaterialUnavailable;
                 }
 
-                _secrets.SetKek(kek);
-                await _connections.MigrateCredentialsAsync(token);
-                return AutoUnlockResult.Unlocked;
+                kek = await source.CreateAsync(null, cancellationToken);
             }
-            catch (DomainException)
-            {
-                _secrets.Lock();
-                return AutoUnlockResult.KeyMaterialUnavailable;
-            }
-            catch (CryptographicException)
-            {
-                _secrets.Lock();
-                return AutoUnlockResult.KeyMaterialUnavailable;
-            }
-        }, cancellationToken);
+
+            await _connections.ValidateKekAsync(kek, cancellationToken);
+            await _ai.ValidateKekAsync(kek, cancellationToken);
+            _secrets.SetKek(kek);
+            await _connections.MigrateCredentialsAsync(cancellationToken);
+            return AutoUnlockResult.Unlocked;
+        }
+        catch (Exception exception) when (exception is DomainException or CryptographicException)
+        {
+            _secrets.Lock();
+            return AutoUnlockResult.KeyMaterialUnavailable;
+        }
+        catch
+        {
+            _secrets.Lock();
+            throw;
+        }
+    }
 
     public Task UnlockWithPasswordAsync(string password, CancellationToken cancellationToken) =>
         _secrets.RunExclusiveAsync(async token =>

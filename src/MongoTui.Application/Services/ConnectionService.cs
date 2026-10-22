@@ -43,6 +43,17 @@ public sealed class ConnectionService
         }
     }
 
+    internal async Task ValidateKekAsync(byte[] kek, CancellationToken cancellationToken)
+    {
+        foreach (var connection in await _repository.GetAllAsync(cancellationToken))
+        {
+            if (connection.Secret is { } secret)
+            {
+                _secrets.ValidateKek(secret, kek);
+            }
+        }
+    }
+
     public async Task<IReadOnlyList<ConnectionProfile>> GetProfilesAsync(CancellationToken cancellationToken)
     {
         var stored = await _repository.GetAllAsync(cancellationToken);
@@ -79,9 +90,10 @@ public sealed class ConnectionService
     {
         foreach (var connection in await _repository.GetAllAsync(cancellationToken))
         {
-            if (connection.Secret is not null)
+            var (profile, _) = ConnectionCredentials.Extract(connection.Profile, null);
+            if (connection.Secret is not null || profile != connection.Profile)
             {
-                await _repository.UpdateAsync(connection with { Secret = null }, cancellationToken);
+                await _repository.UpdateAsync(connection with { Profile = profile, Secret = null }, cancellationToken);
             }
         }
     }

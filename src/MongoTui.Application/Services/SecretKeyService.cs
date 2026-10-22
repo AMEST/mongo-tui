@@ -66,6 +66,9 @@ public sealed class SecretKeyService
 
     internal void SetKek(byte[] kek) => _kek = kek;
 
+    internal void ValidateKek(EncryptedSecret secret, byte[] kek) =>
+        _cryptoService.Decrypt(secret.CipherText, secret.Nonce, kek);
+
     private byte[] RequiredKek() =>
         _kek ?? throw new DomainException("Secrets are locked; unlock them first.");
 }

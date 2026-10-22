@@ -172,7 +172,37 @@ public sealed class ConnectionFormViewModelTests
 
         _sut.Username.Should().Be("typed");
         _sut.Password.Should().Be("typed-pw");
-        _sut.Uri.Should().Be("mongodb://bob:pw@localhost:27017");
+        _sut.Uri.Should().Be("mongodb://localhost:27017");
+        _sut.AuthKind.Should().Be(AuthKind.ScramSha256);
+    }
+
+    [Theory]
+    [InlineData("typed", null, "typed", "pw")]
+    [InlineData(null, "typed-pw", "bob", "typed-pw")]
+    public void Should_FillMissingCredential_When_MergingUriWithPartiallyFilledFields(
+        string? username, string? password, string expectedUsername, string expectedPassword)
+    {
+        _sut.Username = username;
+        _sut.Password = password;
+        _sut.Uri = "mongodb://bob:pw@localhost/app";
+
+        _sut.MergeCredentialsFromUri();
+
+        _sut.Uri.Should().Be("mongodb://localhost/app");
+        _sut.Username.Should().Be(expectedUsername);
+        _sut.Password.Should().Be(expectedPassword);
+    }
+
+    [Fact]
+    public void Should_SeparateCredentials_When_LoadingLegacyProfile()
+    {
+        var profile = ConnectionProfile.Create(ConnectionId.New(), "legacy", "mongodb://bob:pw@localhost/app");
+
+        _sut.Load(profile, null);
+
+        _sut.Uri.Should().Be("mongodb://localhost/app");
+        _sut.Username.Should().Be("bob");
+        _sut.Password.Should().Be("pw");
     }
 
     [Fact]

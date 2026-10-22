@@ -59,16 +59,17 @@ internal sealed class SecretStorageFixture : IAsyncDisposable
 
     public SecretKeyService CreateSecrets() => new(_crypto);
 
-    public SecurityModeService CreateSecurity(SecretKeyService secrets)
+    public SecurityModeService CreateSecurity(SecretKeyService secrets, params IKekSource[] additionalSources)
     {
         var gateway = A.Fake<IMongoGateway>();
         var connections = new ConnectionService(Repository, secrets, gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
         var ai = new AiSettingsService(Settings, secrets);
         var source = new PasswordKekSource(Settings, _crypto, FastParameters);
-        var detector = new SecurityModeDetector(Settings, Repository, [source], ai);
+        IKekSource[] sources = [source, .. additionalSources];
+        var detector = new SecurityModeDetector(Settings, Repository, sources, ai);
 
-        return new SecurityModeService(Settings, [source], secrets, connections, ai, Database, detector);
+        return new SecurityModeService(Settings, sources, secrets, connections, ai, Database, detector);
     }
 
     public async Task<SecretKeyService> UnlockAsync(string password)
