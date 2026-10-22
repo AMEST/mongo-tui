@@ -49,6 +49,7 @@
   <data name="Connections.Delete" xml:space="preserve"><value>Удалить</value></data>
   <data name="Connections.Test" xml:space="preserve"><value>Проверить</value></data>
   <data name="Connections.TestRunning" xml:space="preserve"><value>Тест подключения: Проверка…</value></data>
+  <data name="Connections.TestTimeout" xml:space="preserve"><value>Превышено время ожидания подключения ({0} с).</value></data>
   <data name="Connections.Save" xml:space="preserve"><value>Сохранить</value></data>
   <data name="Connections.Cancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="Connections.Field.Name" xml:space="preserve"><value>Имя</value></data>

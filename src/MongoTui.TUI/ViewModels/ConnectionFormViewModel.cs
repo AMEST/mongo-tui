@@ -123,7 +123,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
 
         try
         {
-            var profile = BuildProfile();
+            var profile = BuildProfile(Name);
             await _connections.SaveAsync(profile, Password, cancellationToken);
             IsNew = false;
             OnPropertyChanged(nameof(IsNew));
@@ -144,7 +144,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
 
         try
         {
-            var profile = BuildProfile();
+            var profile = BuildProfile(_localizer.Get("Connections.Test"));
             await _connections.TestConnectionAsync(profile, Password, cancellationToken);
 
             return null;
@@ -225,10 +225,10 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
     }
 
-    private ConnectionProfile BuildProfile() =>
+    private ConnectionProfile BuildProfile(string name) =>
         ConnectionProfile.Create(
             Id,
-            Name,
+            name,
             Uri,
             new AuthOptions
             {

@@ -14,6 +14,8 @@ namespace MongoTui.TUI.Views;
 /// <summary>Modal dialog that creates or edits a connection profile.</summary>
 public sealed class ConnectionFormDialog : ThemedDialog
 {
+    private const int TestTimeoutSeconds = 10;
+
     private readonly ConnectionFormViewModel _viewModel;
     private readonly IApplication _application;
     private readonly ILocalizer _localizer;
@@ -186,7 +188,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         SyncFromFields();
         _testButton.Enabled = false;
         SetStatus(_localizer.Get("Connections.TestRunning"), ColorName16.BrightYellow);
-        using var cancellation = new CancellationTokenSource();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(TestTimeoutSeconds));
         _testCancellation = cancellation;
         try
         {
@@ -200,7 +202,10 @@ public sealed class ConnectionFormDialog : ThemedDialog
         }
         catch (OperationCanceledException)
         {
-            SetTestStatus(_localizer.Get("Ssh.Cancelled"));
+            var message = cancellation.IsCancellationRequested
+                ? _localizer.Format("Connections.TestTimeout", TestTimeoutSeconds)
+                : _localizer.Get("Ssh.Cancelled");
+            SetTestStatus(message);
         }
         catch (Exception exception)
         {
@@ -209,10 +214,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         finally
         {
             _testCancellation = null;
-            if (!_closing)
-            {
-                _testButton.Enabled = true;
-            }
+            if (!_closing) _testButton.Enabled = true;
         }
     }
 

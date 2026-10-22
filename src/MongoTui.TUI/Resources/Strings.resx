@@ -49,6 +49,7 @@
   <data name="Connections.Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="Connections.Test" xml:space="preserve"><value>Test</value></data>
   <data name="Connections.TestRunning" xml:space="preserve"><value>Connection test: Running…</value></data>
+  <data name="Connections.TestTimeout" xml:space="preserve"><value>Connection timed out after {0} seconds.</value></data>
   <data name="Connections.Save" xml:space="preserve"><value>Save</value></data>
   <data name="Connections.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Connections.Field.Name" xml:space="preserve"><value>Name</value></data>

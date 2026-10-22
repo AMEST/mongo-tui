@@ -44,6 +44,42 @@ public sealed class ConnectionFormViewModelTests
 
         result.Should().BeFalse();
         _sut.ValidationError.Should().NotBeNullOrWhiteSpace();
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("\t")]
+    public async Task Should_TestConnectionWithoutSavingOrChangingName_WhenNameBlank(string name)
+    {
+        _sut.Name = name;
+        _sut.Uri = "mongodb://bob:pw@localhost:27017/app?authSource=admin";
+
+        var error = await _sut.TestAsync(CancellationToken.None);
+
+        error.Should().BeNull();
+        _sut.Name.Should().Be(name);
+        _sut.IsNew.Should().BeTrue();
+        A.CallTo(() => _gateway.ListDatabasesAsync(
+            A<MongoConnectionTarget>.That.Matches(target =>
+                target.ConnectionString == "mongodb://bob:pw@localhost:27017/app?authSource=admin"),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("http://localhost")]
+    public async Task Should_ValidateConnectionString_WhenTestingWithoutName(string uri)
+    {
+        _sut.Uri = uri;
+
+        var error = await _sut.TestAsync(CancellationToken.None);
+
+        error.Should().StartWith("Connection string");
+        A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
     }
 
     [Fact]

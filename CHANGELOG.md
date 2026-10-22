@@ -16,11 +16,18 @@ All notable changes to this project are documented in this file.
   key, then lets you choose a new security mode.
 - Existing master-password installations are detected automatically and keep working without
   re-entering secrets.
+- **Connection test feedback** — show a localized running status immediately and disable
+  **Test** until the request finishes. Results include a success/error label and error details;
+  successful tests are green and errors are red.
 
 ### Changed
 
 - **Unlock secrets** (`F8`) and **Change master password** (`Ctrl+P`) are available only in
   master-password mode.
+- Testing a connection no longer requires or fills in a profile name; a name is still required
+  when saving. Connection strings and SSH settings remain validated.
+- Connection tests are cancelled after 10 seconds, with a localized timeout message and
+  **Test** enabled again.
 
 ### Fixed
 
@@ -29,6 +36,12 @@ All notable changes to this project are documented in this file.
 - Resetting secrets also removes passwords embedded in legacy connection URIs. Connection forms
   strip URI credentials even when separate login/password fields are already populated, keeping
   explicitly entered values and filling missing fields from the URI.
+- Connection form errors and test results appear below all fields and above the action buttons,
+  without overlapping authentication options. Status changes repaint without another keypress.
+- Locked-secret errors use the selected interface language in both the connection form and
+  connection manager.
+- Connection test failures, including network timeouts, are displayed in the form with their
+  cause instead of only being logged.
 
 ### Docs
 
@@ -41,6 +54,10 @@ All notable changes to this project are documented in this file.
   reset, plus password, keyring and local key-file storage.
 - Retained transaction rollback, cancellation and concurrent-save coverage for master-password
   rotation after moving it to the security mode service.
+- Added coverage for connection status localization, colors and layout, testing without a name,
+  required names when saving, and cancellation after the 10-second timeout.
+- Added Terminal.Gui rendering tests with delayed responses to check progress and results in
+  nested dialogs without extra keyboard input.
 
 ## v0.5.3 — since v0.5.2
 

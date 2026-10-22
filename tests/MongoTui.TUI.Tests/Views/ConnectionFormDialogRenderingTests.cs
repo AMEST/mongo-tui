@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
@@ -10,9 +11,11 @@ using MongoTui.Domain.Databases;
 using MongoTui.TUI.Localization;
 using MongoTui.TUI.Views;
 using Terminal.Gui.App;
+using Terminal.Gui.Drawing;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
+using Color = Terminal.Gui.Drawing.Color;
 
 namespace MongoTui.TUI.Tests.Views;
 
@@ -21,9 +24,15 @@ public sealed class ConnectionFormDialogRenderingTests
     private readonly TaskCompletionSource<IReadOnlyList<DatabaseInfo>> _response =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
+    private CancellationToken _requestCancellation;
 
     public ConnectionFormDialogRenderingTests() =>
-        A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_response.Task);
+        A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
+            .ReturnsLazily((MongoConnectionTarget _, CancellationToken cancellationToken) =>
+            {
+                _requestCancellation = cancellationToken;
+                return _response.Task.WaitAsync(cancellationToken);
+            });
 
     [Theory]
     [InlineData("en", false, "Connection test: Running…", "Connection test: OK")]
@@ -54,8 +63,33 @@ public sealed class ConnectionFormDialogRenderingTests
         test.Enabled.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData("en", "Connection test: Error — Connection timed out after 10 seconds.")]
+    [InlineData("ru", "Тест подключения: Ошибка — Превышено время ожидания подключения (10 с).")]
+    public void Should_CancelRequestAndRenderLocalizedError_WhenTenSecondLimitExceeded(string language, string expected)
+    {
+        using IApplication app = Terminal.Gui.App.Application.Create();
+        app.Init(DriverRegistry.Names.ANSI);
+        var localizer = new ResxLocalizer();
+        localizer.SetLanguage(language);
+        using var dialog = CreateDialog(app, _gateway, localizer);
+        var status = dialog.SubViews.OfType<Label>().Last();
+        var test = dialog.Buttons.Single(button => button.Text == localizer.Get("Connections.Test"));
+        var observe = ObserveTest(app, dialog, test, fails: null, expected);
+        var elapsed = Stopwatch.StartNew();
+
+        app.Run(dialog);
+
+        observe().Result.Should().Contain(expected);
+        _requestCancellation.IsCancellationRequested.Should().BeTrue();
+        status.GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
+        test.Enabled.Should().BeTrue();
+        elapsed.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromSeconds(9));
+        elapsed.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(13));
+    }
+
     private Func<(string? Progress, string? Result, bool Disabled)> ObserveTest(
-        IApplication app, ConnectionFormDialog dialog, Button test, bool fails, string expected)
+        IApplication app, ConnectionFormDialog dialog, Button test, bool? fails, string expected)
     {
         string? observedProgress = null;
         string? resultScreen = null;
@@ -76,10 +110,10 @@ public sealed class ConnectionFormDialogRenderingTests
             test.InvokeCommand(Command.Accept);
             observedProgress = ScreenText(app);
             disabledWhileRunning = !test.Enabled;
-            _ = CompleteResponseAsync(fails);
+            if (fails is { } failure) _ = CompleteResponseAsync(failure);
             return false;
         });
-        app.AddTimeout(TimeSpan.FromSeconds(5), () =>
+        app.AddTimeout(TimeSpan.FromSeconds(15), () =>
         {
             app.RequestStop(dialog);
             return false;
@@ -107,8 +141,6 @@ public sealed class ConnectionFormDialogRenderingTests
     {
         var connections = new ConnectionService(A.Fake<IConnectionRepository>(), new SecretKeyService(A.Fake<ICryptoService>()),
             gateway, new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
-        var dialog = new ConnectionFormDialog(connections, localizer, app, profile: null, secret: null);
-        dialog.SubViews.OfType<TextField>().First().Text = "local";
-        return dialog;
+        return new ConnectionFormDialog(connections, localizer, app, profile: null, secret: null);
     }
 }
