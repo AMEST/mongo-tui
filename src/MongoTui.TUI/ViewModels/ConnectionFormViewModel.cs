@@ -1,4 +1,3 @@
-using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Exceptions;
@@ -94,6 +93,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
 
     public void Load(ConnectionProfile profile, string? secret)
     {
+        (profile, secret) = ConnectionCredentials.Extract(profile, secret);
         Id = profile.Id;
         IsNew = false;
         Name = profile.Name;
@@ -150,53 +150,24 @@ public sealed class ConnectionFormViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Moves credentials embedded in the URI into the login/password fields when both are
-    /// empty, so a pasted connection string is saved without pressing "From URI". The URI
-    /// itself is stored without userinfo, keeping plaintext credentials out of the profile.
+    /// Removes URI credentials and fills empty login/password fields while preserving typed values.
     /// </summary>
     internal void MergeCredentialsFromUri()
     {
-        if (!string.IsNullOrEmpty(Username) || !string.IsNullOrEmpty(Password))
-        {
-            return;
-        }
-
-        ParsedConnectionUri parsed;
         try
         {
-            parsed = ConnectionUriParser.Parse(Uri);
+            var parsed = ConnectionUriParser.Parse(Uri);
+            if (parsed.Username is null && parsed.Password is null) return;
+
+            Uri = parsed.Uri;
+            Username = string.IsNullOrEmpty(Username) ? parsed.Username : Username;
+            Password = string.IsNullOrEmpty(Password) ? parsed.Password : Password;
+            AuthDatabase = string.IsNullOrEmpty(AuthDatabase) ? parsed.AuthDatabase : AuthDatabase;
+            if (AuthKind == AuthKind.None) AuthKind = parsed.AuthKind;
         }
         catch (DomainException exception)
         {
             ValidationError = exception.Message;
-            return;
-        }
-
-        if (string.IsNullOrEmpty(parsed.Username) && string.IsNullOrEmpty(parsed.Password))
-        {
-            return;
-        }
-
-        Uri = parsed.Uri;
-
-        if (!string.IsNullOrEmpty(parsed.Username))
-        {
-            Username = parsed.Username;
-        }
-
-        if (!string.IsNullOrEmpty(parsed.Password))
-        {
-            Password = parsed.Password;
-        }
-
-        if (string.IsNullOrEmpty(AuthDatabase) && !string.IsNullOrEmpty(parsed.AuthDatabase))
-        {
-            AuthDatabase = parsed.AuthDatabase;
-        }
-
-        if (AuthKind == AuthKind.None && parsed.AuthKind != AuthKind.None)
-        {
-            AuthKind = parsed.AuthKind;
         }
     }
 

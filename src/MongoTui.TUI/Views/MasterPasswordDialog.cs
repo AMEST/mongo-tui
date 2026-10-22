@@ -10,14 +10,14 @@ namespace MongoTui.TUI.Views;
 /// <summary>Modal dialog that unlocks the connection secrets with the master password.</summary>
 public sealed class MasterPasswordDialog : ThemedDialog
 {
-    private readonly ConnectionService _connections;
+    private readonly SecurityModeService _security;
     private readonly IApplication _application;
     private readonly TextField _passwordField = new() { Secret = true };
     private readonly Label _error = new();
 
-    public MasterPasswordDialog(ConnectionService connections, ILocalizer localizer, IApplication application)
+    public MasterPasswordDialog(SecurityModeService security, ILocalizer localizer, IApplication application)
     {
-        _connections = connections;
+        _security = security;
         _application = application;
 
         Title = localizer.Get("MasterPassword.Title");
@@ -63,7 +63,7 @@ public sealed class MasterPasswordDialog : ThemedDialog
 
         try
         {
-            await _connections.UnlockAsync(_passwordField.Text ?? string.Empty, CancellationToken.None);
+            await _security.UnlockWithPasswordAsync(_passwordField.Text ?? string.Empty, CancellationToken.None);
             Unlocked = true;
             _application.RequestStop(this);
         }

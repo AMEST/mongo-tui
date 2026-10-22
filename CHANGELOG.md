@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.6.0 — since v0.5.3
+
+### Added
+
+- **Security modes** — choose on first launch how the encryption key is protected: a master
+  password (default), the OS keyring on macOS and Windows, or a local KEK file with user-only
+  permissions. The mode can be changed later in **Settings → Security…**; switching modes
+  re-encrypts all saved secrets in one transaction.
+- Keyring integration on macOS and Windows via Latchkey. Linux supports the master-password
+  and local-key-file modes.
+- **Reset secrets** in the security settings removes saved connection passwords and the AI API
+  key, then lets you choose a new security mode.
+- Existing master-password installations are detected automatically and keep working without
+  re-entering secrets.
+
+### Changed
+
+- **Unlock secrets** (`F8`) and **Change master password** (`Ctrl+P`) are available only in
+  master-password mode.
+
+### Fixed
+
+- Automatic unlock validates the key against every stored connection password and AI API key
+  before accepting it or migrating legacy credentials; a mismatched key leaves secrets locked.
+- Resetting secrets also removes passwords embedded in legacy connection URIs. Connection forms
+  strip URI credentials even when separate login/password fields are already populated, keeping
+  explicitly entered values and filling missing fields from the URI.
+
+### Docs
+
+- README (EN / RU): documented security mode selection, switching modes and local key-file
+  storage. Updated third-party license notices for Latchkey and its dependencies.
+
+### Tests
+
+- Added tests for security mode detection, initialization, automatic unlock, switching and
+  reset, plus password, keyring and local key-file storage.
+- Retained transaction rollback, cancellation and concurrent-save coverage for master-password
+  rotation after moving it to the security mode service.
+
 ## v0.5.3 — since v0.5.2
 
 ### Fixed
@@ -200,6 +240,7 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.5.3 to v0.6.0]: https://github.com/AMEST/mongo-tui/compare/v0.5.3...v0.6.0
 [v0.5.2 to v0.5.3]: https://github.com/AMEST/mongo-tui/compare/v0.5.2...v0.5.3
 [v0.5.1 to v0.5.2]: https://github.com/AMEST/mongo-tui/compare/v0.5.1...v0.5.2
 [v0.5.0 to v0.5.1]: https://github.com/AMEST/mongo-tui/compare/v0.5.0...v0.5.1

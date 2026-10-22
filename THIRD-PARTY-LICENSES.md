@@ -2,7 +2,7 @@
 
 MongoTui's own source code is covered by [LICENSE](LICENSE). Its dependencies retain their respective licenses.
 
-This inventory was checked on 2026-10-15 against `Directory.Packages.props`, the project references and all nine restored `obj/project.assets.json` files for .NET 10. It includes 91 resolved NuGet package/version pairs, both direct and transitive. Package links point to the exact versions on NuGet, including their license metadata and source repositories. Attribution comes from package copyright metadata or upstream license notices; entries marked **Authors** use package author metadata where no copyright notice was available.
+This inventory was checked on 2026-10-21 against `Directory.Packages.props`, the project references and all nine restored `obj/project.assets.json` files for .NET 10. It includes 93 resolved NuGet package/version pairs, both direct and transitive. Package links point to the exact versions on NuGet, including their license metadata and source repositories. Attribution comes from package copyright metadata or upstream license notices; entries marked **Authors** use package author metadata where no copyright notice was available.
 
 The common license texts below apply together with the corresponding attribution notices in the tables. Additional bundled components and upstream notices are listed after the tables.
 
@@ -12,11 +12,13 @@ Includes packages used to build the application, such as analyzers, as well as r
 
 | Package | Version | License | Copyright / attribution |
 |---|---|---|---|
+| [CliWrap](https://www.nuget.org/packages/CliWrap/3.10.2) | 3.10.2 | [MIT](#mit) | Copyright (C) Oleksii Holub |
 | [ColorHelper](https://www.nuget.org/packages/ColorHelper/1.8.1) | 1.8.1 | [MIT](#mit) | **Authors:** Artyom Gritsuk |
 | [DnsClient](https://www.nuget.org/packages/DnsClient/1.6.1) | 1.6.1 | [Apache-2.0](#apache-20) | Copyright (c) 2021 Michael Conrad |
 | [JetBrains.Annotations](https://www.nuget.org/packages/JetBrains.Annotations/2026.2.0) | 2026.2.0 | [MIT](#mit) | Copyright (c) 2016-2025 JetBrains s.r.o. |
 | [Konscious.Security.Cryptography.Argon2](https://www.nuget.org/packages/Konscious.Security.Cryptography.Argon2/1.3.1) | 1.3.1 | [MIT](#mit) | (c) 2024 Keef Aragon |
 | [Konscious.Security.Cryptography.Blake2](https://www.nuget.org/packages/Konscious.Security.Cryptography.Blake2/1.1.1) | 1.1.1 | [MIT](#mit) | (c) 2024 Keef Aragon |
+| [Latchkey](https://www.nuget.org/packages/Latchkey/0.1.0) | 0.1.0 | [MIT](#mit) | Copyright (c) Latchkey contributors |
 | [linq2db](https://www.nuget.org/packages/linq2db/6.5.0) | 6.5.0 | [MIT](#mit) | Copyright © 2026 Igor Tkachev, Ilya Chudin, Svyatoslav Danyliv, Dmitry Lukashenko, and others |
 | [linq2db.Analyzers](https://www.nuget.org/packages/linq2db.Analyzers/6.5.0) | 6.5.0 | [MIT](#mit) | Copyright © 2026 Igor Tkachev, Ilya Chudin, Svyatoslav Danyliv, Dmitry Lukashenko, and others |
 | [Markdig](https://www.nuget.org/packages/Markdig/1.3.2) | 1.3.2 | [BSD-2-Clause](#bsd-2-clause) | Copyright (c) 2018-2019, Alexandre Mutel. All rights reserved. |

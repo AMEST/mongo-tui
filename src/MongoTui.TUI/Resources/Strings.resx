@@ -266,4 +266,42 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Shortcuts.Unlock" xml:space="preserve"><value>Unlock secrets</value></data>
   <data name="Shortcuts.ChangePassword" xml:space="preserve"><value>Change master password</value></data>
   <data name="Shortcuts.Quit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Menu.Settings.Security" xml:space="preserve"><value>Security...</value></data>
+  <data name="Security.Mode.Title" xml:space="preserve"><value>Security mode</value></data>
+  <data name="Security.Mode.Field" xml:space="preserve"><value>Choose how secrets are protected</value></data>
+  <data name="Security.Mode.Password" xml:space="preserve"><value>Master password (recommended)</value></data>
+  <data name="Security.Mode.Keyring" xml:space="preserve"><value>OS keyring</value></data>
+  <data name="Security.Mode.None" xml:space="preserve"><value>No master password (KEK file)</value></data>
+  <data name="Security.Mode.Password.Description" xml:space="preserve"><value>The encryption key is derived from a master password. You enter it on every launch.</value></data>
+  <data name="Security.Mode.Keyring.Description" xml:space="preserve"><value>The encryption key is stored in the operating system keyring and unlocked automatically.</value></data>
+  <data name="Security.Mode.None.Description" xml:space="preserve"><value>The encryption key is stored in ~/.mongotui/kek.key with user-only permissions. Anyone who can read that file can decrypt your secrets.</value></data>
+  <data name="Security.Mode.None.Warning" xml:space="preserve"><value>Less secure. Use this mode only on a trusted device.</value></data>
+  <data name="Security.Mode.PasswordField" xml:space="preserve"><value>Master password</value></data>
+  <data name="Security.Mode.PasswordConfirm" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="Security.Mode.Initialize" xml:space="preserve"><value>Enable</value></data>
+  <data name="Security.Mode.Error.PasswordEmpty" xml:space="preserve"><value>Master password must not be empty.</value></data>
+  <data name="Security.Mode.Error.PasswordMismatch" xml:space="preserve"><value>Passwords do not match.</value></data>
+  <data name="Security.Settings.Title" xml:space="preserve"><value>Security settings</value></data>
+  <data name="Security.Settings.Current" xml:space="preserve"><value>Current mode: {0}</value></data>
+  <data name="Security.Settings.New" xml:space="preserve"><value>Security mode</value></data>
+  <data name="Security.Settings.Password" xml:space="preserve"><value>New master password</value></data>
+  <data name="Security.Settings.PasswordConfirm" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="Security.Settings.PasswordHint" xml:space="preserve"><value>Leave the password fields empty to keep the current master password.</value></data>
+  <data name="Security.Settings.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Security.Settings.Reset" xml:space="preserve"><value>Reset secrets</value></data>
+  <data name="Security.Settings.ResetTitle" xml:space="preserve"><value>Reset secrets</value></data>
+  <data name="Security.Settings.ResetQuestion" xml:space="preserve"><value>Delete all saved secrets and disable the current security mode? This cannot be undone.</value></data>
+  <data name="Security.Settings.ResetDone" xml:space="preserve"><value>Saved secrets were removed.</value></data>
+  <data name="Security.Settings.SwitchTitle" xml:space="preserve"><value>Change security mode</value></data>
+  <data name="Security.Settings.SwitchConfirm" xml:space="preserve"><value>Disable master password protection and re-encrypt saved secrets with the new key? Continue?</value></data>
+  <data name="Security.Settings.Changed" xml:space="preserve"><value>Security settings changed.</value></data>
+  <data name="Security.Status.Locked" xml:space="preserve"><value>Secrets are locked.</value></data>
+  <data name="Security.Error.Title" xml:space="preserve"><value>Security error</value></data>
+  <data name="Security.Error.KeyringUnavailable" xml:space="preserve"><value>The saved security mode uses the OS keyring, but it is not available on this system.</value></data>
+  <data name="Security.Error.KeyringKeyMissing" xml:space="preserve"><value>The OS keyring does not contain the encryption key.</value></data>
+  <data name="Security.Error.KekFileMissing" xml:space="preserve"><value>The encryption key file is missing.</value></data>
+  <data name="Security.Error.PasswordMaterialMissing" xml:space="preserve"><value>The master password data is missing.</value></data>
+  <data name="Security.Error.UnknownKeyMaterial" xml:space="preserve"><value>The encryption key for saved secrets could not be found.</value></data>
+  <data name="Security.Error.ConfirmReset" xml:space="preserve"><value>Delete all saved secrets and choose a new security mode?</value></data>
+  <data name="Security.Error.NotReady" xml:space="preserve"><value>Secrets could not be unlocked.</value></data>
 </root>

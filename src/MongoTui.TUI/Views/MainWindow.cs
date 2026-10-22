@@ -40,7 +40,7 @@ public sealed partial class MainWindow : Window
     private readonly TranslateQueryService _translate;
     private readonly SettingsService _settings;
     private readonly AiSettingsService _aiSettings;
-    private readonly MasterPasswordService _masterPassword;
+    private readonly SecurityModeService _security;
     private readonly IMongoGateway _gateway;
     private readonly ConnectionTunnelService _tunnels;
     private readonly ListView _treeList = new();
@@ -70,7 +70,7 @@ public sealed partial class MainWindow : Window
         TranslateQueryService translate,
         SettingsService settings,
         AiSettingsService aiSettings,
-        MasterPasswordService masterPassword,
+        SecurityModeService security,
         IMongoGateway gateway,
         ConnectionTunnelService tunnels)
     {
@@ -87,7 +87,7 @@ public sealed partial class MainWindow : Window
         _translate = translate;
         _settings = settings;
         _aiSettings = aiSettings;
-        _masterPassword = masterPassword;
+        _security = security;
         _gateway = gateway;
         _tunnels = tunnels;
         _tree = new TreeViewModel(gateway, localizer);
@@ -252,8 +252,9 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Startup flow: unlock secrets (keyring automatically, otherwise via the master
-    /// password dialog), then open the connection manager.
+    /// Startup flow: choose or verify the security mode, unlock secrets (automatically for
+    /// keyring/key-file modes, otherwise via the master password dialog), then open the
+    /// connection manager.
     /// </summary>
     public async Task OpenStartupAsync()
     {
@@ -261,9 +262,10 @@ public sealed partial class MainWindow : Window
         {
             await LoadSettingsAsync();
 
-            if (!await _connections.TryAutoUnlockAsync(CancellationToken.None))
+            if (!await EnsureSecurityReadyAsync())
             {
-                UnlockSecrets();
+                Application?.RequestStop();
+                return;
             }
 
             await RefreshAiAvailabilityAsync();
@@ -375,8 +377,10 @@ public sealed partial class MainWindow : Window
                 Item(localizer.Get("Menu.Connection.Manage"), Ctrl(KeyCode.O), () => Safe(ShowManagerAsync)),
                 Item(localizer.Get("Menu.Connection.Disconnect"), Key.Empty, () => Safe(DisconnectActiveAsync)),
                 Item(localizer.Get("Menu.Connection.Refresh"), Key.F9, () => Safe(RefreshActiveAsync)),
-                Item(localizer.Get("Menu.Connection.Unlock"), Key.F8, UnlockSecrets),
-                Item(localizer.Get("Menu.Connection.ChangePassword"), Ctrl(KeyCode.P), OpenChangePassword),
+                Item(localizer.Get("Menu.Connection.Unlock"), Key.F8, UnlockSecrets,
+                    _security.CurrentMode == SecurityMode.Password),
+                Item(localizer.Get("Menu.Connection.ChangePassword"), Ctrl(KeyCode.P), OpenChangePassword,
+                    _security.CurrentMode == SecurityMode.Password),
             ]),
             new MenuBarItem(localizer.Get("Menu.Query"),
             [
@@ -423,6 +427,7 @@ public sealed partial class MainWindow : Window
                     ]),
                 },
                 Item(localizer.Get("Menu.Settings.Ai"), Key.Empty, () => Safe(OpenAiSettingsAsync)),
+                Item(localizer.Get("Menu.Settings.Security"), Key.Empty, OpenSecuritySettings),
             ]),
             new MenuBarItem(localizer.Get("Menu.Help"),
             [
@@ -1117,7 +1122,13 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var dialog = new MasterPasswordDialog(_connections, _localizer, Application);
+        if (_security.CurrentMode != SecurityMode.Password)
+        {
+            SetStatus(_localizer.Get("Security.Status.Locked"));
+            return;
+        }
+
+        var dialog = new MasterPasswordDialog(_security, _localizer, Application);
         Application.Run(dialog);
 
         if (dialog.Unlocked)
@@ -1129,12 +1140,12 @@ public sealed partial class MainWindow : Window
 
     private void OpenChangePassword()
     {
-        if (Application is null)
+        if (Application is null || _security.CurrentMode != SecurityMode.Password)
         {
             return;
         }
 
-        var dialog = new ChangeMasterPasswordDialog(_masterPassword, _localizer, Application);
+        var dialog = new ChangeMasterPasswordDialog(_security, _localizer, Application);
         Application.Run(dialog);
 
         if (dialog.Changed)
@@ -1142,6 +1153,154 @@ public sealed partial class MainWindow : Window
             SetStatus(_localizer.Get("ChangePassword.Changed"));
         }
     }
+
+    private async Task<bool> EnsureSecurityReadyAsync()
+    {
+        if (!await EnsureSecurityConfiguredAsync())
+        {
+            return false;
+        }
+
+        RefreshMenuBar();
+        return await AutoUnlockSecretsAsync();
+    }
+
+    private async Task<bool> EnsureSecurityConfiguredAsync()
+    {
+        var detection = await _security.DetectAsync(CancellationToken.None);
+        if (detection.State == SecurityState.Invalid)
+        {
+            if (!await HandleInvalidSecurityAsync(detection.Problem ?? SecurityProblem.UnknownKeyMaterial))
+            {
+                return false;
+            }
+
+            detection = await _security.DetectAsync(CancellationToken.None);
+        }
+
+        if (detection.State == SecurityState.FirstRun)
+        {
+            if (!ShowSecurityModeDialog())
+            {
+                return false;
+            }
+
+            detection = await _security.DetectAsync(CancellationToken.None);
+        }
+
+        return detection.State == SecurityState.Ready;
+    }
+
+    private async Task<bool> AutoUnlockSecretsAsync()
+    {
+        var result = await _security.TryAutoUnlockAsync(CancellationToken.None);
+        if (result == AutoUnlockResult.PasswordRequired)
+        {
+            UnlockSecrets();
+            return true;
+        }
+
+        if (result != AutoUnlockResult.KeyMaterialUnavailable)
+        {
+            return true;
+        }
+
+        var problem = _security.CurrentMode == SecurityMode.Keyring
+            ? SecurityProblem.KeyringKeyMissing
+            : SecurityProblem.KekFileMissing;
+        if (!await HandleInvalidSecurityAsync(problem))
+        {
+            SetStatus(_localizer.Get("Security.Error.NotReady"));
+            return false;
+        }
+
+        return await EnsureSecurityReadyAsync();
+    }
+
+    private async Task<bool> HandleInvalidSecurityAsync(SecurityProblem problem)
+    {
+        if (Application is null)
+        {
+            return false;
+        }
+
+        Application.Run(new ErrorDialog(
+            _localizer,
+            Application,
+            _localizer.Get("Security.Error.Title"),
+            _localizer.Get(ProblemKey(problem))));
+
+        var confirm = new ConfirmDialog(
+            _localizer,
+            Application,
+            _localizer.Get("Security.Settings.ResetTitle"),
+            _localizer.Get("Security.Error.ConfirmReset"));
+        Application.Run(confirm);
+
+        if (!confirm.Confirmed)
+        {
+            return false;
+        }
+
+        await _security.ResetAsync(CancellationToken.None);
+        return true;
+    }
+
+    private bool ShowSecurityModeDialog()
+    {
+        if (Application is null)
+        {
+            return false;
+        }
+
+        var dialog = new SecurityModeDialog(_security, _localizer, Application);
+        Application.Run(dialog);
+        RefreshMenuBar();
+
+        return dialog.Completed;
+    }
+
+    private void OpenSecuritySettings()
+    {
+        if (Application is null)
+        {
+            return;
+        }
+
+        var dialog = new SecuritySettingsDialog(_security, _localizer, Application);
+        Application.Run(dialog);
+
+        if (dialog.Reset)
+        {
+            SetStatus(_localizer.Get("Security.Settings.ResetDone"));
+            if (ShowSecurityModeDialog())
+            {
+                Safe(RefreshAiAvailabilityAsync);
+            }
+            else
+            {
+                Application.RequestStop();
+            }
+
+            return;
+        }
+
+        if (dialog.Changed)
+        {
+            RefreshMenuBar();
+            SetStatus(_localizer.Get("Security.Settings.Changed"));
+            Safe(RefreshAiAvailabilityAsync);
+        }
+    }
+
+    private static string ProblemKey(SecurityProblem problem) => problem switch
+    {
+        SecurityProblem.KeyringUnavailable => "Security.Error.KeyringUnavailable",
+        SecurityProblem.KeyringKeyMissing => "Security.Error.KeyringKeyMissing",
+        SecurityProblem.KekFileMissing => "Security.Error.KekFileMissing",
+        SecurityProblem.PasswordMaterialMissing => "Security.Error.PasswordMaterialMissing",
+        _ => "Security.Error.UnknownKeyMaterial",
+    };
 
     private async Task OpenAiSettingsAsync()
     {

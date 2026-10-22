@@ -266,4 +266,42 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Shortcuts.Unlock" xml:space="preserve"><value>Разблокировать секреты</value></data>
   <data name="Shortcuts.ChangePassword" xml:space="preserve"><value>Сменить мастер-пароль</value></data>
   <data name="Shortcuts.Quit" xml:space="preserve"><value>Выход</value></data>
+  <data name="Menu.Settings.Security" xml:space="preserve"><value>Безопасность...</value></data>
+  <data name="Security.Mode.Title" xml:space="preserve"><value>Режим безопасности</value></data>
+  <data name="Security.Mode.Field" xml:space="preserve"><value>Выберите способ защиты секретов</value></data>
+  <data name="Security.Mode.Password" xml:space="preserve"><value>Мастер-пароль (рекомендуется)</value></data>
+  <data name="Security.Mode.Keyring" xml:space="preserve"><value>Системное хранилище ключей</value></data>
+  <data name="Security.Mode.None" xml:space="preserve"><value>Без мастер-пароля (файл KEK)</value></data>
+  <data name="Security.Mode.Password.Description" xml:space="preserve"><value>Ключ шифрования выводится из мастер-пароля. Его нужно вводить при каждом запуске.</value></data>
+  <data name="Security.Mode.Keyring.Description" xml:space="preserve"><value>Ключ шифрования хранится в системном хранилище и разблокируется автоматически.</value></data>
+  <data name="Security.Mode.None.Description" xml:space="preserve"><value>Ключ шифрования хранится в ~/.mongotui/kek.key с правами только для владельца. Любой, кто прочитает этот файл, сможет расшифровать секреты.</value></data>
+  <data name="Security.Mode.None.Warning" xml:space="preserve"><value>Менее безопасно. Используйте только на доверенном устройстве.</value></data>
+  <data name="Security.Mode.PasswordField" xml:space="preserve"><value>Мастер-пароль</value></data>
+  <data name="Security.Mode.PasswordConfirm" xml:space="preserve"><value>Подтвердите пароль</value></data>
+  <data name="Security.Mode.Initialize" xml:space="preserve"><value>Включить</value></data>
+  <data name="Security.Mode.Error.PasswordEmpty" xml:space="preserve"><value>Мастер-пароль не может быть пустым.</value></data>
+  <data name="Security.Mode.Error.PasswordMismatch" xml:space="preserve"><value>Пароли не совпадают.</value></data>
+  <data name="Security.Settings.Title" xml:space="preserve"><value>Настройки безопасности</value></data>
+  <data name="Security.Settings.Current" xml:space="preserve"><value>Текущий режим: {0}</value></data>
+  <data name="Security.Settings.New" xml:space="preserve"><value>Режим безопасности</value></data>
+  <data name="Security.Settings.Password" xml:space="preserve"><value>Новый мастер-пароль</value></data>
+  <data name="Security.Settings.PasswordConfirm" xml:space="preserve"><value>Подтвердите пароль</value></data>
+  <data name="Security.Settings.PasswordHint" xml:space="preserve"><value>Оставьте поля пароля пустыми, чтобы сохранить текущий мастер-пароль.</value></data>
+  <data name="Security.Settings.Apply" xml:space="preserve"><value>Применить</value></data>
+  <data name="Security.Settings.Reset" xml:space="preserve"><value>Сбросить секреты</value></data>
+  <data name="Security.Settings.ResetTitle" xml:space="preserve"><value>Сброс секретов</value></data>
+  <data name="Security.Settings.ResetQuestion" xml:space="preserve"><value>Удалить все сохранённые секреты и отключить текущий режим безопасности? Это действие необратимо.</value></data>
+  <data name="Security.Settings.ResetDone" xml:space="preserve"><value>Сохранённые секреты удалены.</value></data>
+  <data name="Security.Settings.SwitchTitle" xml:space="preserve"><value>Смена режима безопасности</value></data>
+  <data name="Security.Settings.SwitchConfirm" xml:space="preserve"><value>Отключить защиту мастер-паролем и перешифровать сохранённые секреты новым ключом? Продолжить?</value></data>
+  <data name="Security.Settings.Changed" xml:space="preserve"><value>Настройки безопасности изменены.</value></data>
+  <data name="Security.Status.Locked" xml:space="preserve"><value>Секреты заблокированы.</value></data>
+  <data name="Security.Error.Title" xml:space="preserve"><value>Ошибка безопасности</value></data>
+  <data name="Security.Error.KeyringUnavailable" xml:space="preserve"><value>Сохранённый режим использует системное хранилище ключей, но оно недоступно в этой системе.</value></data>
+  <data name="Security.Error.KeyringKeyMissing" xml:space="preserve"><value>В системном хранилище нет ключа шифрования.</value></data>
+  <data name="Security.Error.KekFileMissing" xml:space="preserve"><value>Файл ключа шифрования отсутствует.</value></data>
+  <data name="Security.Error.PasswordMaterialMissing" xml:space="preserve"><value>Данные мастер-пароля отсутствуют.</value></data>
+  <data name="Security.Error.UnknownKeyMaterial" xml:space="preserve"><value>Не удалось найти ключ шифрования для сохранённых секретов.</value></data>
+  <data name="Security.Error.ConfirmReset" xml:space="preserve"><value>Удалить все сохранённые секреты и выбрать новый режим безопасности?</value></data>
+  <data name="Security.Error.NotReady" xml:space="preserve"><value>Не удалось разблокировать секреты.</value></data>
 </root>

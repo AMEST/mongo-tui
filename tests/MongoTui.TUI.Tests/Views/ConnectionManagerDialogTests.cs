@@ -27,14 +27,13 @@ public sealed class ConnectionManagerDialogTests
     private readonly IMongoGateway _gateway = A.Fake<IMongoGateway>();
     private readonly ISshTunnelFactory _tunnels = A.Fake<ISshTunnelFactory>();
     private readonly ResxLocalizer _localizer = new();
+    private readonly SecretKeyService _secrets;
     private readonly ConnectionService _connections;
 
     public ConnectionManagerDialogTests()
     {
-        var keyProvider = A.Fake<IKeyProvider>();
-        A.CallTo(() => keyProvider.UnlockWithMasterPasswordAsync("master", A<CancellationToken>._))
-            .Returns(new byte[32]);
-        _connections = new ConnectionService(_repository, new SecretKeyService(keyProvider, _crypto), _gateway,
+        _secrets = new SecretKeyService(_crypto);
+        _connections = new ConnectionService(_repository, _secrets, _gateway,
             new ConnectionTunnelService(_tunnels, A.Fake<ITwoFactorPrompt>(), _gateway));
         A.CallTo(() => _application.Clipboard).Returns(_clipboard);
         A.CallTo(() => _clipboard.TrySetClipboardData(A<string>._)).Returns(true);
@@ -47,7 +46,7 @@ public sealed class ConnectionManagerDialogTests
     [InlineData("mongodb+srv://cluster.example.com/?authSource=users", "mongodb+srv://bob%40example.com:p%40%3A%2F%3F%23%5B%5D%25@cluster.example.com/?authSource=users")]
     public async Task Should_CopyCompleteUri_WhenAuthenticatedProfileSelected(string uri, string expected)
     {
-        await _connections.UnlockAsync("master", CancellationToken.None);
+        _secrets.SetKek(new byte[32]);
         var profile = NewProfile(uri) with
         {
             Auth = new AuthOptions { Kind = AuthKind.ScramSha256, Username = "bob@example.com", AuthDatabase = "admin" }

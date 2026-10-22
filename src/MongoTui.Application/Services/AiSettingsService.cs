@@ -69,7 +69,7 @@ public sealed class AiSettingsService
     }
 
     /// <summary>Re-encrypts the stored API key with the rotated KEK.</summary>
-    public async Task ReEncryptAsync(MasterPasswordRotation rotation, CancellationToken cancellationToken)
+    public async Task ReEncryptAsync(KekRotation rotation, CancellationToken cancellationToken)
     {
         var stored = await _settings.GetAsync(ApiKeyKey, cancellationToken);
 
@@ -79,6 +79,23 @@ public sealed class AiSettingsService
         }
 
         await _settings.SetAsync(ApiKeyKey, Pack(rotation.ReEncrypt(Unpack(stored))), cancellationToken);
+    }
+
+    /// <summary>Whether an encrypted API key is stored, regardless of the current lock state.</summary>
+    public async Task<bool> HasStoredApiKeyAsync(CancellationToken cancellationToken) =>
+        !string.IsNullOrEmpty(await _settings.GetAsync(ApiKeyKey, cancellationToken));
+
+    /// <summary>Removes the stored API key.</summary>
+    public Task ClearApiKeyAsync(CancellationToken cancellationToken) =>
+        _settings.SetAsync(ApiKeyKey, string.Empty, cancellationToken);
+
+    internal async Task ValidateKekAsync(byte[] kek, CancellationToken cancellationToken)
+    {
+        var stored = await _settings.GetAsync(ApiKeyKey, cancellationToken);
+        if (!string.IsNullOrEmpty(stored))
+        {
+            _secrets.ValidateKek(Unpack(stored), kek);
+        }
     }
 
     private async Task<string?> GetApiKeyAsync(CancellationToken cancellationToken)

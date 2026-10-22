@@ -16,7 +16,7 @@ with English and Russian interfaces.
 
 ## Features
 
-- Saved connections with encrypted passwords, a master password and SSH/TPAM support with 2FA.
+- Saved connections with encrypted passwords, selectable security modes (master password, OS keyring on macOS/Windows, or a local key file) and SSH/TPAM support with 2FA.
 - Database and collection browser, index management and statistics.
   Empty databases known from the URI, authentication source or user privileges remain visible in the tree.
   Right-click a connection to add a database, or a database to create a collection or open an empty query tab bound to it. A new database stays in the tree until refresh or reconnect; creating its first collection persists it on the server.
@@ -62,7 +62,7 @@ Run `mongo-tui.exe`.
 
 ## Getting started
 
-1. Launch MongoTui and set or enter your master password.
+1. Launch MongoTui and choose how to protect saved secrets: a master password (recommended), the OS keyring on macOS/Windows, or a local key file. You can change the mode later in **Settings → Security…**.
 2. Open **Connection → Manage connections…**, add a MongoDB URI, save the profile and connect.
    **From URI** fills the authentication fields from a full connection string.
    **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
@@ -134,7 +134,7 @@ names with their BSON types, so it can draft queries against the real schema.
 
 Connections, settings and history are stored in `~/.mongotui/mongotui.db`
 (`%USERPROFILE%\.mongotui\mongotui.db` on Windows). Logs are in the `logs` subdirectory.   
-Connection passwords and the AI API key are encrypted with your master password.
+Connection passwords and the AI API key are encrypted with a key protected by the selected security mode. In **No master password** mode the key is stored in `~/.mongotui/kek.key` with user-only permissions; anyone who can read that file can decrypt the secrets.
 
 ## Development
 

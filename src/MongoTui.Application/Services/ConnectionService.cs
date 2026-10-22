@@ -27,31 +27,8 @@ public sealed class ConnectionService
         _tunnels = tunnels;
     }
 
-    public bool IsUnlocked => _secrets.IsUnlocked;
-
-    public Task UnlockAsync(string masterPassword, CancellationToken cancellationToken) =>
-        _secrets.RunExclusiveAsync(async token =>
-        {
-            await _secrets.UnlockAsync(masterPassword, token);
-            await MigrateCredentialsAsync(token);
-        }, cancellationToken);
-
-    /// <summary>
-    /// Tries to unlock without user input. Returns true when already unlocked or when an
-    /// OS keyring supplied the KEK; false when a master password is required.
-    /// </summary>
-    public Task<bool> TryAutoUnlockAsync(CancellationToken cancellationToken) =>
-        _secrets.RunExclusiveAsync(async token =>
-        {
-            if (!await _secrets.TryAutoUnlockAsync(token)) return false;
-            await MigrateCredentialsAsync(token);
-            return true;
-        }, cancellationToken);
-
-    public void Lock() => _secrets.Lock();
-
     /// <summary>Re-encrypts every stored connection secret with the rotated KEK.</summary>
-    public async Task ReEncryptSecretsAsync(MasterPasswordRotation rotation, CancellationToken cancellationToken)
+    public async Task ReEncryptSecretsAsync(KekRotation rotation, CancellationToken cancellationToken)
     {
         foreach (var connection in await _repository.GetAllAsync(cancellationToken))
         {
@@ -63,6 +40,17 @@ public sealed class ConnectionService
             await _repository.UpdateAsync(
                 connection with { Secret = rotation.ReEncrypt(secret) },
                 cancellationToken);
+        }
+    }
+
+    internal async Task ValidateKekAsync(byte[] kek, CancellationToken cancellationToken)
+    {
+        foreach (var connection in await _repository.GetAllAsync(cancellationToken))
+        {
+            if (connection.Secret is { } secret)
+            {
+                _secrets.ValidateKek(secret, kek);
+            }
         }
     }
 
@@ -96,6 +84,19 @@ public sealed class ConnectionService
 
     public Task DeleteAsync(ConnectionId id, CancellationToken cancellationToken) =>
         _repository.DeleteAsync(id, cancellationToken);
+
+    /// <summary>Removes every stored connection secret without deleting the profiles.</summary>
+    public async Task ClearSecretsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var connection in await _repository.GetAllAsync(cancellationToken))
+        {
+            var (profile, _) = ConnectionCredentials.Extract(connection.Profile, null);
+            if (connection.Secret is not null || profile != connection.Profile)
+            {
+                await _repository.UpdateAsync(connection with { Profile = profile, Secret = null }, cancellationToken);
+            }
+        }
+    }
 
     public Task<string?> GetSecretAsync(ConnectionId id, CancellationToken cancellationToken) =>
         _secrets.RunExclusiveAsync(async token =>
@@ -155,7 +156,8 @@ public sealed class ConnectionService
         return result;
     }
 
-    private async Task MigrateCredentialsAsync(CancellationToken cancellationToken)
+    /// <summary>Moves credentials embedded in a URI into the encrypted secret storage.</summary>
+    public async Task MigrateCredentialsAsync(CancellationToken cancellationToken)
     {
         foreach (var stored in await _repository.GetAllAsync(cancellationToken))
         {

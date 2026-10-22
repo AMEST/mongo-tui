@@ -7,5 +7,7 @@ public interface ISettingsStore
 
     Task SetAsync(string key, string value, CancellationToken cancellationToken);
 
+    Task DeleteAsync(string key, CancellationToken cancellationToken);
+
     Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken);
 }
