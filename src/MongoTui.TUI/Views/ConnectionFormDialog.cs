@@ -40,7 +40,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
             _closing = true;
             _testCancellation?.Cancel();
         };
-        _viewModel = new ConnectionFormViewModel(connections);
+        _viewModel = new ConnectionFormViewModel(connections, localizer);
 
         if (profile is null)
         {
@@ -53,7 +53,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
 
         Title = localizer.Get("Connections.Title");
         Width = 80;
-        Height = 20;
+        Height = 24;
 
         Add(FieldLabel(localizer.Get("Connections.Field.Name"), 1));
         _nameField.X = 22;
@@ -94,8 +94,9 @@ public sealed class ConnectionFormDialog : ThemedDialog
         Add(_authDatabaseField);
 
         _error.X = 1;
-        _error.Y = Pos.AnchorEnd(3);
-        _error.Width = Dim.Fill();
+        _error.Y = Pos.Bottom(_authDatabaseField) + 1;
+        _error.Width = Dim.Fill(1);
+        _error.Height = 2;
         Add(_error);
 
         PopulateFromViewModel();

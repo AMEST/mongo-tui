@@ -70,5 +70,5 @@ public sealed class SecretKeyService
         _cryptoService.Decrypt(secret.CipherText, secret.Nonce, kek);
 
     private byte[] RequiredKek() =>
-        _kek ?? throw new DomainException("Secrets are locked; unlock them first.");
+        _kek ?? throw new SecretsLockedException();
 }

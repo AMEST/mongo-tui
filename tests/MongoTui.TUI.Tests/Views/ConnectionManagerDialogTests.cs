@@ -142,15 +142,18 @@ public sealed class ConnectionManagerDialogTests
         Status(dialog).Should().Be("Could not copy URI to clipboard.");
     }
 
-    [Fact]
-    public async Task Should_KeepClipboardUnchanged_WhenSecretsLocked()
+    [Theory]
+    [InlineData("en", "Secrets are locked. Unlock with the master password.")]
+    [InlineData("ru", "Секреты заблокированы. Разблокируйте мастер-паролем.")]
+    public async Task Should_ShowLocalizedErrorAndKeepClipboardUnchanged_WhenSecretsLocked(string language, string expected)
     {
+        _localizer.SetLanguage(language);
         var profile = NewProfile() with { Auth = new AuthOptions { Kind = AuthKind.ScramSha256, Username = "bob" } };
         using var dialog = await CreateDialogAsync(new StoredConnection(profile, new EncryptedSecret(new byte[12], new byte[8])));
 
         CopyButton(dialog).InvokeCommand(Command.Accept);
 
-        Status(dialog).Should().Contain("locked");
+        Status(dialog).Should().Be(expected);
         A.CallTo(() => _clipboard.TrySetClipboardData(A<string>._)).MustNotHaveHappened();
         A.CallTo(() => _application.RequestStop(dialog)).MustNotHaveHappened();
     }

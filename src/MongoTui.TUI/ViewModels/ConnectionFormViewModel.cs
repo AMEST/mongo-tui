@@ -1,7 +1,9 @@
+using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
+using MongoTui.TUI.Localization;
 
 namespace MongoTui.TUI.ViewModels;
 
@@ -9,6 +11,7 @@ namespace MongoTui.TUI.ViewModels;
 public sealed class ConnectionFormViewModel : ObservableObject
 {
     private readonly ConnectionService _connections;
+    private readonly ILocalizer _localizer;
 
     private string _name = string.Empty;
     private string _uri = "mongodb://localhost:27017";
@@ -20,7 +23,11 @@ public sealed class ConnectionFormViewModel : ObservableObject
     private SshTunnelOptions _ssh = new();
     private TlsOptions _tls = new();
 
-    public ConnectionFormViewModel(ConnectionService connections) => _connections = connections;
+    public ConnectionFormViewModel(ConnectionService connections, ILocalizer localizer)
+    {
+        _connections = connections;
+        _localizer = localizer;
+    }
 
     public ConnectionId Id { get; private set; } = ConnectionId.New();
 
@@ -125,7 +132,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
+            ValidationError = _localizer.GetErrorMessage(exception);
             return false;
         }
     }
@@ -144,8 +151,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
-            return exception.Message;
+            ValidationError = _localizer.GetErrorMessage(exception);
+            return ValidationError;
         }
     }
 
@@ -167,7 +174,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
+            ValidationError = _localizer.GetErrorMessage(exception);
         }
     }
 
@@ -213,7 +220,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
+            ValidationError = _localizer.GetErrorMessage(exception);
             return false;
         }
     }

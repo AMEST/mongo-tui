@@ -48,11 +48,11 @@ public sealed class ConnectionServiceTests
     }
 
     [Fact]
-    public async Task ShouldThrow_DomainException_When_SavingSecretWhileLocked()
+    public async Task ShouldThrow_SecretsLockedException_When_SavingSecretWhileLocked()
     {
         var act = async () => await _sut.SaveAsync(NewProfile(), "s3cr3t", CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>();
+        await act.Should().ThrowAsync<SecretsLockedException>();
     }
 
     [Fact]

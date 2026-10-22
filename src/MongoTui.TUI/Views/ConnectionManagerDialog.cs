@@ -4,6 +4,7 @@ using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Exceptions;
+using MongoTui.TUI.Localization;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -156,8 +157,8 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         }
         catch (DomainException exception)
         {
-            _status.Text = exception.Message;
-            _application.Run(new ErrorDialog(_localizer, _application, _localizer.Get("Common.Error"), exception.Message));
+            _status.Text = _localizer.GetErrorMessage(exception);
+            _application.Run(new ErrorDialog(_localizer, _application, _localizer.Get("Common.Error"), _status.Text));
         }
     }
 
@@ -195,7 +196,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         }
         catch (DomainException exception)
         {
-            _status.Text = exception.Message;
+            _status.Text = _localizer.GetErrorMessage(exception);
         }
     }
 }

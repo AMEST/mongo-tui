@@ -9,6 +9,7 @@ using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
+using MongoTui.TUI.Localization;
 using MongoTui.TUI.ViewModels;
 
 namespace MongoTui.TUI.Tests.ViewModels;
@@ -30,7 +31,7 @@ public sealed class ConnectionFormViewModelTests
         _secrets = new SecretKeyService(_crypto);
         _service = new ConnectionService(_repository, _secrets, _gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
-        _sut = new ConnectionFormViewModel(_service);
+        _sut = new ConnectionFormViewModel(_service, new ResxLocalizer());
         _sut.LoadNew();
     }
 
