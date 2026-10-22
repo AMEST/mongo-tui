@@ -48,6 +48,7 @@
   <data name="Connections.CopyUriFailed" xml:space="preserve"><value>Could not copy URI to clipboard.</value></data>
   <data name="Connections.Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="Connections.Test" xml:space="preserve"><value>Test</value></data>
+  <data name="Connections.TestRunning" xml:space="preserve"><value>Connection test: Running…</value></data>
   <data name="Connections.Save" xml:space="preserve"><value>Save</value></data>
   <data name="Connections.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Connections.Field.Name" xml:space="preserve"><value>Name</value></data>
@@ -59,7 +60,8 @@
   <data name="Connections.FromUri" xml:space="preserve"><value>From URI</value></data>
   <data name="Connections.ConfirmDelete" xml:space="preserve"><value>Delete connection "{0}"?</value></data>
   <data name="Connections.Saved" xml:space="preserve"><value>Saved.</value></data>
-  <data name="Connections.TestOk" xml:space="preserve"><value>Connection succeeded.</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Connection test: OK</value></data>
+  <data name="Connections.TestError" xml:space="preserve"><value>Connection test: Error — {0}</value></data>
   <data name="Connections.Empty" xml:space="preserve"><value>No saved connections.</value></data>
   <data name="Documents.Title" xml:space="preserve"><value>Document</value></data>
   <data name="Documents.Field.Json" xml:space="preserve"><value>JSON</value></data>

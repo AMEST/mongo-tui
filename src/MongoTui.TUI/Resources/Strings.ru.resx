@@ -48,6 +48,7 @@
   <data name="Connections.CopyUriFailed" xml:space="preserve"><value>Не удалось скопировать URI в буфер обмена.</value></data>
   <data name="Connections.Delete" xml:space="preserve"><value>Удалить</value></data>
   <data name="Connections.Test" xml:space="preserve"><value>Проверить</value></data>
+  <data name="Connections.TestRunning" xml:space="preserve"><value>Тест подключения: Проверка…</value></data>
   <data name="Connections.Save" xml:space="preserve"><value>Сохранить</value></data>
   <data name="Connections.Cancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="Connections.Field.Name" xml:space="preserve"><value>Имя</value></data>
@@ -59,7 +60,8 @@
   <data name="Connections.FromUri" xml:space="preserve"><value>Из URI</value></data>
   <data name="Connections.ConfirmDelete" xml:space="preserve"><value>Удалить подключение "{0}"?</value></data>
   <data name="Connections.Saved" xml:space="preserve"><value>Сохранено.</value></data>
-  <data name="Connections.TestOk" xml:space="preserve"><value>Подключение успешно.</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Тест подключения: OK</value></data>
+  <data name="Connections.TestError" xml:space="preserve"><value>Тест подключения: Ошибка — {0}</value></data>
   <data name="Connections.Empty" xml:space="preserve"><value>Нет сохранённых подключений.</value></data>
   <data name="Documents.Title" xml:space="preserve"><value>Документ</value></data>
   <data name="Documents.Field.Json" xml:space="preserve"><value>JSON</value></data>
