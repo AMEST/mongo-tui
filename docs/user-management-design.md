@@ -11,9 +11,9 @@
 - контекстное меню **базы данных** — управление пользователями, созданными в этой базе;
 - контекстное меню **подключения** — управление пользователями базы `admin`;
 - модальный список пользователей с действиями **Create**, **Edit**, **Delete**, **Refresh**;
-- при создании — ввод или генерация пароля, настройка доступа к базам (`r` / `rw` / admin),
-  показ готового connection string;
-- при изменении — только смена пароля и доступов к базам;
+- при создании — ввод или генерация пароля, настройка доступа к базам (`r` / `rw` / `dbOwner`)
+  и кластерных ролей, показ готового connection string;
+- при изменении — только смена пароля, доступов к базам и кластерных ролей;
 - удаление — с обязательным подтверждением.
 
 Фича рассчитана на администратора, который уже подключён к MongoDB с правами на управление
@@ -24,12 +24,15 @@
 1. Контекст базы данных = **база аутентификации** (`authSource`) пользователя, а не множество баз,
    на которые у пользователя есть роли. Список строится через `usersInfo` в этой базе.
 2. Контекст подключения всегда открывает пользователей базы `admin`.
-3. Уровни доступа в UI:
-   - `r` → роль `read` в выбранной базе;
-   - `rw` → роль `readWrite` в выбранной базе;
-   - **Administrator** → роль `root` в базе `admin` (доступ ко всему кластеру).
-4. `Administrator` — отдельный режим формы. При его включении список баз отключается и очищается.
-5. Неизвестные роли (пользовательские, `clusterAdmin`, `readAnyDatabase` и т.п.) не теряются:
+3. Доступы в UI делятся на две группы:
+   - **на базу**: `r` → `read`, `rw` → `readWrite`, `dbOwner` → `dbOwner`;
+   - **кластерные**: `readAnyDatabase`, `readWriteAnyDatabase`, `clusterAdmin`,
+     `clusterManager`, `clusterMonitor`, **Administrator** → `root` в базе `admin`.
+4. **Administrator** (`root`) — исключительный режим формы. При его включении остальные
+   управляемые доступы очищаются и отключаются. Остальные кластерные роли можно комбинировать
+   между собой и с доступами к отдельным базам; избыточные комбинации разрешены (MongoDB
+   объединяет роли).
+5. Неизвестные роли (пользовательские и built-in роли вне фиксированного списка) не теряются:
    они показываются как дополнительные и сохраняются при обновлении.
 6. Пароль генерируется криптографически стойким генератором, показывается один раз в результате
    создания вместе с connection string.
@@ -39,7 +42,8 @@
 ## 2. Вне области
 
 - Управление пользовательскими ролями (`createRole`, `updateRole`, `dropRole`).
-- Роли сложнее `read`, `readWrite`, `root`; они только сохраняются как дополнительные.
+- Произвольные built-in и пользовательские роли вне фиксированного списка; они только
+  сохраняются как дополнительные.
 - `customData`, `authenticationRestrictions`, `mechanisms`, X.509 и LDAP.
 - Политики сложности паролей и срок действия паролей.
 - История изменений пользователей и аудит.
@@ -70,8 +74,10 @@
 2. Заполнить имя пользователя.
 3. Ввести пароль вручную или нажать `Generate`.
 4. Настроить доступ:
-   - включить `Administrator`; или
-   - добавить одну или несколько баз и выбрать для каждой `r`/`rw`.
+   - добавить одну или несколько баз и выбрать для каждой `r`, `rw` или `dbOwner`; и/или
+   - отметить кластерные роли `readAnyDatabase`, `readWriteAnyDatabase`, `clusterAdmin`,
+     `clusterManager`, `clusterMonitor`;
+   - либо включить `Administrator` (`root`) — тогда остальные управляемые доступы отключаются.
 5. Нажать `Create`.
 6. После успешного выполнения команды показывается окно результата:
    - имя пользователя;
@@ -85,7 +91,8 @@
 1. Выбрать пользователя и нажать `Edit`.
 2. Имя пользователя недоступно для изменения.
 3. Поле пароля пустое; заполнение меняет пароль, пустое значение оставляет прежний.
-4. Список баз и уровней доступа заполнен текущими управляемыми ролями.
+4. Список баз и уровней доступа, а также кластерные роли заполнены текущими управляемыми
+   ролями.
 5. Дополнительные (неуправляемые) роли показаны отдельным read-only блоком.
 6. Сохранить изменения.
 7. Если изменён пароль текущего пользователя подключения — показать предупреждение, что
@@ -118,9 +125,9 @@
 
 - Заголовок: `Users.Title` с именем базы: `Users — admin`.
 - `ListView` со строками вида:
-  `app-reader  [orders: r, billing: rw]`;
+  `app-reader  [orders: r, billing: rw] [readAnyDatabase]`;
   `cluster-admin  [Administrator]`;
-  `service  [orders: rw] +2 roles` для неуправляемых ролей.
+  `service  [orders: dbOwner] [clusterMonitor] +2 roles` для неуправляемых ролей.
 - Кнопки: `Create`, `Edit`, `Delete`, `Refresh`, `Close`.
 - `Delete` и `Edit` неактивны без выбранного пользователя.
 - Ошибка загрузки/команды показывается в строке статуса диалога, диалог не закрывается.
@@ -142,19 +149,29 @@
 |---|---|---|
 | Username | TextField | read-only |
 | Password | secret TextField + `Generate` | secret TextField + `Generate`, пусто = не менять |
-| Administrator | CheckBox | CheckBox |
-| Access list | ListView `db: r/rw` + `Add access...` / `Remove` | то же |
+| Password hint | — | постоянная подсказка под паролем |
+| Access list | ListView `db: r/rw/dbOwner` + `Add access...` / `Remove` | то же |
+| Cluster roles | CheckBox на каждую роль | то же |
 | Additional roles | — | read-only список |
 | Create/Save | активно при валидной форме | активно при валидной форме |
+
+В edit-режиме под полем нового пароля **всегда** отображается подсказка
+`Users.Form.PasswordKeepHint`: «При пустых полях пароль не будет изменён». Подсказка не
+скрывается при вводе и не зависит от значения поля — это явное указание, что пустое значение
+означает сохранение текущего пароля.
 
 `Add access...` открывает `DatabaseAccessDialog`:
 
 - база: `ComboBox` с уже известными базами подключения, допускает ввод произвольного имени;
-- доступ: `r` или `rw`;
+- доступ: `r`, `rw` или `dbOwner`;
 - `OK` / `Cancel`.
 
-В create-режиме требуется хотя бы одна база или `Administrator`. В edit-режиме можно удалить все
-управляемые роли, но неуправляемые роли сохраняются.
+Кластерные роли: `readAnyDatabase`, `readWriteAnyDatabase`, `clusterAdmin`, `clusterManager`,
+`clusterMonitor`, `Administrator` (`root`). При включении `Administrator` остальные управляемые
+доступы очищаются и блокируются.
+
+В create-режиме требуется хотя бы одна база, кластерная роль или `Administrator`. В edit-режиме
+можно удалить все управляемые роли, но неуправляемые роли сохраняются.
 
 ### 4.4. `UserCreatedDialog`
 
@@ -190,13 +207,24 @@ public enum DatabaseAccessLevel
 {
     Read,
     ReadWrite,
+    DbOwner,
+}
+
+public enum ClusterRole
+{
+    ReadAnyDatabase,
+    ReadWriteAnyDatabase,
+    ClusterAdmin,
+    ClusterManager,
+    ClusterMonitor,
+    Administrator,
 }
 
 public sealed record DatabaseAccess(DatabaseName Database, DatabaseAccessLevel Level);
 
 public sealed record UserAccessSelection(
-    bool IsAdministrator,
-    IReadOnlyList<DatabaseAccess> Databases);
+    IReadOnlyList<DatabaseAccess> Databases,
+    IReadOnlySet<ClusterRole> ClusterRoles);
 ```
 
 `MongoUser.Database` — база, в которой создан пользователь (`authSource`), а не база роли.
@@ -266,7 +294,7 @@ public interface IMongoUserGateway
 2. Преобразование `UserAccessSelection` в роли Mongo.
 3. Объединение управляемых ролей с неуправляемыми ролями при `UpdateAsync`.
 4. Запрет удаления текущего пользователя подключения.
-5. Проверку, что при `IsAdministrator = false` есть хотя бы одна база.
+5. Проверку, что есть хотя бы одна база, кластерная роль или `Administrator`.
 
 Валидация не бросает исключения драйвера и не знает про BSON/локализацию.
 
@@ -276,16 +304,39 @@ public interface IMongoUserGateway
 |---|---|
 | `r` для базы `orders` | `{ role: "read", db: "orders" }` |
 | `rw` для базы `orders` | `{ role: "readWrite", db: "orders" }` |
+| `dbOwner` для базы `orders` | `{ role: "dbOwner", db: "orders" }` |
+| `readAnyDatabase` | `{ role: "readAnyDatabase", db: "admin" }` |
+| `readWriteAnyDatabase` | `{ role: "readWriteAnyDatabase", db: "admin" }` |
+| `clusterAdmin` | `{ role: "clusterAdmin", db: "admin" }` |
+| `clusterManager` | `{ role: "clusterManager", db: "admin" }` |
+| `clusterMonitor` | `{ role: "clusterMonitor", db: "admin" }` |
 | `Administrator` | `{ role: "root", db: "admin" }` |
+
+Смысл ролей:
+
+- `dbOwner` объединяет `readWrite`, `dbAdmin` и `userAdmin` в одной базе.
+- `readAnyDatabase` / `readWriteAnyDatabase` дают чтение/запись во всех базах кластера
+  (с системными ограничениями MongoDB).
+- `clusterMonitor` — read-only мониторинг кластера.
+- `clusterManager` — управление и мониторинг кластера.
+- `clusterAdmin` — широкие права на кластер, включает возможности `clusterManager` и
+  `clusterMonitor`.
+- `Administrator` (`root`) — полный доступ; в UI является исключительным режимом.
 
 Правила:
 
-- `Administrator` и список баз взаимоисключающие.
-- При `Administrator` все управляемые роли `read`/`readWrite` удаляются, `root` добавляется.
+- `Administrator` и все остальные управляемые доступы взаимоисключающие.
+- При `Administrator` управляемые роли `read`/`readWrite`/`dbOwner` и кластерные роли удаляются,
+  добавляется только `root` в `admin`.
+- Остальные кластерные роли можно комбинировать между собой и с доступами к отдельным базам.
+- Избыточные комбинации разрешены (например, `clusterAdmin` + `clusterMonitor`): MongoDB
+  объединяет роли, приложение не пытается угадать намерение пользователя.
 - Неуправляемые роли не входят в пересечение и переносятся без изменений.
-- Управляемая роль — это `read`/`readWrite` в любой базе или `root` в `admin`.
+- Управляемая роль — это `read`/`readWrite`/`dbOwner` в любой базе или одна из ролей
+  `readAnyDatabase`, `readWriteAnyDatabase`, `clusterAdmin`, `clusterManager`, `clusterMonitor`,
+  `root` в `admin`.
 - Одинаковые роли не дублируются.
-- При удалении базы из списка её `read`/`readWrite` больше не передаётся в `updateUser`.
+- При удалении базы из списка её `read`/`readWrite`/`dbOwner` больше не передаётся в `updateUser`.
 
 ### 6.4. `PasswordGenerator`
 
@@ -386,13 +437,15 @@ db.runCommand({
   pwd: "generated-password",
   roles: [
     { role: "readWrite", db: "orders" },
-    { role: "read", db: "analytics" },
+    { role: "dbOwner", db: "analytics" },
+    { role: "readAnyDatabase", db: "admin" },
   ],
 });
 ```
 
 Пользователь создаётся в базе, из контекста которой открыт диалог (`authSource`).
-Роль `root` в `admin` разрешена только пользователям с соответствующими правами.
+Кластерные роли всегда указываются с `db: "admin"`. Роль `root` и другие кластерные роли
+разрешены только пользователям с соответствующими правами.
 
 ### 8.2. Изменение
 
@@ -400,12 +453,16 @@ db.runCommand({
 db.runCommand({
   updateUser: "app-reader",
   pwd: "new-password",
-  roles: [{ role: "readWrite", db: "orders" }],
+  roles: [
+    { role: "readWrite", db: "orders" },
+    { role: "clusterMonitor", db: "admin" },
+  ],
 });
 ```
 
 `roles` передаётся полным набором: управляемые роли из формы плюс сохранённые неуправляемые.
-Если пароль не менялся, `pwd` не передаётся.
+Если пароль не менялся, `pwd` не передаётся. Под полем нового пароля всегда показана подсказка
+о том, что пустое значение сохраняет текущий пароль.
 
 ### 8.3. Удаление
 
@@ -427,6 +484,9 @@ db.runCommand({ dropUser: "app-reader" });
 - `usersInfo` не возвращает хэши паролей; приложение их не запрашивает.
 - Для создания/изменения пользователя нужны права `userAdmin`/`userAdminAnyDatabase` и право
   выдавать запрошенные роли. Ошибка прав показывается без падения TUI.
+- `clusterAdmin` и `Administrator` (`root`) — потенциально опасные роли; UI помечает их как
+  широкие кластерные права и требует явного выбора. `dbOwner` также даёт управление
+  пользователями выбранной базы.
 - При SSH-подключении сгенерированный URI не содержит параметров туннеля и может быть непригоден
   без отдельного туннеля; показывается предупреждение.
 
@@ -455,7 +515,7 @@ Users.Form.EditTitle
 Users.Field.Username
 Users.Field.Password
 Users.Field.Generate
-Users.Field.Administrator
+Users.Form.PasswordKeepHint
 Users.Field.Access
 Users.Field.AdditionalRoles
 Users.Access.Add
@@ -463,8 +523,17 @@ Users.Access.Remove
 Users.Access.Database
 Users.Access.Read
 Users.Access.ReadWrite
+Users.Access.DbOwner
 Users.Access.Required
 Users.Access.DatabaseInvalid
+Users.ClusterRoles
+Users.ClusterRoles.ReadAnyDatabase
+Users.ClusterRoles.ReadWriteAnyDatabase
+Users.ClusterRoles.ClusterAdmin
+Users.ClusterRoles.ClusterManager
+Users.ClusterRoles.ClusterMonitor
+Users.ClusterRoles.Administrator
+Users.ClusterRoles.AdministratorWarning
 
 Users.Created.Title
 Users.Created.PasswordShownOnce
@@ -488,6 +557,7 @@ Users.Error.CommandFailed
 | `Users/MongoRole.cs` | новый record |
 | `Users/MongoUser.cs` | новый record |
 | `Users/DatabaseAccessLevel.cs` | новый enum |
+| `Users/ClusterRole.cs` | новый enum |
 | `Users/DatabaseAccess.cs` | новый record |
 | `Users/UserAccessSelection.cs` | новый record |
 
@@ -532,12 +602,14 @@ Users.Error.CommandFailed
 ### Unit
 
 - `UserManagementServiceTests`:
-  - преобразование `r`/`rw`/`Administrator` в роли;
-  - взаимоисключение admin и списка баз;
+  - преобразование `r`/`rw`/`dbOwner` и всех кластерных ролей в роли Mongo;
+  - кластерные роли всегда получают `db: "admin"`;
+  - взаимоисключение `Administrator` и остальных управляемых доступов;
+  - комбинирование нескольких кластерных ролей и доступов к базам;
   - сохранение неизвестных ролей при обновлении;
   - пустой пароль в edit не меняет пароль;
   - запрет удаления текущего пользователя;
-  - ошибка при пустом списке доступов без admin.
+  - ошибка при пустом списке доступов без кластерных ролей и admin.
 - `PasswordGeneratorTests`: длина, алфавит, все классы символов.
 - `UserConnectionStringBuilderTests`:
   - `mongodb://` и `mongodb+srv://`;
@@ -554,12 +626,15 @@ Users.Error.CommandFailed
 
 - создать пользователя с `read` и проверить подключение к разрешённой базе;
 - создать пользователя с `readWrite` и проверить запись;
+- создать пользователя с `dbOwner` и проверить управление пользователями базы;
 - проверить запрет записи для `read`;
+- создать пользователя с `readAnyDatabase`/`readWriteAnyDatabase` и проверить доступ;
+- создать пользователя с `clusterMonitor` и проверить чтение диагностики;
 - создать пользователя с `root` и проверить доступ к `admin`;
 - обновить пароль и проверить вход со старым/новым паролем;
-- обновить роли и проверить права;
+- обновить роли, включая кластерные, и проверить права;
 - удалить пользователя и проверить, что вход невозможен;
-- проверить ошибку при недостаточных правах;
+- проверить ошибку при недостаточных правах на выдачу кластерных ролей;
 - проверить, что сгенерированный connection string действительно подключается.
 
 ### TUI
@@ -567,7 +642,8 @@ Users.Error.CommandFailed
 - `UserManagementDialogTests`: загрузка списка, пустой список, ошибка загрузки,
   активность кнопок, подтверждение удаления.
 - `UserFormDialogTests`: валидация имени/пароля/доступов, генерация пароля,
-  переключение `Administrator`, редактирование без смены пароля.
+  переключение `Administrator`, комбинирование кластерных ролей, редактирование без смены
+  пароля, постоянная подсказка `Users.Form.PasswordKeepHint` под полем пароля в edit-режиме.
 - `UserCreatedDialogTests`: отображение и копирование connection string.
 - `MainWindow` context-menu tests: пункты доступны для connection/database,
   передаётся правильная база (`admin` для корня).
@@ -578,15 +654,17 @@ Users.Error.CommandFailed
 2. В контекстном меню каждой базы есть управление пользователями этой базы.
 3. Список пользователей загружается и обновляется без перезапуска приложения.
 4. Можно создать пользователя с паролем вручную или сгенерированным.
-5. Можно назначить `r`/`rw` на произвольный список баз.
-6. Можно выдать admin-доступ (`root`) без выбора отдельных баз.
+5. Можно назначить `r`/`rw`/`dbOwner` на произвольный список баз.
+6. Можно выдать кластерные роли `readAnyDatabase`, `readWriteAnyDatabase`, `clusterAdmin`,
+   `clusterManager`, `clusterMonitor` и admin-доступ (`root`).
 7. После создания показывается рабочий connection string с паролем.
 8. При редактировании меняются только пароль и доступы; имя не редактируется.
-9. Неуправляемые роли не теряются при редактировании.
-10. Удаление требует подтверждения; текущего пользователя удалить нельзя.
-11. Пароли и connection string не попадают в логи и SQLite.
-12. Все новые строки локализованы (en/ru).
-13. `dotnet build` без warnings, `dotnet test` зелёный.
+9. В edit-режиме под полем пароля всегда видна подсказка, что пустое значение сохраняет пароль.
+10. Неуправляемые роли не теряются при редактировании.
+11. Удаление требует подтверждения; текущего пользователя удалить нельзя.
+12. Пароли и connection string не попадают в логи и SQLite.
+13. Все новые строки локализованы (en/ru).
+14. `dotnet build` без warnings, `dotnet test` зелёный.
 
 ## 14. План PR и оценка
 
@@ -609,7 +687,9 @@ PR 3 при превышении 400 строк дробить на «списо
 | Пользователь удаляет сам себя | Запретить удаление текущего пользователя |
 | Пароль уходит в clipboard/историю | Явное действие, предупреждение, не логировать |
 | SSH-подключение | Строить URI из профиля, а не из target; предупреждать, что туннель не входит в строку |
-| `root` слишком широк | Явная пометка «Administrator» и предупреждение в UI |
+| `clusterAdmin` / `root` слишком широки | Явная пометка опасных ролей и предупреждение в UI |
+| Избыточные кластерные роли (`clusterAdmin` + `clusterMonitor`) | Разрешить: MongoDB объединяет роли; тест на дубликаты |
+| Пустой пароль в edit принят за ошибку | Постоянная подсказка под полем пароля; тест на её отображение |
 | Пользовательские роли на нескольких базах | Показывать как дополнительные и сохранять |
 | `mongodb+srv` и параметры URI | Тесты на сохранение query-параметров |
 | Sharded cluster / Atlas | Команды стандартные; проверить в интеграционном тесте при возможности |
