@@ -77,7 +77,6 @@ public sealed class UserManagementDialog : ThemedDialog
         close.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(create, _edit, _delete, refresh, close);
-        Add(create, _edit, _delete, refresh, close);
     }
 
     public async Task LoadAsync()

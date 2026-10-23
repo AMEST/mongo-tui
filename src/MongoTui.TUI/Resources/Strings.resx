@@ -321,6 +321,7 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Cannot delete the user of the current connection.</value></data>
   <data name="Users.LoadFailed" xml:space="preserve"><value>Failed to load users.</value></data>
   <data name="Users.SaveFailed" xml:space="preserve"><value>Failed to save user.</value></data>
+  <data name="Users.Saving" xml:space="preserve"><value>Saving user…</value></data>
   <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Create user</value></data>
   <data name="Users.Form.EditTitle" xml:space="preserve"><value>Edit user</value></data>
   <data name="Users.Field.Username" xml:space="preserve"><value>Username</value></data>

@@ -321,6 +321,7 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Нельзя удалить пользователя текущего подключения.</value></data>
   <data name="Users.LoadFailed" xml:space="preserve"><value>Не удалось загрузить пользователей.</value></data>
   <data name="Users.SaveFailed" xml:space="preserve"><value>Не удалось сохранить пользователя.</value></data>
+  <data name="Users.Saving" xml:space="preserve"><value>Сохранение пользователя…</value></data>
   <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Создать пользователя</value></data>
   <data name="Users.Form.EditTitle" xml:space="preserve"><value>Изменить пользователя</value></data>
   <data name="Users.Field.Username" xml:space="preserve"><value>Имя пользователя</value></data>
