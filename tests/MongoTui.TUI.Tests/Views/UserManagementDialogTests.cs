@@ -11,6 +11,7 @@ using MongoTui.TUI.Localization;
 using MongoTui.TUI.ViewModels;
 using MongoTui.TUI.Views;
 using Terminal.Gui.App;
+using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
 namespace MongoTui.TUI.Tests.Views;
@@ -60,6 +61,36 @@ public sealed class UserManagementDialogTests
         rows.Should().ContainSingle().Which.Should().Be("reader  [orders: r] [readAnyDatabase]");
         Button(dialog, "Users.Edit").Enabled.Should().BeTrue();
         Button(dialog, "Users.Delete").Enabled.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public async Task Should_KeepListOpenAndEditSelection_WhenEnterPressed(int userCount)
+    {
+        var users = Enumerable.Range(0, userCount)
+            .Select(index => new MongoUser($"reader{index}", "app", [new MongoRole("read", "app")])).ToList();
+        A.CallTo(() => _gateway.ListUsersAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(Task.FromResult<IReadOnlyList<MongoUser>>(users));
+        string? editedUsername = null;
+        A.CallTo(() => _application.Run(A<IRunnable>._, A<Func<Exception, bool>?>._))
+            .Invokes((IRunnable runnable, Func<Exception, bool>? _) => editedUsername =
+                ((UserFormDialog)runnable).SubViews.OfType<TextField>().Single(field => !field.Secret).Text);
+        using var dialog = CreateDialog();
+        await dialog.LoadAsync();
+        dialog.BeginInit();
+        dialog.EndInit();
+        var list = dialog.SubViews.OfType<ListView>().Single();
+        list.SelectedItem = userCount > 0 ? userCount - 1 : null;
+        list.SetFocus();
+
+        list.NewKeyDownEvent(Key.Enter);
+
+        editedUsername.Should().Be(userCount > 0 ? $"reader{userCount - 1}" : null);
+        A.CallTo(() => _application.RequestStop(dialog)).MustNotHaveHappened();
+        var run = A.CallTo(() => _application.Run(A<IRunnable>._, A<Func<Exception, bool>?>._));
+        if (userCount > 0) run.MustHaveHappenedOnceExactly();
+        else run.MustNotHaveHappened();
     }
 
     [Theory]

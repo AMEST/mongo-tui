@@ -13,7 +13,7 @@ public sealed class DatabaseAccessDialog : ThemedDialog
 {
     private readonly ILocalizer _localizer;
     private readonly IApplication _application;
-    private readonly DropDownList _database = new() { X = 1, Y = 2, Width = Dim.Fill(1) };
+    private readonly DropDownList _database = new() { X = 1, Y = 2, Width = Dim.Fill(1), ReadOnly = false };
     private readonly ListView _levelList = new() { X = 1, Y = 6, Width = Dim.Fill(1), Height = 4 };
     private readonly Label _error = new() { X = 1, Y = 10, Width = Dim.Fill(1), Height = 2 };
 

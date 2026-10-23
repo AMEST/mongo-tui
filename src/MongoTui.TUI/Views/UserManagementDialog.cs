@@ -55,7 +55,11 @@ public sealed class UserManagementDialog : ThemedDialog
         _list.Y = 1;
         _list.Width = Dim.Fill();
         _list.Height = Dim.Fill(5);
-        _list.Accepted += (_, _) => _ = GuardedAsync(EditAsync);
+        _list.Accepting += (_, args) =>
+        {
+            args.Handled = true;
+            _ = GuardedAsync(EditAsync);
+        };
         _list.KeyDown += OnListKeyDown;
         _list.ValueChanged += (_, _) => UpdateActions();
         Add(_list);

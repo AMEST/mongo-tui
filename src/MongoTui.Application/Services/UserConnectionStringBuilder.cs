@@ -21,21 +21,9 @@ public static class UserConnectionStringBuilder
 
         schemeEnd += 3;
         var rest = uri[schemeEnd..];
-
-        var atIndex = rest.LastIndexOf('@');
-        if (atIndex >= 0)
-        {
-            rest = rest[(atIndex + 1)..];
-        }
-
-        var pathAndAuth = rest;
-        var query = string.Empty;
         var queryIndex = rest.IndexOf('?');
-        if (queryIndex >= 0)
-        {
-            pathAndAuth = rest[..queryIndex];
-            query = rest[(queryIndex + 1)..];
-        }
+        var address = queryIndex >= 0 ? rest[..queryIndex] : rest;
+        var query = queryIndex >= 0 ? rest[(queryIndex + 1)..] : string.Empty;
 
         var cleanedQuery = CleanQuery(query);
         if (!string.IsNullOrWhiteSpace(authDatabase))
@@ -46,9 +34,16 @@ public static class UserConnectionStringBuilder
         }
 
         var credentials = $"{Uri.EscapeDataString(username)}:{Uri.EscapeDataString(password)}@";
-        var result = uri[..schemeEnd] + credentials + pathAndAuth;
+        var result = uri[..schemeEnd] + credentials + RemoveCredentials(address);
 
         return string.IsNullOrEmpty(cleanedQuery) ? result : $"{result}?{cleanedQuery}";
+    }
+
+    private static string RemoveCredentials(string address)
+    {
+        var authorityEnd = address.IndexOf('/');
+        var authority = authorityEnd >= 0 ? address[..authorityEnd] : address;
+        return address[(authority.LastIndexOf('@') + 1)..];
     }
 
     private static string CleanQuery(string query)
