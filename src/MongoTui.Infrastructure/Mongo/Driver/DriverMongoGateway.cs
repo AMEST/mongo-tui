@@ -7,13 +7,15 @@ using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Databases;
+using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
+using MongoTui.Domain.Users;
 
 namespace MongoTui.Infrastructure.Mongo.Driver;
 
 /// <summary>Primary MongoDB channel backed by the official driver.</summary>
-public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery) : IDriverMongoGateway, IDisposable
+public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery) : IDriverMongoGateway, IMongoUserGateway, IDisposable
 {
     private readonly ConcurrentDictionary<string, IMongoClient> _clients = new(StringComparer.Ordinal);
 
@@ -259,6 +261,159 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
 
     private static long? TryGetLong(BsonDocument document, string name) =>
         document.TryGetValue(name, out var value) && value.IsNumeric ? value.ToInt64() : null;
+
+    public async Task<IReadOnlyList<MongoUser>> ListUsersAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var db = GetClient(target).GetDatabase(database.Value);
+            var command = new BsonDocument("usersInfo", 1);
+            var result = await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+            var users = new List<MongoUser>();
+            if (result.TryGetValue("users", out var usersArray) && usersArray.IsBsonArray)
+            {
+                foreach (var userDoc in usersArray.AsBsonArray)
+                {
+                    if (userDoc is not BsonDocument doc)
+                    {
+                        continue;
+                    }
+
+                    var username = doc.TryGetValue("user", out var u) ? u.AsString : string.Empty;
+                    var dbName = doc.TryGetValue("db", out var d) ? d.AsString : database.Value;
+                    var rolesList = new List<MongoRole>();
+                    if (doc.TryGetValue("roles", out var rolesArr) && rolesArr.IsBsonArray)
+                    {
+                        foreach (var roleVal in rolesArr.AsBsonArray)
+                        {
+                            if (roleVal is BsonDocument roleDoc)
+                            {
+                                var roleName = roleDoc.TryGetValue("role", out var rn) ? rn.AsString : string.Empty;
+                                var roleDb = roleDoc.TryGetValue("db", out var rdb) ? rdb.AsString : string.Empty;
+                                if (!string.IsNullOrEmpty(roleName))
+                                {
+                                    rolesList.Add(new MongoRole(roleName, roleDb));
+                                }
+                            }
+                        }
+                    }
+                    users.Add(new MongoUser(username, dbName, rolesList));
+                }
+            }
+            return users;
+        }
+        catch (MongoCommandException ex)
+        {
+            throw MapUserManagementException(ex);
+        }
+    }
+
+    public async Task CreateUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        string password,
+        IReadOnlyList<MongoRole> roles,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var db = GetClient(target).GetDatabase(database.Value);
+            var command = new BsonDocument
+            {
+                { "createUser", username },
+                { "pwd", password },
+                { "roles", BuildRolesArray(roles) }
+            };
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex)
+        {
+            throw MapUserManagementException(ex);
+        }
+    }
+
+    public async Task UpdateUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        string? password,
+        IReadOnlyList<MongoRole> roles,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var db = GetClient(target).GetDatabase(database.Value);
+            var command = new BsonDocument
+            {
+                { "updateUser", username },
+                { "roles", BuildRolesArray(roles) }
+            };
+            if (!string.IsNullOrEmpty(password))
+            {
+                command["pwd"] = password;
+            }
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex)
+        {
+            throw MapUserManagementException(ex);
+        }
+    }
+
+    public async Task DeleteUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var db = GetClient(target).GetDatabase(database.Value);
+            var command = new BsonDocument { { "dropUser", username } };
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+        }
+        catch (MongoCommandException ex)
+        {
+            throw MapUserManagementException(ex);
+        }
+    }
+
+    private static BsonArray BuildRolesArray(IReadOnlyList<MongoRole> roles)
+    {
+        var array = new BsonArray();
+        foreach (var role in roles)
+        {
+            array.Add(new BsonDocument { { "role", role.Name }, { "db", role.Database } });
+        }
+        return array;
+    }
+
+    private static Exception MapUserManagementException(MongoCommandException ex)
+    {
+        var code = ex.Code;
+        if (code == 13)
+        {
+            return new DomainException("Insufficient privileges to manage users.");
+        }
+        if (code == 51003 || ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+        {
+            return new DomainException("User already exists.");
+        }
+        if (ex.Message.Contains("role", StringComparison.OrdinalIgnoreCase) &&
+            ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return new DomainException("Failed to grant role.");
+        }
+        if (code == 11 || ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return new DomainException("User not found.");
+        }
+        return new DomainException("MongoDB command failed.");
+    }
 
     private static IndexInfo MapIndex(BsonDocument index)
     {

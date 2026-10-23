@@ -6,6 +6,12 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- **User management** — manage MongoDB users from the tree context menu: right-click a database,
+  or a connection for the `admin` database. Create, edit and delete users, assign `read` /
+  `readWrite` / `dbOwner` access per database and cluster roles (`readAnyDatabase`,
+  `readWriteAnyDatabase`, `clusterAdmin`, `clusterManager`, `clusterMonitor`, `root`),
+  generate passwords, preserve unmanaged roles on edit, and copy a ready-to-use connection string.
+  Passwords and connection strings are shown once and are never persisted or logged.
 - **Security modes** — choose on first launch how the encryption key is protected: a master
   password (default), the OS keyring on macOS and Windows, or a local KEK file with user-only
   permissions. The mode can be changed later in **Settings → Security…**; switching modes

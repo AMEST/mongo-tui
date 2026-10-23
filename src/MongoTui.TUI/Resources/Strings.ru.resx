@@ -307,4 +307,61 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Security.Error.UnknownKeyMaterial" xml:space="preserve"><value>Не удалось найти ключ шифрования для сохранённых секретов.</value></data>
   <data name="Security.Error.ConfirmReset" xml:space="preserve"><value>Удалить все сохранённые секреты и выбрать новый режим безопасности?</value></data>
   <data name="Security.Error.NotReady" xml:space="preserve"><value>Не удалось разблокировать секреты.</value></data>
+
+  <data name="Tree.ManageUsers" xml:space="preserve"><value>Управление пользователями...</value></data>
+  <data name="Tree.ManageUsersAdmin" xml:space="preserve"><value>Управление пользователями (admin)...</value></data>
+  <data name="Users.Title" xml:space="preserve"><value>Пользователи — {0}</value></data>
+  <data name="Users.Empty" xml:space="preserve"><value>Пользователи не найдены.</value></data>
+  <data name="Users.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Users.Create" xml:space="preserve"><value>Создать</value></data>
+  <data name="Users.Edit" xml:space="preserve"><value>Изменить</value></data>
+  <data name="Users.Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Users.DeleteConfirmTitle" xml:space="preserve"><value>Удалить пользователя</value></data>
+  <data name="Users.DeleteConfirmMessage" xml:space="preserve"><value>Удалить пользователя '{0}' из базы '{1}'?</value></data>
+  <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Нельзя удалить пользователя текущего подключения.</value></data>
+  <data name="Users.LoadFailed" xml:space="preserve"><value>Не удалось загрузить пользователей.</value></data>
+  <data name="Users.SaveFailed" xml:space="preserve"><value>Не удалось сохранить пользователя.</value></data>
+  <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Создать пользователя</value></data>
+  <data name="Users.Form.EditTitle" xml:space="preserve"><value>Изменить пользователя</value></data>
+  <data name="Users.Field.Username" xml:space="preserve"><value>Имя пользователя</value></data>
+  <data name="Users.Field.Password" xml:space="preserve"><value>Пароль</value></data>
+  <data name="Users.Field.Generate" xml:space="preserve"><value>Сгенерировать</value></data>
+  <data name="Users.Form.PasswordKeepHint" xml:space="preserve"><value>При пустых полях пароль не будет изменён</value></data>
+  <data name="Users.Field.Access" xml:space="preserve"><value>Доступ к базам</value></data>
+  <data name="Users.Field.AdditionalRoles" xml:space="preserve"><value>Дополнительные роли</value></data>
+  <data name="Users.Access.Add" xml:space="preserve"><value>Добавить доступ...</value></data>
+  <data name="Users.Access.Remove" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Users.Access.Database" xml:space="preserve"><value>База данных</value></data>
+  <data name="Users.Access.Read" xml:space="preserve"><value>r</value></data>
+  <data name="Users.Access.ReadWrite" xml:space="preserve"><value>rw</value></data>
+  <data name="Users.Access.DbOwner" xml:space="preserve"><value>dbOwner</value></data>
+  <data name="Users.Access.Required" xml:space="preserve"><value>Требуется хотя бы один доступ или роль.</value></data>
+  <data name="Users.Access.DatabaseInvalid" xml:space="preserve"><value>Неверное имя базы данных.</value></data>
+  <data name="Users.ClusterRoles" xml:space="preserve"><value>Кластерные роли</value></data>
+  <data name="Users.ClusterRoles.ReadAnyDatabase" xml:space="preserve"><value>readAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ReadWriteAnyDatabase" xml:space="preserve"><value>readWriteAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ClusterAdmin" xml:space="preserve"><value>clusterAdmin</value></data>
+  <data name="Users.ClusterRoles.ClusterManager" xml:space="preserve"><value>clusterManager</value></data>
+  <data name="Users.ClusterRoles.ClusterMonitor" xml:space="preserve"><value>clusterMonitor</value></data>
+  <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
+  <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator даёт полный доступ.</value></data>
+  <data name="Users.Created.Title" xml:space="preserve"><value>Пользователь создан</value></data>
+  <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Пароль и строка подключения показаны только один раз. Сохраните их.</value></data>
+  <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Скопировать строку подключения</value></data>
+  <data name="Users.Created.Copied" xml:space="preserve"><value>Строка подключения скопирована.</value></data>
+  <data name="Users.Created.SshWarning" xml:space="preserve"><value>Строка подключения построена из сохранённого URI профиля и может не включать настройки SSH-туннеля.</value></data>
+  <data name="Users.Error.Unauthorized" xml:space="preserve"><value>Недостаточно прав для управления пользователями</value></data>
+  <data name="Users.Error.AlreadyExists" xml:space="preserve"><value>Пользователь уже существует</value></data>
+  <data name="Users.Error.NotFound" xml:space="preserve"><value>Пользователь не найден</value></data>
+  <data name="Users.Error.RoleGrantFailed" xml:space="preserve"><value>Не удалось назначить роль</value></data>
+  <data name="Users.Error.CommandFailed" xml:space="preserve"><value>Ошибка выполнения команды MongoDB</value></data>
+
+
+  <data name="Users.UsernameRequired" xml:space="preserve"><value>Имя пользователя не должно быть пустым.</value></data>
+  <data name="Users.PasswordRequired" xml:space="preserve"><value>Пароль не должен быть пустым.</value></data>
+  <data name="Users.Created.CopyFailed" xml:space="preserve"><value>Не удалось скопировать строку подключения.</value></data>
+
+  <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>Пароль пользователя текущего подключения изменён. Переподключитесь, чтобы использовать новый пароль.</value></data>
+  <data name="Users.Access.Level" xml:space="preserve"><value>Доступ</value></data>
+  <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} ролей</value></data>
 </root>

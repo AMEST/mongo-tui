@@ -42,6 +42,7 @@ public sealed class CreateCollectionFlowTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton(gateway);
         services.AddSingleton(A.Fake<IMongoTransferGateway>());
+        services.AddSingleton(A.Fake<IMongoUserGateway>());
         services.AddSingleton(A.Fake<IConnectionRepository>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());

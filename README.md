@@ -17,9 +17,10 @@ with English and Russian interfaces.
 ## Features
 
 - Saved connections with encrypted passwords, selectable security modes (master password, OS keyring on macOS/Windows, or a local key file) and SSH/TPAM support with 2FA.
-- Database and collection browser, index management and statistics.
+- Database and collection browser, index management, user management and statistics.
   Empty databases known from the URI, authentication source or user privileges remain visible in the tree.
   Right-click a connection to add a database, or a database to create a collection or open an empty query tab bound to it. A new database stays in the tree until refresh or reconnect; creating its first collection persists it on the server.
+  Right-click a database (or a connection for `admin`) to create, edit and delete MongoDB users, assign database and cluster roles, generate passwords and copy a ready-to-use connection string.
 - JavaScript query tabs with autocomplete and query history.
 - Table, Tree and JSON result views; document editing as JSON.
 - Collection import and export in JSON.

@@ -5,11 +5,12 @@ using MongoTui.Domain.Databases;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
 using MongoTui.Domain.Transfer;
+using MongoTui.Domain.Users;
 
 namespace MongoTui.Infrastructure.Mongo.Cli;
 
 /// <summary>Routes Mongo operations to the driver or the CLI channel.</summary>
-public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway
+public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway, IMongoUserGateway
 {
     private readonly IDriverMongoGateway _driver;
     private readonly ICliMongoTransferGateway _cli;
@@ -19,6 +20,45 @@ public sealed class CompositeMongoGateway : IMongoGateway, IMongoTransferGateway
         _driver = driver;
         _cli = cli;
     }
+
+    public Task<IReadOnlyList<MongoUser>> ListUsersAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        CancellationToken cancellationToken) =>
+        _driver is IMongoUserGateway userGateway
+            ? userGateway.ListUsersAsync(target, database, cancellationToken)
+            : throw new NotSupportedException();
+
+    public Task CreateUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        string password,
+        IReadOnlyList<MongoRole> roles,
+        CancellationToken cancellationToken) =>
+        _driver is IMongoUserGateway userGateway
+            ? userGateway.CreateUserAsync(target, database, username, password, roles, cancellationToken)
+            : throw new NotSupportedException();
+
+    public Task UpdateUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        string? password,
+        IReadOnlyList<MongoRole> roles,
+        CancellationToken cancellationToken) =>
+        _driver is IMongoUserGateway userGateway
+            ? userGateway.UpdateUserAsync(target, database, username, password, roles, cancellationToken)
+            : throw new NotSupportedException();
+
+    public Task DeleteUserAsync(
+        MongoConnectionTarget target,
+        DatabaseName database,
+        string username,
+        CancellationToken cancellationToken) =>
+        _driver is IMongoUserGateway userGateway
+            ? userGateway.DeleteUserAsync(target, database, username, cancellationToken)
+            : throw new NotSupportedException();
 
     public void ReleaseClient(MongoConnectionTarget target) => _driver.ReleaseClient(target);
 

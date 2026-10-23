@@ -39,6 +39,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         var services = new ServiceCollection();
         services.AddSingleton(_gateway);
         services.AddSingleton(A.Fake<IMongoTransferGateway>());
+        services.AddSingleton(A.Fake<IMongoUserGateway>());
         services.AddSingleton(A.Fake<IConnectionRepository>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());
@@ -110,7 +111,35 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         shortcuts.Keys.Should().NotContain(new Key(KeyCode.Enter | KeyCode.CtrlMask));
     }
 
+    [Fact]
+    public void Should_OfferAdminUsersAction_When_ConnectionNode()
+    {
+        var connection = AddConnection("app", new DatabaseInfo("app", false));
+        var row = Rows().Single(row => row.Kind == TreeRowKind.Connection);
+
+        var actions = ContextActions(row);
+
+        actions.Should().Contain(action => action.Title == _localizer.Get("Tree.ManageUsersAdmin"));
+        connection.Profile.Id.Should().NotBe(default);
+    }
+
+    [Fact]
+    public void Should_OfferUsersAction_When_DatabaseNode()
+    {
+        AddConnection("app", new DatabaseInfo("app", false));
+        var row = Rows().Single(row => row.Kind == TreeRowKind.Database);
+
+        var actions = ContextActions(row);
+
+        actions.Should().Contain(action => action.Title == _localizer.Get("Tree.ManageUsers"));
+    }
+
     private TreeViewModel _tree => (TreeViewModel)Field(_window, "_tree");
+
+    private List<(string Title, Func<Task> Handler)> ContextActions(TreeRow row) =>
+        (List<(string Title, Func<Task> Handler)>)_window.GetType()
+            .GetMethod("BuildContextActions", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .Invoke(_window, [row])!;
 
     private ActiveConnection AddConnection(string database, DatabaseInfo info)
     {
