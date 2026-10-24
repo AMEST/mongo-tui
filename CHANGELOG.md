@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## v0.6.0 — since v0.5.3
+## v0.7.0 — since v0.6.0
 
 ### Added
 
@@ -10,8 +10,25 @@ All notable changes to this project are documented in this file.
   or a connection for the `admin` database. Create, edit and delete users, assign `read` /
   `readWrite` / `dbOwner` access per database and cluster roles (`readAnyDatabase`,
   `readWriteAnyDatabase`, `clusterAdmin`, `clusterManager`, `clusterMonitor`, `root`),
-  generate passwords, preserve unmanaged roles on edit, and copy a ready-to-use connection string.
+  generate passwords, preserve unmanaged roles on edit, and copy the password or a ready-to-use
+  connection string after creating a user or changing a password.
   Passwords and connection strings are shown once and are never persisted or logged.
+
+### Docs
+
+- AGENTS.md: documented asynchronous requests, UI dispatch around the Terminal.Gui 2.5 timer
+  lock, and regression testing for nested dialogs with background request completion.
+
+### Tests
+
+- Added coverage for user save success and failure, refreshing users, copying generated
+  credentials after creation or password changes, and credential dialog layout and clipboard
+  errors in English and Russian.
+
+## v0.6.0 — since v0.5.3
+
+### Added
+
 - **Security modes** — choose on first launch how the encryption key is protected: a master
   password (default), the OS keyring on macOS and Windows, or a local KEK file with user-only
   permissions. The mode can be changed later in **Settings → Security…**; switching modes
