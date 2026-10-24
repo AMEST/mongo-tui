@@ -1,10 +1,12 @@
 using AwesomeAssertions;
 using MongoDB.Bson;
+using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
+using MongoTui.Domain.Users;
 using MongoTui.Infrastructure.Mongo.Driver;
 
 namespace MongoTui.IntegrationTests;
@@ -184,6 +186,26 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
         (await gateway.CountAsync(_target, collection, "{}", CancellationToken.None)).Should().Be(0);
         (await gateway.ListDatabasesAsync(_target, CancellationToken.None))
             .Should().Contain(database => database.Name == collection.Database.Value);
+    }
+
+    [Fact]
+    public async Task Should_CreateListUpdateAndDeleteUser_When_Requested()
+    {
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        var userGateway = (IMongoUserGateway)gateway;
+        var database = DatabaseName.Create($"it_users_{Guid.NewGuid():N}");
+        var username = "reader";
+
+        await userGateway.CreateUserAsync(_target, database, username, "secret1",
+            [new MongoRole("read", database.Value)], CancellationToken.None);
+        var users = await userGateway.ListUsersAsync(_target, database, CancellationToken.None);
+        await userGateway.UpdateUserAsync(_target, database, username, "secret2",
+            [new MongoRole("readWrite", database.Value)], CancellationToken.None);
+        await userGateway.DeleteUserAsync(_target, database, username, CancellationToken.None);
+        var remaining = await userGateway.ListUsersAsync(_target, database, CancellationToken.None);
+
+        users.Should().ContainSingle(user => user.Username == username);
+        remaining.Should().NotContain(user => user.Username == username);
     }
 
     private static CollectionRef NewCollection()

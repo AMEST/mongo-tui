@@ -307,4 +307,66 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Security.Error.UnknownKeyMaterial" xml:space="preserve"><value>The encryption key for saved secrets could not be found.</value></data>
   <data name="Security.Error.ConfirmReset" xml:space="preserve"><value>Delete all saved secrets and choose a new security mode?</value></data>
   <data name="Security.Error.NotReady" xml:space="preserve"><value>Secrets could not be unlocked.</value></data>
+
+  <data name="Tree.ManageUsers" xml:space="preserve"><value>Manage users...</value></data>
+  <data name="Tree.ManageUsersAdmin" xml:space="preserve"><value>Manage users (admin)...</value></data>
+  <data name="Users.Title" xml:space="preserve"><value>Users — {0}</value></data>
+  <data name="Users.Empty" xml:space="preserve"><value>No users found.</value></data>
+  <data name="Users.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Users.Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Users.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Users.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Users.DeleteConfirmTitle" xml:space="preserve"><value>Delete user</value></data>
+  <data name="Users.DeleteConfirmMessage" xml:space="preserve"><value>Delete user '{0}' from database '{1}'?</value></data>
+  <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Cannot delete the user of the current connection.</value></data>
+  <data name="Users.LoadFailed" xml:space="preserve"><value>Failed to load users.</value></data>
+  <data name="Users.SaveFailed" xml:space="preserve"><value>Failed to save user.</value></data>
+  <data name="Users.Saving" xml:space="preserve"><value>Saving user…</value></data>
+  <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Create user</value></data>
+  <data name="Users.Form.EditTitle" xml:space="preserve"><value>Edit user</value></data>
+  <data name="Users.Field.Username" xml:space="preserve"><value>Username</value></data>
+  <data name="Users.Field.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Users.Field.Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="Users.Form.PasswordKeepHint" xml:space="preserve"><value>Leave empty to keep the current password.</value></data>
+  <data name="Users.Field.Access" xml:space="preserve"><value>Database access</value></data>
+  <data name="Users.Field.AdditionalRoles" xml:space="preserve"><value>Additional roles</value></data>
+  <data name="Users.Access.Add" xml:space="preserve"><value>Add access...</value></data>
+  <data name="Users.Access.Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Users.Access.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="Users.Access.Read" xml:space="preserve"><value>read</value></data>
+  <data name="Users.Access.ReadWrite" xml:space="preserve"><value>readWrite</value></data>
+  <data name="Users.Access.DbOwner" xml:space="preserve"><value>dbOwner</value></data>
+  <data name="Users.Access.Required" xml:space="preserve"><value>At least one access or role is required.</value></data>
+  <data name="Users.Access.DatabaseInvalid" xml:space="preserve"><value>Database name is invalid.</value></data>
+  <data name="Users.ClusterRoles" xml:space="preserve"><value>Cluster roles</value></data>
+  <data name="Users.ClusterRoles.ReadAnyDatabase" xml:space="preserve"><value>readAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ReadWriteAnyDatabase" xml:space="preserve"><value>readWriteAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ClusterAdmin" xml:space="preserve"><value>clusterAdmin</value></data>
+  <data name="Users.ClusterRoles.ClusterManager" xml:space="preserve"><value>clusterManager</value></data>
+  <data name="Users.ClusterRoles.ClusterMonitor" xml:space="preserve"><value>clusterMonitor</value></data>
+  <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
+  <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator grants full access.</value></data>
+  <data name="Users.Created.Title" xml:space="preserve"><value>User created</value></data>
+  <data name="Users.PasswordChanged.Title" xml:space="preserve"><value>Password changed</value></data>
+  <data name="Users.Credentials.CopyPassword" xml:space="preserve"><value>Copy password</value></data>
+  <data name="Users.Credentials.PasswordCopied" xml:space="preserve"><value>Password copied.</value></data>
+  <data name="Users.Credentials.PasswordCopyFailed" xml:space="preserve"><value>Could not copy password.</value></data>
+  <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Password and connection string are shown once. Save them now.</value></data>
+  <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Copy connection string</value></data>
+  <data name="Users.Created.Copied" xml:space="preserve"><value>Connection string copied.</value></data>
+  <data name="Users.Created.SshWarning" xml:space="preserve"><value>Connection string is built from the saved profile URI and may not include SSH tunnel settings.</value></data>
+  <data name="Users.Error.Unauthorized" xml:space="preserve"><value>Insufficient privileges to manage users.</value></data>
+  <data name="Users.Error.AlreadyExists" xml:space="preserve"><value>User already exists.</value></data>
+  <data name="Users.Error.NotFound" xml:space="preserve"><value>User not found.</value></data>
+  <data name="Users.Error.RoleGrantFailed" xml:space="preserve"><value>Failed to grant role.</value></data>
+  <data name="Users.Error.CommandFailed" xml:space="preserve"><value>MongoDB command failed.</value></data>
+
+
+  <data name="Users.UsernameRequired" xml:space="preserve"><value>Username must not be empty.</value></data>
+  <data name="Users.PasswordRequired" xml:space="preserve"><value>Password must not be empty.</value></data>
+  <data name="Users.Created.CopyFailed" xml:space="preserve"><value>Could not copy connection string.</value></data>
+
+  <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>The password of the current connection user was changed. Reconnect to use the new password.</value></data>
+  <data name="Users.Access.Level" xml:space="preserve"><value>Access</value></data>
+  <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} roles</value></data>
 </root>

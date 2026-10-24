@@ -26,6 +26,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<CollectionSchemaService>();
         services.AddSingleton<TranslateQueryService>();
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<PasswordGenerator>();
+        services.AddSingleton<UserManagementService>();
 
         return services;
     }

@@ -32,6 +32,7 @@ public sealed partial class MainWindow : Window
     private readonly DocumentService _documents;
     private readonly IndexService _indexes;
     private readonly DatabaseService _databases;
+    private readonly UserManagementService _users;
     private readonly ExportService _export;
     private readonly ImportService _import;
     private readonly IAiAssistant _assistant;
@@ -62,6 +63,7 @@ public sealed partial class MainWindow : Window
         DocumentService documents,
         IndexService indexes,
         DatabaseService databases,
+        UserManagementService users,
         ExportService export,
         ImportService import,
         IAiAssistant assistant,
@@ -79,6 +81,7 @@ public sealed partial class MainWindow : Window
         _documents = documents;
         _indexes = indexes;
         _databases = databases;
+        _users = users;
         _export = export;
         _import = import;
         _assistant = assistant;
@@ -609,6 +612,7 @@ public sealed partial class MainWindow : Window
             case TreeRowKind.Connection:
                 actions.Add((_localizer.Get("Tree.CreateDatabase"), () => CreateDatabaseAsync(connection)));
                 actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshConnectionAsync(connection)));
+                actions.Add((_localizer.Get("Tree.ManageUsersAdmin"), () => OpenUserManagementAsync(connection, "admin")));
                 actions.Add((_localizer.Get("Tree.Disconnect"), () => DisconnectAsync(connection)));
                 break;
             case TreeRowKind.Database:
@@ -620,6 +624,7 @@ public sealed partial class MainWindow : Window
                 actions.Add((_localizer.Get("Tree.CreateCollection"), () => CreateCollectionAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshDatabaseAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.Statistics"), () => ShowDatabaseStatsAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get("Tree.ManageUsers"), () => OpenUserManagementAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get("Tree.DropDatabase"), () => DropDatabaseAsync(connection, row.Database!)));
                 break;
             case TreeRowKind.Collection:

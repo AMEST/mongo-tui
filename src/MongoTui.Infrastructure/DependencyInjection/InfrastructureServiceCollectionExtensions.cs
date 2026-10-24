@@ -69,6 +69,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<CompositeMongoGateway>();
         services.AddSingleton<IMongoGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
         services.AddSingleton<IMongoTransferGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
+        services.AddSingleton<IMongoUserGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
 
         services.AddSingleton<PromptBuilder>();
         services.AddHttpClient<IAiAssistant, OpenAiCompatibleAssistant>();
