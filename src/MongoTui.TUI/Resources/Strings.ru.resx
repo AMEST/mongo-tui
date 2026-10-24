@@ -347,6 +347,10 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
   <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator даёт полный доступ.</value></data>
   <data name="Users.Created.Title" xml:space="preserve"><value>Пользователь создан</value></data>
+  <data name="Users.PasswordChanged.Title" xml:space="preserve"><value>Пароль изменён</value></data>
+  <data name="Users.Credentials.CopyPassword" xml:space="preserve"><value>Копировать пароль</value></data>
+  <data name="Users.Credentials.PasswordCopied" xml:space="preserve"><value>Пароль скопирован.</value></data>
+  <data name="Users.Credentials.PasswordCopyFailed" xml:space="preserve"><value>Не удалось скопировать пароль.</value></data>
   <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Пароль и строка подключения показаны только один раз. Сохраните их.</value></data>
   <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Скопировать строку подключения</value></data>
   <data name="Users.Created.Copied" xml:space="preserve"><value>Строка подключения скопирована.</value></data>

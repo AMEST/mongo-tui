@@ -25,22 +25,33 @@ public sealed partial class UserFormDialog
         _saving = true;
         _save.Enabled = false;
         SetStatus(_localizer.Get("Users.Saving"), ColorName16.BrightYellow);
+        Exception? saveError = null;
         try
         {
-            await SaveUserAsync(username, password);
-            Saved = true;
-            Log.Information("MongoDB user save completed");
-            _application.RequestStop(this);
+            await SaveUserAsync(username, password).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            ShowSaveError(exception);
+            saveError = exception;
         }
-        finally
+
+        await _application.InvokeAsync(() => CompleteSave(saveError)).ConfigureAwait(false);
+    }
+
+    private void CompleteSave(Exception? error)
+    {
+        _saving = false;
+        _save.Enabled = true;
+        if (error is not null)
         {
-            _saving = false;
-            _save.Enabled = true;
+            ShowSaveError(error);
+            return;
         }
+
+        Saved = true;
+        _error.Text = string.Empty;
+        Log.Information("MongoDB user save completed");
+        _application.RequestStop(this);
     }
 
     private async Task SaveUserAsync(string username, string password)
@@ -48,15 +59,16 @@ public sealed partial class UserFormDialog
         var access = new UserAccessSelection(_accesses.ToList(), _clusterRoles.Selected());
         if (_isEdit && _existing is not null)
         {
-            await _users.UpdateAsync(_connection.Target, _scope, _existing, password, access, CancellationToken.None);
+            await _users.UpdateAsync(_connection.Target, _scope, _existing, password, access, CancellationToken.None).ConfigureAwait(false);
             PasswordChanged = password.Length > 0;
         }
         else
         {
-            await _users.CreateAsync(_connection.Target, _scope, username, password, access, CancellationToken.None);
-            CreatedPassword = password;
-            Username = username;
+            await _users.CreateAsync(_connection.Target, _scope, username, password, access, CancellationToken.None).ConfigureAwait(false);
         }
+
+        SavedPassword = !_isEdit || PasswordChanged ? password : null;
+        Username = username;
     }
 
     private string? ValidationError(string username, string password)

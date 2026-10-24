@@ -36,10 +36,17 @@ public sealed class UserFormDialogSaveTests
             A<string>._, A<string>._, A<IReadOnlyList<MongoRole>>._, A<CancellationToken>._)).Returns(_response.Task);
         using IApplication app = Terminal.Gui.App.Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
+        using var parent = new Dialog();
         using var dialog = CreateDialog(app);
         var observe = ObserveSave(app, dialog, fails);
+        app.AddTimeout(TimeSpan.Zero, () =>
+        {
+            app.Run(dialog);
+            app.RequestStop(parent);
+            return false;
+        });
 
-        app.Run(dialog);
+        app.Run(parent);
 
         var observed = observe();
         observed.Progress.Should().Contain(_localizer.Get("Users.Saving"));
@@ -50,12 +57,12 @@ public sealed class UserFormDialogSaveTests
         {
             observed.Result.Should().Contain(_localizer.Get("Users.Error.Unauthorized"));
             dialog.SubViews.OfType<Label>().Last().GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
-            dialog.CreatedPassword.Should().BeNull();
+            dialog.SavedPassword.Should().BeNull();
         }
         else
         {
             dialog.Username.Should().Be("reader");
-            dialog.CreatedPassword.Should().Be("secret");
+            dialog.SavedPassword.Should().Be("secret");
         }
         A.CallTo(() => _gateway.CreateUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._,
             "reader", "secret", A<IReadOnlyList<MongoRole>>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -110,14 +117,20 @@ public sealed class UserFormDialogSaveTests
             {
                 progress = ScreenText(app);
                 disabled = !dialog.Buttons[0].Enabled;
-                if (fails) _response.SetException(new DomainException("Insufficient privileges to manage users."));
-                else _response.SetResult();
+                _ = CompleteResponseAsync(fails);
                 return false;
             });
             return false;
         });
         app.AddTimeout(TimeSpan.FromSeconds(3), () => { app.RequestStop(dialog); return false; });
         return () => (progress, result, disabled);
+    }
+
+    private async Task CompleteResponseAsync(bool fails)
+    {
+        await Task.Delay(50).ConfigureAwait(false);
+        if (fails) _response.SetException(new DomainException("Insufficient privileges to manage users."));
+        else _response.SetResult();
     }
 
     private UserFormDialog CreateDialog(IApplication app)

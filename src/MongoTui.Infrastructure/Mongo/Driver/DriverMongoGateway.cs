@@ -271,7 +271,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         {
             var db = GetClient(target).GetDatabase(database.Value);
             var command = new BsonDocument("usersInfo", 1);
-            var result = await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+            var result = await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
             var users = new List<MongoUser>();
             if (result.TryGetValue("users", out var usersArray) && usersArray.IsBsonArray)
             {
@@ -328,7 +328,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
                 { "pwd", password },
                 { "roles", BuildRolesArray(roles) }
             };
-            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (MongoCommandException ex)
         {
@@ -356,7 +356,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
             {
                 command["pwd"] = password;
             }
-            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (MongoCommandException ex)
         {
@@ -374,7 +374,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         {
             var db = GetClient(target).GetDatabase(database.Value);
             var command = new BsonDocument { { "dropUser", username } };
-            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken);
+            await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (MongoCommandException ex)
         {

@@ -26,6 +26,7 @@ public sealed class UserManagementDialogTests
 
     public UserManagementDialogTests()
     {
+        A.CallTo(() => _application.MainThreadId).ReturnsLazily(() => Environment.CurrentManagedThreadId);
         _localizer.SetLanguage("ru");
         _users = new UserManagementService(_gateway, new PasswordGenerator());
         var profile = ConnectionProfile.Create(ConnectionId.New(), "local", "mongodb://localhost:27017");
@@ -61,6 +62,61 @@ public sealed class UserManagementDialogTests
         rows.Should().ContainSingle().Which.Should().Be("reader  [orders: r] [readAnyDatabase]");
         Button(dialog, "Users.Edit").Enabled.Should().BeTrue();
         Button(dialog, "Users.Delete").Enabled.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("en", false)]
+    [InlineData("ru", false)]
+    [InlineData("en", true)]
+    [InlineData("ru", true)]
+    public async Task Should_ShowCopyableCredentials_WhenGeneratedPasswordSaved(string language, bool editing)
+    {
+        _localizer.SetLanguage(language);
+        var clipboard = A.Fake<IClipboard>();
+        A.CallTo(() => _application.Clipboard).Returns(clipboard);
+        A.CallTo(() => clipboard.TrySetClipboardData(A<string>._)).Returns(true);
+        A.CallTo(() => _gateway.ListUsersAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(Task.FromResult<IReadOnlyList<MongoUser>>([new("reader", "app", [new("read", "app")])]));
+        string? password = null;
+        string? title = null;
+        string? credentials = null;
+        A.CallTo(() => _application.Run(A<IRunnable>._, A<Func<Exception, bool>?>._))
+            .Invokes((IRunnable runnable, Func<Exception, bool>? _) =>
+            {
+                if (runnable is UserFormDialog form) password = SaveGeneratedPassword(form);
+                if (runnable is not UserCredentialsDialog result) return;
+                title = result.Title;
+                credentials = string.Join("\n", result.SubViews.Select(view => view.Text));
+                foreach (var button in result.Buttons.Take(2)) button.InvokeCommand(Command.Accept);
+            });
+        using var dialog = CreateDialog();
+        await dialog.LoadAsync();
+
+        Button(dialog, editing ? "Users.Edit" : "Users.Create").InvokeCommand(Command.Accept);
+
+        password.Should().NotBeNullOrEmpty();
+        title.Should().Be(_localizer.Get(editing ? "Users.PasswordChanged.Title" : "Users.Created.Title"));
+        credentials.Should().Contain(password!);
+        A.CallTo(() => clipboard.TrySetClipboardData(password!)).MustHaveHappenedOnceExactly();
+        var uri = $"mongodb://reader:{Uri.EscapeDataString(password!)}@localhost:27017?authSource=app";
+        A.CallTo(() => clipboard.TrySetClipboardData(uri)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_NotShowCredentials_WhenPasswordUnchanged()
+    {
+        A.CallTo(() => _gateway.ListUsersAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<CancellationToken>._))
+            .Returns(Task.FromResult<IReadOnlyList<MongoUser>>([new("reader", "app", [new("read", "app")])]));
+        A.CallTo(() => _application.Run(A<IRunnable>._, A<Func<Exception, bool>?>._))
+            .Invokes((IRunnable runnable, Func<Exception, bool>? _) =>
+                ((UserFormDialog)runnable).Buttons[0].InvokeCommand(Command.Accept));
+        using var dialog = CreateDialog();
+        await dialog.LoadAsync();
+
+        Button(dialog, "Users.Edit").InvokeCommand(Command.Accept);
+
+        A.CallTo(() => _application.Run(A<IRunnable>.That.Matches(runnable => runnable is UserCredentialsDialog), A<Func<Exception, bool>?>._))
+            .MustNotHaveHappened();
     }
 
     [Theory]
@@ -136,4 +192,16 @@ public sealed class UserManagementDialogTests
 
     private Button Button(UserManagementDialog dialog, string key) =>
         dialog.Buttons.Single(button => button.Text == _localizer.Get(key));
+
+    private string SaveGeneratedPassword(UserFormDialog form)
+    {
+        form.SubViews.OfType<TextField>().Single(field => !field.Secret).Text = "reader";
+        form.SubViews.OfType<CheckBox>().Single(check => check.Text == _localizer.Get("Users.ClusterRoles.ClusterMonitor"))
+            .Value = CheckState.Checked;
+        form.SubViews.OfType<Button>().Single(button => button.Text == _localizer.Get("Users.Field.Generate"))
+            .InvokeCommand(Command.Accept);
+        var password = form.SubViews.OfType<TextField>().Single(field => field.Secret).Text;
+        form.Buttons[0].InvokeCommand(Command.Accept);
+        return password;
+    }
 }

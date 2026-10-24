@@ -129,7 +129,7 @@ public sealed partial class UserFormDialog : ThemedDialog
         RefreshAccessList();
     }
 
-    public string? CreatedPassword { get; private set; }
+    public string? SavedPassword { get; private set; }
     public string? Username { get; private set; }
     public bool PasswordChanged { get; private set; }
     public bool Saved { get; private set; }

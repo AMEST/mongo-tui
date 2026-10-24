@@ -37,7 +37,7 @@ public sealed class UserManagementService
         return _gateway.CreateUserAsync(target, database, username, password, roles, cancellationToken);
     }
 
-    public async Task UpdateAsync(
+    public Task UpdateAsync(
         MongoConnectionTarget target,
         DatabaseName database,
         MongoUser existingUser,
@@ -52,7 +52,7 @@ public sealed class UserManagementService
             .Select(g => g.First())
             .ToList();
 
-        await _gateway.UpdateUserAsync(target, database, existingUser.Username, string.IsNullOrEmpty(password) ? null : password, finalRoles, cancellationToken);
+        return _gateway.UpdateUserAsync(target, database, existingUser.Username, string.IsNullOrEmpty(password) ? null : password, finalRoles, cancellationToken);
     }
 
     public Task DeleteAsync(

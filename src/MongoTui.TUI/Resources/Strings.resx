@@ -347,6 +347,10 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
   <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator grants full access.</value></data>
   <data name="Users.Created.Title" xml:space="preserve"><value>User created</value></data>
+  <data name="Users.PasswordChanged.Title" xml:space="preserve"><value>Password changed</value></data>
+  <data name="Users.Credentials.CopyPassword" xml:space="preserve"><value>Copy password</value></data>
+  <data name="Users.Credentials.PasswordCopied" xml:space="preserve"><value>Password copied.</value></data>
+  <data name="Users.Credentials.PasswordCopyFailed" xml:space="preserve"><value>Could not copy password.</value></data>
   <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Password and connection string are shown once. Save them now.</value></data>
   <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Copy connection string</value></data>
   <data name="Users.Created.Copied" xml:space="preserve"><value>Connection string copied.</value></data>

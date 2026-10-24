@@ -87,18 +87,23 @@ public sealed class UserManagementDialog : ThemedDialog
     {
         try
         {
-            _userList = await _users.ListAsync(_connection.Target, _scope, CancellationToken.None);
-            var items = _userList.Count == 0
-                ? new List<string> { _localizer.Get("Users.Empty") }
-                : _userList.Select(FormatUser).ToList();
-            _list.SetSource(new ObservableCollection<string>(items));
-            _list.SelectedItem = _userList.Count > 0 ? 0 : null;
-            _status.Text = string.Empty;
-            UpdateActions();
+            var users = await _users.ListAsync(_connection.Target, _scope, CancellationToken.None).ConfigureAwait(false);
+            await _application.InvokeAsync(() =>
+            {
+                _userList = users;
+                var items = users.Count == 0
+                    ? new List<string> { _localizer.Get("Users.Empty") }
+                    : users.Select(FormatUser).ToList();
+                _list.SetSource(new ObservableCollection<string>(items));
+                _list.SelectedItem = users.Count > 0 ? 0 : null;
+                _status.Text = string.Empty;
+                UpdateActions();
+            }).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            _status.Text = $"{_localizer.Get("Users.LoadFailed")} {ErrorText(exception)}";
+            await _application.InvokeAsync(() =>
+                _status.Text = $"{_localizer.Get("Users.LoadFailed")} {ErrorText(exception)}").ConfigureAwait(false);
         }
     }
 
@@ -122,7 +127,13 @@ public sealed class UserManagementDialog : ThemedDialog
             return;
         }
 
-        if (form.CreatedPassword is { } password && form.Username is { } username)
+        ShowCredentials(form);
+        await LoadAsync().ConfigureAwait(false);
+    }
+
+    private void ShowCredentials(UserFormDialog form)
+    {
+        if (form.SavedPassword is { } password && form.Username is { } username)
         {
             var connectionString = _users.BuildConnectionString(
                 _connection.Profile,
@@ -130,17 +141,16 @@ public sealed class UserManagementDialog : ThemedDialog
                 password,
                 _scope.Value);
 
-            using var result = new UserCreatedDialog(
+            using var result = new UserCredentialsDialog(
                 _localizer,
                 _application,
                 username,
                 password,
                 connectionString,
-                _connection.Profile.Ssh.Enabled);
+                _connection.Profile.Ssh.Enabled,
+                form.PasswordChanged);
             _application.Run(result);
         }
-
-        await LoadAsync();
     }
 
     private async Task EditAsync()
@@ -154,10 +164,12 @@ public sealed class UserManagementDialog : ThemedDialog
         _application.Run(form);
         if (form.Saved)
         {
-            await LoadAsync();
+            ShowCredentials(form);
+            await LoadAsync().ConfigureAwait(false);
             if (form.PasswordChanged && IsCurrentUser(user))
             {
-                _status.Text = _localizer.Get("Users.PasswordChangedCurrent");
+                await _application.InvokeAsync(() =>
+                    _status.Text = _localizer.Get("Users.PasswordChangedCurrent")).ConfigureAwait(false);
             }
         }
     }
@@ -188,12 +200,12 @@ public sealed class UserManagementDialog : ThemedDialog
 
         try
         {
-            await _users.DeleteAsync(_connection.Target, _scope, user.Username, _currentUsername, _currentAuthDatabase, CancellationToken.None);
-            await LoadAsync();
+            await _users.DeleteAsync(_connection.Target, _scope, user.Username, _currentUsername, _currentAuthDatabase, CancellationToken.None).ConfigureAwait(false);
+            await LoadAsync().ConfigureAwait(false);
         }
         catch (DomainException exception)
         {
-            _status.Text = _localizer.GetErrorMessage(exception);
+            await _application.InvokeAsync(() => _status.Text = _localizer.GetErrorMessage(exception)).ConfigureAwait(false);
         }
     }
 
@@ -201,11 +213,11 @@ public sealed class UserManagementDialog : ThemedDialog
     {
         try
         {
-            await action();
+            await action().ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            _status.Text = ErrorText(exception);
+            await _application.InvokeAsync(() => _status.Text = ErrorText(exception)).ConfigureAwait(false);
         }
     }
 
