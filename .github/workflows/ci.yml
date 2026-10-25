@@ -35,6 +35,8 @@ jobs:
         dotnet test tests/MongoTui.Infrastructure.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
         dotnet test tests/MongoTui.TUI.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
 
+        dotnet test tests/MongoTui.Web.Tests -c Release --no-build /p:CollectCoverage=true /p:VSTestUseMSBuildOutput=false
+
     - name: Publish coverage summary
       if: always()
       run: |
@@ -61,3 +63,26 @@ jobs:
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as output:
             output.write(text)
         PY
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - name: Verify Docker
+      run: docker info --format '{{.ServerVersion}}'
+    - name: Run integration tests with disposable MongoDB and mongosh
+      run: dotnet test tests/MongoTui.IntegrationTests -c Release --logger trx --results-directory TestResults/integration
+    - name: Upload integration test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-test-results
+        path: TestResults/integration/*.trx
+        if-no-files-found: warn

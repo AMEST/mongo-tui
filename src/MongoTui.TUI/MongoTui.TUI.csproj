@@ -1,7 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <!-- Components live in the Web library; include the Blazor bootstrap assets in this host. -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
     <RootNamespace>MongoTui.TUI</RootNamespace>
     <AssemblyName>mongo-tui</AssemblyName>
   </PropertyGroup>
@@ -9,12 +11,11 @@
   <ItemGroup>
     <ProjectReference Include="..\MongoTui.Application\MongoTui.Application.csproj" />
     <ProjectReference Include="..\MongoTui.Infrastructure\MongoTui.Infrastructure.csproj" />
+    <ProjectReference Include="..\MongoTui.Web\MongoTui.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Terminal.Gui" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Serilog.Extensions.Logging" />
     <PackageReference Include="Serilog.Sinks.File" />
   </ItemGroup>

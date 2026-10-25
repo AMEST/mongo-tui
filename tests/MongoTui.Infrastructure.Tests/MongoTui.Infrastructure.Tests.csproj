@@ -16,6 +16,11 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FakeItEasy" />
     <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../LoggingTestSink.cs" Link="Support/LoggingTestSink.cs" />
   </ItemGroup>
 
 </Project>

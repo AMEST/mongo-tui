@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Exceptions;
@@ -20,11 +21,11 @@ public sealed class ChangeMasterPasswordDialog : ThemedDialog
         _security = security;
         _application = application;
 
-        Title = localizer.Get("ChangePassword.Title");
+        Title = localizer.Get(LocalizationKeys.ChangePassword.Title);
         Width = 64;
         Height = 10;
 
-        Add(new Label { Text = localizer.Get("ChangePassword.Field"), X = 1, Y = 1 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.ChangePassword.Field), X = 1, Y = 1 });
         _passwordField.X = 1;
         _passwordField.Y = 3;
         _passwordField.Width = Dim.Fill();
@@ -35,9 +36,9 @@ public sealed class ChangeMasterPasswordDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var changeButton = new Button { Text = localizer.Get("ChangePassword.Change"), IsDefault = true };
+        var changeButton = new Button { Text = localizer.Get(LocalizationKeys.ChangePassword.Change), IsDefault = true };
         changeButton.OnAcceptAsync(ChangeAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => application.RequestStop(this));
 
         this.AddButtons(changeButton, cancelButton);

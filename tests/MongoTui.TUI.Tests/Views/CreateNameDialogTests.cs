@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Drawing;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -16,8 +17,8 @@ public sealed class CreateNameDialogTests
     private readonly ResxLocalizer _localizer = new();
 
     [Theory]
-    [InlineData("en", "Create.DatabaseTitle", "Create database")]
-    [InlineData("ru", "Create.CollectionTitle", "Создание коллекции")]
+    [InlineData("en", LocalizationKeys.Create.DatabaseTitle, "Create database")]
+    [InlineData("ru", LocalizationKeys.Create.CollectionTitle, "Создание коллекции")]
     public void Should_SubmitTrimmedNameAndClose_WhenCreationSucceeds(string language, string key, string title)
     {
         _localizer.SetLanguage(language);

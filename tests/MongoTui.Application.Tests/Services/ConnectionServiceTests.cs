@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using System.Text;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -26,7 +28,7 @@ public sealed class ConnectionServiceTests
     {
         _secrets = new SecretKeyService(_crypto);
         _sut = new ConnectionService(_repository, _secrets, _gateway,
-            new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>(), _gateway));
+            new ConnectionTunnelService(_tunnelFactory, A.Fake<ITwoFactorPrompt>(), _gateway), NullLogger<ConnectionService>.Instance);
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))
             .Returns((StoredConnection?)null);
     }

@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
+using MongoTui.Application.Localization;
 using System.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -50,7 +53,7 @@ public sealed class ConnectionFormDialogRenderingTests
         localizer.SetLanguage(language);
         using var dialog = CreateDialog(app, _gateway, localizer);
         var status = dialog.SubViews.OfType<Label>().Last();
-        var test = dialog.Buttons.Single(button => button.Text == localizer.Get("Connections.Test"));
+        var test = dialog.Buttons.Single(button => button.Text == localizer.Get(LocalizationKeys.Connections.Test));
         var observe = ObserveTest(app, dialog, test, fails, expected);
 
         app.Run(dialog);
@@ -74,7 +77,7 @@ public sealed class ConnectionFormDialogRenderingTests
         localizer.SetLanguage(language);
         using var dialog = CreateDialog(app, _gateway, localizer);
         var status = dialog.SubViews.OfType<Label>().Last();
-        var test = dialog.Buttons.Single(button => button.Text == localizer.Get("Connections.Test"));
+        var test = dialog.Buttons.Single(button => button.Text == localizer.Get(LocalizationKeys.Connections.Test));
         var observe = ObserveTest(app, dialog, test, fails: null, expected);
         var elapsed = Stopwatch.StartNew();
 
@@ -140,7 +143,7 @@ public sealed class ConnectionFormDialogRenderingTests
     private static ConnectionFormDialog CreateDialog(IApplication app, IMongoGateway gateway, ResxLocalizer localizer)
     {
         var connections = new ConnectionService(A.Fake<IConnectionRepository>(), new SecretKeyService(A.Fake<ICryptoService>()),
-            gateway, new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            gateway, new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         return new ConnectionFormDialog(connections, localizer, app, profile: null, secret: null);
     }
 }

@@ -49,6 +49,8 @@ public sealed class ClipboardShortcutTests : IAsyncLifetime
         services.AddSingleton(A.Fake<ISshTunnelFactory>());
         services.AddSingleton(A.Fake<ITwoFactorPrompt>());
         services.AddSingleton(A.Fake<IMongoShellSessionFactory>());
+        services.AddLogging();
+        services.AddSingleton(A.Fake<MongoTui.Application.Abstractions.Diagnostics.ILoggingSettings>());
         services.AddApplication();
         services.AddTui();
         _provider = services.BuildServiceProvider();

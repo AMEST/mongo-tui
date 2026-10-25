@@ -1,0 +1,122 @@
+@implements IDisposable
+@inject QueryWorkspace Workspace
+@inject ConnectionCatalog Catalog
+@inject AutocompleteService Autocomplete
+@inject WebText L
+@inject IJSRuntime JS
+<main class="query-area">
+    @if (Workspace.Selected is not { } tab)
+    {
+        <div class="workspace-empty">
+            <Icon Name="@IconNames.Database" Size="32" />
+            <h1>@L[Catalog.Active.Count > 0 ? LocalizationKeys.Workspace.SelectCollection : LocalizationKeys.Workspace.Connect]</h1>
+            <p class="muted">@L[Catalog.Active.Count > 0 ? LocalizationKeys.Workspace.SelectHint : LocalizationKeys.Workspace.ConnectHint]</p>
+            @if (Catalog.Active.Count == 0)
+            {
+                <button class="button primary" @onclick="OnAddConnection"><Icon Name="@IconNames.Plus" Size="16" />@L[LocalizationKeys.Connection.Add]</button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="query-tabs" role="tablist" aria-label="@L[LocalizationKeys.Query.Tabs]">
+            @foreach (var item in Workspace.Tabs)
+            {
+                <div @key="item.Id" class="query-tab @(item == tab ? "selected" : "")"><button role="tab" aria-selected="@(item == tab)" @onclick="() => SelectAsync(item)"><BusyIcon Name="@(item.Browse ? IconNames.Grid : IconNames.Code)" Size="15" Busy="item.Busy" /><span>@(item.Collection ?? item.Database)</span></button><button class="tab-close" title="@L[LocalizationKeys.Common.Close]" @onclick="() => CloseAsync(item)"><Icon Name="@IconNames.Close" Size="13" /></button></div>
+            }
+            <button class="icon-button" title="@L[LocalizationKeys.Query.New]" @onclick="NewQueryAsync"><Icon Name="@IconNames.Plus" Size="17" /></button>
+        </div>
+        <div class="workspace-context"><div class="breadcrumbs"><span class="status-dot"></span><span>@Catalog.Get(tab.ConnectionId).Profile.Name</span><Icon Name="@IconNames.Chevron" Size="12" /><span>@tab.Database</span>@if (tab.Collection is not null) { <Icon Name="@IconNames.Chevron" Size="12" /><strong>@tab.Collection</strong> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="text-button" @onclick="() => _showCollection = true"><Icon Name="@IconNames.Settings" Size="15" />@L[LocalizationKeys.Collection.Details]</button> }<button class="text-button" @onclick="() => _showAi = true"><Icon Name="@IconNames.Spark" Size="15" />@L[LocalizationKeys.Ai.Assistant]</button></div></div>
+        <div class="query-toolbar"><div class="segmented">@if (tab.Collection is not null) { <button class="@(tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(true)">@L[LocalizationKeys.Query.Browse]</button> }<button class="@(!tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(false)">@L[LocalizationKeys.Query.Script]</button></div><div class="toolbar-right"><span class="shortcut">@(tab.Browse ? L[LocalizationKeys.Query.PageSize] : "⌘ / Ctrl ↵")</span><div class="query-run-control"><button class="button compact primary" aria-busy="@(tab.Busy ? "true" : "false")" @onclick="RunOrCancelAsync"><Icon Name="@(tab.Busy ? IconNames.Stop : IconNames.Play)" Size="15" /><span class="button-label"><span class="@(!tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(tab.Busy ? "true" : "false")">@L[tab.Browse ? LocalizationKeys.Query.Apply : LocalizationKeys.Query.Run]</span><span class="@(tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(!tab.Busy ? "true" : "false")">@L[LocalizationKeys.Query.Stop]</span></span></button></div></div></div>
+        @if (tab.Browse)
+        {
+            <form class="filter-bar" @onsubmit="ApplyFilterAsync" @onsubmit:preventDefault="true"><span class="filter-label">@L[LocalizationKeys.Query.Filter]</span><input class="mono" aria-label="@L[LocalizationKeys.Query.Filter]" @bind="tab.Filter" spellcheck="false" /><span class="badge subtle">JSON</span></form>
+        }
+        else
+        {
+            <div class="editor-panel"><CodeEditor @key="tab.Id" @ref="_editor" Value="@tab.Script" ValueChanged="value => tab.Script = value" OnRun="RunAsync" Complete="CompleteAsync" /></div>
+        }
+        @if (tab.Error is not null) { <div class="query-error" role="alert"><Icon Name="@IconNames.Info" Size="16" /><pre>@tab.Error</pre></div> }
+        <div class="results-toolbar"><div class="result-title"><strong>@L[LocalizationKeys.Query.Results]</strong>@if (tab.Result is not null) { <span class="badge subtle">@tab.Result.Documents.Count@(tab.HasNext && tab.Browse ? "+" : "")</span><span class="muted">@tab.Result.Elapsed.TotalMilliseconds.ToString("0") ms</span> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="icon-button" title="@L[LocalizationKeys.Transfer.Title]" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => _showTransfer = true"><Icon Name="@IconNames.Upload" Size="16" /></button> }<button class="icon-button" title="@L[LocalizationKeys.Query.ExportResults]" disabled="@(tab.Result is null)" @onclick="ExportResultsAsync"><Icon Name="@IconNames.Download" Size="16" /></button>@if (tab.EditableCollection is not null) { <button class="button secondary compact" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="Insert"><Icon Name="@IconNames.Plus" Size="14" />@L[LocalizationKeys.Document.Add]</button> }<div class="segmented small">@foreach (var view in new[] { (ResultViewMode.Table, IconNames.Grid, LocalizationKeys.View.Table), (ResultViewMode.Tree, IconNames.Tree, LocalizationKeys.View.Tree), (ResultViewMode.Json, IconNames.Code, LocalizationKeys.View.Json) }) { <button class="@(tab.View == view.Item1 ? "active" : "")" title="@L[view.Item3]" @onclick="() => tab.View = view.Item1"><Icon Name="@view.Item2" Size="14" /><span>@L[view.Item3]</span></button> }</div></div></div>
+        <ResultViewer Tab="tab" OnSelect="Inspect" />
+        <div class="results-footer"><span>@L.Format(LocalizationKeys.Query.Page, tab.Page + 1)<span class="separator">·</span>@L[tab.Browse ? LocalizationKeys.Query.Driver : LocalizationKeys.Query.Shell]</span><div class="row-actions"><button class="button secondary compact" disabled="@(tab.Page == 0)" aria-disabled="@(tab.Page == 0 || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.Page > 0 ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, -1)">@L[LocalizationKeys.Common.Previous]</button><button class="button secondary compact" disabled="@(!tab.HasNext)" aria-disabled="@(!tab.HasNext || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.HasNext ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, 1)">@L[LocalizationKeys.Common.Next]<Icon Name="@IconNames.Chevron" Size="12" /></button></div></div>
+        @if (_document is not null) { <DocumentDialog Document="_document" Tab="tab" Insert="_insert" OnClose="() => _document = null" OnSaved="DocumentSavedAsync" /> }
+        @if (_showCollection && tab.Collection is not null) { <CollectionPanel Tab="tab" OnClose="() => _showCollection = false" /> }
+        @if (_showTransfer && tab.Collection is not null) { <TransferDialog Tab="tab" OnClose="() => _showTransfer = false" OnImported="ImportedAsync" /> }
+        @if (_showAi) { <AiPanel Tab="tab" OnClose="() => _showAi = false" OnUse="UseSuggestionAsync" /> }
+    }
+</main>
+@code {
+    private const int CompletionTimeoutSeconds = 3;
+    private const int MaximumCompletions = 100;
+    [Parameter] public EventCallback OnAddConnection { get; set; }
+    private CodeEditor? _editor;
+    private bool _disposed, _insert, _showCollection, _showTransfer, _showAi;
+    private BsonDocument? _document;
+    protected override void OnInitialized()
+    {
+        Workspace.Changed += Refresh;
+        Catalog.Changed += Refresh;
+    }
+    private void Refresh() { if (!_disposed) _ = InvokeAsync(StateHasChanged); }
+    public void Dispose()
+    {
+        _disposed = true;
+        Workspace.Changed -= Refresh;
+        Catalog.Changed -= Refresh;
+    }
+    public async Task SaveDraftAsync()
+    {
+        if (!_disposed && Workspace.Selected is { Browse: false } tab && _editor is not null) tab.Script = await _editor.GetValueAsync();
+    }
+    private async Task SelectAsync(WebTab tab) { await SaveDraftAsync(); ResetPanels(); Workspace.Select(tab); }
+    private async Task CloseAsync(WebTab tab) { await SaveDraftAsync(); ResetPanels(); await Workspace.CloseAsync(tab); }
+    private async Task NewQueryAsync()
+    {
+        if (Workspace.Selected is not { } tab) return;
+        await SaveDraftAsync(); ResetPanels();
+        try { Workspace.Open(tab.ConnectionId, tab.Database, null); } catch (Exception exception) { tab.Error = SafeError.Message(exception); }
+    }
+    private async Task SetModeAsync(bool browse)
+    {
+        await SaveDraftAsync();
+        if (Workspace.Selected is not { } tab || tab.Busy || tab.Browse == browse) return;
+        tab.Browse = browse; tab.Page = 0; tab.Result = null; tab.HasNext = false; tab.EditableCollection = null;
+        if (browse) await Workspace.ExecuteAsync(tab);
+    }
+    private async Task RunOrCancelAsync()
+    {
+        if (Workspace.Selected is { Busy: true } tab) { Workspace.Cancel(tab); return; }
+        await RunAsync();
+    }
+    private async Task RunAsync() { await SaveDraftAsync(); if (Workspace.Selected is { } tab) { if (tab.Browse) tab.Page = 0; await Workspace.ExecuteAsync(tab); } }
+    private async Task ImportedAsync() { if (Workspace.Selected is { Browse: true }) await RunAsync(); }
+    private async Task ApplyFilterAsync() { if (Workspace.Selected is { } tab) tab.Page = 0; await RunAsync(); }
+    private void Inspect(BsonDocument document) { if (Workspace.Selected?.Busy == true) return; _insert = false; _document = document; }
+    private void Insert() { if (Workspace.Selected?.Busy == true) return; _insert = true; _document = new BsonDocument(); }
+    private async Task DocumentSavedAsync() { _document = null; await RunAsync(); }
+    private void ResetPanels() { _document = null; _showCollection = _showTransfer = _showAi = false; }
+    private async Task<string[]> CompleteAsync(string prefix)
+    {
+        if (Workspace.Selected is not { } tab) return [];
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(CompletionTimeoutSeconds));
+            var suggestions = await Autocomplete.GetSuggestionsAsync(Catalog.Get(tab.ConnectionId).Target, tab.Database, tab.Collection, prefix, timeout.Token);
+            return suggestions.Take(MaximumCompletions).ToArray();
+        }
+        catch { return []; }
+    }
+    private async Task ExportResultsAsync()
+    {
+        if (Workspace.Selected?.Result is not { } result) return;
+        await JS.InvokeVoidAsync(JavaScriptCalls.DownloadText, "query-results.json", BsonTextCodec.Format(result.Documents));
+    }
+    private async Task UseSuggestionAsync(string script)
+    {
+        if (Workspace.Selected is not { } tab) return;
+        await SaveDraftAsync();
+        Workspace.Open(tab.ConnectionId, tab.Database, tab.Collection, script);
+        _showAi = false;
+    }
+}

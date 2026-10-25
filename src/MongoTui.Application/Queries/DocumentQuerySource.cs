@@ -1,13 +1,13 @@
 using System.Text.RegularExpressions;
-using MongoDB.Bson;
+using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 
-namespace MongoTui.TUI.Editor;
+namespace MongoTui.Application.Queries;
 
 /// <summary>Recognizes single-collection reads without evaluating arbitrary JavaScript.</summary>
-internal static class DocumentQuerySource
+public static class DocumentQuerySource
 {
     private const string Quoted = "(?:\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*')";
     private const string Identifier = @"[$\p{L}_][$\p{L}\p{N}_]*";
@@ -50,7 +50,7 @@ internal static class DocumentQuerySource
     private static Match Match(string text, string pattern) => Regex.Match(text, pattern,
         RegexOptions.Singleline | RegexOptions.IgnorePatternWhitespace | RegexOptions.CultureInvariant, MatchTimeout);
 
-    private static bool IsDocument(string text) => text.Length == 0 || BsonDocument.Parse(text) is not null;
+    private static bool IsDocument(string text) => text.Length == 0 || BsonTextCodec.ParseDocument(text) is not null;
 
     private static string? Decode(string quoted) => JavaScriptStringLiteral.Decode(quoted[1..^1]);
 }

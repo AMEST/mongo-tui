@@ -1,0 +1,96 @@
+@implements IDisposable
+@inject DocumentService Documents
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject IJSRuntime JS
+<Modal Title="@L[Insert ? LocalizationKeys.Document.Add : LocalizationKeys.Document.Title]" Class="document-dialog" OnClose="OnClose">
+    <div class="document-meta"><span class="mono">@Tab.Database / @(Tab.EditableCollection?.Collection.Value ?? Tab.Collection)</span><span class="badge">@L[Editable ? LocalizationKeys.Document.Editable : LocalizationKeys.Document.ReadOnly]</span></div>
+    <div class="document-editor" aria-busy="@(_loading ? "true" : "false")">@if (!_loading) { <CodeEditor @ref="_editor" Language="@JavaScriptCalls.Editor.Json" Value="@_json" /> }</div>
+    <div class="modal-body document-actions">
+        <FormFeedback Error="@_error" Message="@(_confirmDelete ? L[LocalizationKeys.Document.DeleteHint] : null)" />
+        <footer class="modal-actions">
+            <button class="icon-button" title="@L[LocalizationKeys.Common.Copy]" @onclick="CopyAsync"><Icon Name="@IconNames.Copy" /></button>
+            @if (HasSource && !Insert) { <BusyButton Class="button danger" Disabled="@(!Editable)" Busy="@(_busy && _confirmDelete)" Pending="@(_busy && !_confirmDelete)" Icon="@IconNames.Trash" ReserveText="@L[LocalizationKeys.Document.ConfirmDelete]" OnClick="DeleteAsync">@L[_confirmDelete ? LocalizationKeys.Document.ConfirmDelete : LocalizationKeys.Common.Delete]</BusyButton> }
+            <span class="spacer"></span><button class="button secondary" @onclick="OnClose">@L[LocalizationKeys.Common.Close]</button>
+            @if (HasSource) { <BusyButton Disabled="@(!Editable)" Busy="@(_busy && !_confirmDelete)" Pending="@(_busy && _confirmDelete)" Icon="@IconNames.Check" OnClick="SaveAsync">@L[LocalizationKeys.Common.Save]</BusyButton> }
+        </footer>
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public BsonDocument Document { get; set; } = null!;
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public bool Insert { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    private CodeEditor? _editor;
+    private string _json = string.Empty, _filter = string.Empty;
+    private string? _error;
+    private bool _busy, _confirmDelete, _ready, _loading;
+    private readonly CancellationTokenSource _lifetime = new();
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+    private bool HasSource => Tab.EditableCollection is not null && (Insert || Document.Contains(MongoSystemNames.IdField));
+    private bool Editable => HasSource && _ready;
+    protected override async Task OnInitializedAsync()
+    {
+        _json = BsonTextCodec.Format(Document);
+        if (!HasSource) return;
+        if (Insert) { _ready = true; return; }
+        _loading = true;
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        operation.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.CommandSeconds));
+        try
+        {
+            var content = await Documents.LoadForEditAsync(Catalog.Get(Tab.ConnectionId).Target,
+                Tab.EditableCollection!, Document, operation.Token);
+            if (operation.IsCancellationRequested) return;
+            if (content is null) { _error = L[LocalizationKeys.Document.NotFound]; return; }
+            _json = content.Json; _filter = content.IdFilter; _ready = true;
+        }
+        catch (Exception exception) { if (!_lifetime.IsCancellationRequested) _error = ErrorMessage(exception, LocalizationKeys.Error.Load); }
+        finally { _loading = false; }
+    }
+    private async Task CopyAsync()
+    {
+        try { await JS.InvokeVoidAsync(JavaScriptCalls.CopyText, _editor is null ? _json : await _editor.GetValueAsync()); }
+        catch (JSException) { _error = L[LocalizationKeys.Common.CopyFailed]; }
+    }
+    private async Task SaveAsync()
+    {
+        if (_busy || !Editable) return;
+        _confirmDelete = false;
+        await MutateAsync(async token =>
+        {
+            var json = _editor is null ? _json : await _editor.GetValueAsync();
+            var target = Catalog.Get(Tab.ConnectionId).Target;
+            if (Insert) await Documents.InsertAsync(target, Tab.EditableCollection!, json, token);
+            else if (await Documents.ReplaceAsync(target, Tab.EditableCollection!, _filter, json, token) == 0)
+                throw new MongoTui.Domain.Exceptions.DomainException(L[LocalizationKeys.Document.NotFound]);
+        });
+    }
+    private async Task DeleteAsync()
+    {
+        if (_busy || !Editable) return;
+        if (!_confirmDelete) { _confirmDelete = true; return; }
+        await MutateAsync(async token =>
+        {
+            if (await Documents.DeleteAsync(Catalog.Get(Tab.ConnectionId).Target, Tab.EditableCollection!, _filter, token) == 0)
+                throw new MongoTui.Domain.Exceptions.DomainException(L[LocalizationKeys.Document.NotFound]);
+        });
+    }
+    private async Task MutateAsync(Func<CancellationToken, Task> action)
+    {
+        if (_busy || !Editable) return;
+        _busy = true; _error = null;
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        operation.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.CommandSeconds));
+        try { await action(operation.Token); if (!operation.IsCancellationRequested) await OnSaved.InvokeAsync(); }
+        catch (Exception exception) { if (!_lifetime.IsCancellationRequested) _error = ErrorMessage(exception, LocalizationKeys.Error.Save); }
+        finally { _busy = false; }
+    }
+    private string ErrorMessage(Exception exception, string fallback) => exception switch
+    {
+        DocumentEditException edit => L[edit.ErrorKey],
+        MongoTui.Domain.Exceptions.DomainException => SafeError.Message(exception),
+        _ => L[fallback],
+    };
+}

@@ -1,5 +1,6 @@
+using MongoTui.Domain.Primitives;
+using MongoTui.Application.Localization;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
@@ -10,8 +11,6 @@ namespace MongoTui.TUI.ViewModels;
 /// <summary>Backs the document insert/edit dialog.</summary>
 public sealed class DocumentEditViewModel : ObservableObject
 {
-    private static readonly JsonWriterSettings IndentedJson = new() { Indent = true };
-
     private readonly DocumentService _documents;
     private readonly MongoConnectionTarget _target;
     private readonly CollectionRef _collection;
@@ -19,24 +18,49 @@ public sealed class DocumentEditViewModel : ObservableObject
     private string _json;
     private string? _error;
     private string? _idFilter;
+    private readonly BsonDocument? _selectedDocument;
 
     public DocumentEditViewModel(
         DocumentService documents,
         MongoConnectionTarget target,
         CollectionRef collection,
-        string? existingJson = null)
+        BsonDocument? existingDocument = null)
     {
         _documents = documents;
         _target = target;
         _collection = collection;
 
-        _idFilter = existingJson is null ? null : DocumentService.BuildIdFilter(existingJson);
+        _selectedDocument = existingDocument;
+        _idFilter = existingDocument is null ? null : BsonTextCodec.Format(BsonTextCodec.IdFilter(existingDocument), false);
         _filter = _idFilter ?? "{}";
-        _json = Indent(existingJson ?? "{ \"_id\": 1 }");
+        _json = existingDocument is null ? BsonTextCodec.Format(new BsonDocument(MongoSystemNames.IdField, 1)) : string.Empty;
+        CanWrite = existingDocument is null;
     }
 
     /// <summary>Whether the dialog inserts a new document rather than editing an existing one.</summary>
     public bool IsNew => _idFilter is null;
+
+    public bool CanWrite { get; private set; }
+
+    /// <summary>Reloads an existing selection before it can be saved, including shell results.</summary>
+    public async Task<bool> InitializeAsync(CancellationToken cancellationToken)
+    {
+        if (_selectedDocument is null) return true;
+        ValidationError = null;
+        ValidationErrorKey = null;
+        CanWrite = false;
+        try
+        {
+            var content = await _documents.LoadForEditAsync(_target, _collection, _selectedDocument,
+                cancellationToken).ConfigureAwait(false);
+            if (content is null) return NotFound();
+            Json = content.Json;
+            Filter = _idFilter = content.IdFilter;
+            CanWrite = true;
+            return true;
+        }
+        catch (DomainException exception) { return Fail(exception); }
+    }
 
     /// <summary>Resource key for an expected identity or missing-document error.</summary>
     public string? ValidationErrorKey { get; private set; }
@@ -67,10 +91,11 @@ public sealed class DocumentEditViewModel : ObservableObject
     {
         ValidationError = null;
         ValidationErrorKey = null;
+        CanWrite = false;
 
         try
         {
-            var document = await _documents.FindOneAsync(_target, _collection, Filter, cancellationToken);
+            var document = await _documents.FindOneAsync(_target, _collection, Filter, cancellationToken).ConfigureAwait(false);
 
             if (document is null)
             {
@@ -79,19 +104,19 @@ public sealed class DocumentEditViewModel : ObservableObject
 
             _idFilter = DocumentService.BuildIdFilter(document);
             Json = document;
+            CanWrite = true;
 
             return true;
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
-
-            return false;
+            return Fail(exception);
         }
     }
 
     public async Task<bool> SaveAsync(CancellationToken cancellationToken)
     {
+        if (!CanWrite) return false;
         ValidationError = null;
         ValidationErrorKey = null;
 
@@ -99,12 +124,11 @@ public sealed class DocumentEditViewModel : ObservableObject
         {
             if (IsNew)
             {
-                await _documents.InsertAsync(_target, _collection, Json, cancellationToken);
+                await _documents.InsertAsync(_target, _collection, Json, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                if (!ValidateIdentity()) return false;
-                var matched = await _documents.ReplaceAsync(_target, _collection, _idFilter!, Json, cancellationToken);
+                var matched = await _documents.ReplaceAsync(_target, _collection, _idFilter!, Json, cancellationToken).ConfigureAwait(false);
                 if (matched == 0) return NotFound();
             }
 
@@ -112,53 +136,40 @@ public sealed class DocumentEditViewModel : ObservableObject
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
-            return false;
+            return Fail(exception);
         }
     }
 
     public async Task<bool> DeleteAsync(CancellationToken cancellationToken)
     {
+        if (!CanWrite) return false;
         ValidationError = null;
         ValidationErrorKey = null;
 
         try
         {
-            if (!ValidateIdentity()) return false;
-            var deleted = await _documents.DeleteAsync(_target, _collection, _idFilter!, cancellationToken);
+            DocumentService.EnsureIdentity(_idFilter!, Json);
+            var deleted = await _documents.DeleteAsync(_target, _collection, _idFilter!, cancellationToken).ConfigureAwait(false);
             if (deleted == 0) return NotFound();
 
             return true;
         }
         catch (DomainException exception)
         {
-            ValidationError = exception.Message;
-            return false;
+            return Fail(exception);
         }
     }
 
-    private bool ValidateIdentity()
+    private bool Fail(DomainException exception)
     {
-        if (_idFilter is not null && DocumentService.BuildIdFilter(Json) == _idFilter) return true;
-        ValidationErrorKey = "Documents.IdChanged";
+        ValidationError = exception.Message;
+        ValidationErrorKey = (exception as DocumentEditException)?.ErrorKey;
         return false;
     }
 
     private bool NotFound()
     {
-        ValidationErrorKey = "Documents.NotFound";
+        ValidationErrorKey = LocalizationKeys.Documents.NotFound;
         return false;
-    }
-
-    private static string Indent(string json)
-    {
-        try
-        {
-            return BsonDocument.Parse(json).ToJson(IndentedJson);
-        }
-        catch (Exception exception) when (exception is FormatException or ArgumentException)
-        {
-            return json;
-        }
     }
 }

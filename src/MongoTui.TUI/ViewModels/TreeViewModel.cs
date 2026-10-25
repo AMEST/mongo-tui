@@ -1,13 +1,13 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
-using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 
 namespace MongoTui.TUI.ViewModels;
 
-/// <summary>Model of the active-connections tree: connections, databases and collections.</summary>
+/// <summary>Explorer of saved and active connections, with databases and collections.</summary>
 public sealed class TreeViewModel : ObservableObject
 {
     private const string ExpandedMarker = "\u2212";
@@ -16,7 +16,8 @@ public sealed class TreeViewModel : ObservableObject
     private readonly IMongoGateway _gateway;
     private readonly ILocalizer _localizer;
     private readonly List<ActiveConnection> _connections = [];
-    private readonly HashSet<ConnectionId> _collapsed = [];
+    private readonly HashSet<ConnectionId> _expandedConnections = [];
+    private IReadOnlyList<ConnectionProfile> _profiles = [];
     private readonly HashSet<(ConnectionId ConnectionId, string Database)> _expandedDatabases = [];
     private readonly Dictionary<(ConnectionId ConnectionId, string Database), IReadOnlyList<string>> _collections = [];
 
@@ -32,6 +33,9 @@ public sealed class TreeViewModel : ObservableObject
     /// <summary>Number of open connections.</summary>
     public int Count => _connections.Count;
 
+    /// <summary>Updates saved profiles without changing expanded nodes or cached collections.</summary>
+    public void SetProfiles(IReadOnlyList<ConnectionProfile> profiles) => _profiles = profiles;
+
     /// <summary>Adds a connection or replaces the existing one with the same profile id.</summary>
     public void AddOrReplace(ActiveConnection connection)
     {
@@ -43,11 +47,11 @@ public sealed class TreeViewModel : ObservableObject
     public void Remove(ConnectionId connectionId)
     {
         _connections.RemoveAll(connection => connection.Profile.Id == connectionId);
-        _collapsed.Remove(connectionId);
+        _expandedConnections.Remove(connectionId);
 
-        foreach (var key in _expandedDatabases.Where(key => key.ConnectionId == connectionId).ToList())
+        _expandedDatabases.RemoveWhere(key => key.ConnectionId == connectionId);
+        foreach (var key in _collections.Keys.Where(key => key.ConnectionId == connectionId).ToList())
         {
-            _expandedDatabases.Remove(key);
             _collections.Remove(key);
         }
     }
@@ -59,27 +63,18 @@ public sealed class TreeViewModel : ObservableObject
         if (index >= 0)
         {
             _connections[index] = _connections[index] with { Databases = databases };
+            var names = databases.Select(database => database.Name).ToHashSet(StringComparer.Ordinal);
+            _expandedDatabases.RemoveWhere(key => key.ConnectionId == connectionId && !names.Contains(key.Database));
+            foreach (var key in _collections.Keys.Where(key => key.ConnectionId == connectionId && !names.Contains(key.Database)).ToList())
+                _collections.Remove(key);
         }
-    }
-
-    /// <summary>Adds an empty database locally until the next database refresh or reconnect.</summary>
-    public void AddDatabase(ConnectionId connectionId, DatabaseName database)
-    {
-        var connection = _connections.First(connection => connection.Profile.Id == connectionId);
-        if (connection.Databases.Any(info => info.Name == database.Value))
-        {
-            throw new DomainException("A database with this name is already listed.");
-        }
-
-        UpdateDatabases(connectionId, connection.Databases.Append(new DatabaseInfo(database.Value, true))
-            .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase).ToList());
-        _collections.Remove((connectionId, database.Value));
-        _expandedDatabases.Remove((connectionId, database.Value));
-        _collapsed.Remove(connectionId);
     }
 
     /// <summary>Whether a connection node is expanded (shows its databases).</summary>
-    public bool IsExpanded(ConnectionId connectionId) => !_collapsed.Contains(connectionId);
+    public bool IsExpanded(ConnectionId connectionId) => _expandedConnections.Contains(connectionId);
+
+    /// <summary>Reveals a connected node without changing its database expansion state.</summary>
+    public void ExpandConnection(ConnectionId connectionId) => _expandedConnections.Add(connectionId);
 
     /// <summary>Whether a database node is expanded (shows its collections).</summary>
     public bool IsExpanded(ConnectionId connectionId, string database) =>
@@ -88,9 +83,9 @@ public sealed class TreeViewModel : ObservableObject
     /// <summary>Toggles the expanded state of a connection node.</summary>
     public void ToggleConnection(ConnectionId connectionId)
     {
-        if (!_collapsed.Remove(connectionId))
+        if (!_expandedConnections.Remove(connectionId))
         {
-            _collapsed.Add(connectionId);
+            _expandedConnections.Add(connectionId);
         }
     }
 
@@ -169,13 +164,23 @@ public sealed class TreeViewModel : ObservableObject
     {
         var rows = new List<TreeRow>();
 
-        foreach (var connection in _connections)
+        var active = _connections.ToDictionary(connection => connection.Profile.Id);
+        var profiles = _profiles.Concat(_connections.Select(connection => connection.Profile)).DistinctBy(profile => profile.Id)
+            .OrderByDescending(profile => active.ContainsKey(profile.Id))
+            .ThenBy(profile => profile.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var profile in profiles)
         {
-            var id = connection.Profile.Id;
+            var id = profile.Id;
+            if (!active.TryGetValue(id, out var connection))
+            {
+                rows.Add(new TreeRow(TreeRowKind.Connection, $"  ○ {profile.Name}", profile));
+                continue;
+            }
             var connectionExpanded = IsExpanded(id);
             rows.Add(new TreeRow(
                 TreeRowKind.Connection,
-                $"{(connectionExpanded ? ExpandedMarker : CollapsedMarker)} {connection.Profile.Name}",
+                $"{(connectionExpanded ? ExpandedMarker : CollapsedMarker)} ● {profile.Name}",
+                profile,
                 connection));
 
             if (!connectionExpanded)
@@ -183,24 +188,26 @@ public sealed class TreeViewModel : ObservableObject
                 continue;
             }
 
-            foreach (var database in connection.Databases)
-            {
-                var expanded = IsExpanded(id, database.Name);
-                var suffix = database.IsEmpty ? $" {_localizer.Get("Database.Empty")}" : string.Empty;
-                rows.Add(new TreeRow(
-                    TreeRowKind.Database,
-                    $"  {(expanded ? ExpandedMarker : CollapsedMarker)} {database.Name}{suffix}",
-                    connection,
-                    database.Name));
-
-                if (expanded && _collections.TryGetValue((id, database.Name), out var collections))
-                {
-                    rows.AddRange(collections.Select(collection =>
-                        new TreeRow(TreeRowKind.Collection, $"    {collection}", connection, database.Name, collection)));
-                }
-            }
+            AddDatabaseRows(rows, connection);
         }
 
         return rows;
+    }
+
+    private void AddDatabaseRows(List<TreeRow> rows, ActiveConnection connection)
+    {
+        foreach (var database in connection.Databases)
+        {
+            var expanded = IsExpanded(connection.Profile.Id, database.Name);
+            var suffix = database.IsEmpty ? $" {_localizer.Get(LocalizationKeys.Database.Empty)}" : string.Empty;
+            rows.Add(new TreeRow(TreeRowKind.Database,
+                $"  {(expanded ? ExpandedMarker : CollapsedMarker)} {database.Name}{suffix}",
+                connection.Profile, connection, database.Name));
+            if (expanded && _collections.TryGetValue((connection.Profile.Id, database.Name), out var collections))
+            {
+                rows.AddRange(collections.Select(collection =>
+                    new TreeRow(TreeRowKind.Collection, $"    {collection}", connection.Profile, connection, database.Name, collection)));
+            }
+        }
     }
 }

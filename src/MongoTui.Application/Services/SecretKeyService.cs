@@ -22,16 +22,16 @@ public sealed class SecretKeyService
     /// <summary>Serializes secret storage operations with master-key rotation.</summary>
     public async Task RunExclusiveAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken)
     {
-        await _operation.WaitAsync(cancellationToken);
-        try { await action(cancellationToken); }
+        await _operation.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { await action(cancellationToken).ConfigureAwait(false); }
         finally { _operation.Release(); }
     }
 
     /// <summary>Serializes an operation returning a value with master-key rotation.</summary>
     public async Task<T> RunExclusiveAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
     {
-        await _operation.WaitAsync(cancellationToken);
-        try { return await action(cancellationToken); }
+        await _operation.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await action(cancellationToken).ConfigureAwait(false); }
         finally { _operation.Release(); }
     }
 

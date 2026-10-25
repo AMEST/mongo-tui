@@ -369,4 +369,36 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>The password of the current connection user was changed. Reconnect to use the new password.</value></data>
   <data name="Users.Access.Level" xml:space="preserve"><value>Access</value></data>
   <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} roles</value></data>
+  <data name="Query.Settings.Title" xml:space="preserve"><value>Queries</value></data>
+  <data name="Query.Timeout" xml:space="preserve"><value>Query timeout (seconds)</value></data>
+  <data name="Query.TimeoutHint" xml:space="preserve"><value>0 disables the timeout. Shared by TUI and web.</value></data>
+  <data name="Query.TimeoutInvalid" xml:space="preserve"><value>Enter a whole number from 0 to {0}.</value></data>
+  <data name="Query.TimedOut" xml:space="preserve"><value>Query timed out after {0} seconds.</value></data>
+  <data name="Query.Settings.Saved" xml:space="preserve"><value>Query settings saved</value></data>
+  <data name="Query.Settings.SaveError" xml:space="preserve"><value>Could not save query settings.</value></data>
+  <data name="Menu.Settings.Queries" xml:space="preserve"><value>Queries…</value></data>
+  <data name="Connection.Remove" xml:space="preserve"><value>Remove saved connection…</value></data>
+  <data name="Create.DatabaseName" xml:space="preserve"><value>Database name</value></data>
+  <data name="Create.FirstCollection" xml:space="preserve"><value>First collection</value></data>
+  <data name="Create.DatabaseHint" xml:space="preserve"><value>The database will be created with its first empty collection.</value></data>
+  <data name="Tree.ConnectionActions" xml:space="preserve"><value>Actions for {0}</value></data>
+  <data name="Cli.Usage" xml:space="preserve"><value>Usage: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Connection.Connect" xml:space="preserve"><value>Connect</value></data>
+  <data name="Connection.DeleteHint" xml:space="preserve"><value>Remove “{0}” from saved connections? Its open query tabs will close. The MongoDB database is not deleted.</value></data>
+  <data name="Connection.DeleteTitle" xml:space="preserve"><value>Remove connection?</value></data>
+  <data name="Connection.Edit" xml:space="preserve"><value>Edit connection</value></data>
+  <data name="Connection.Empty" xml:space="preserve"><value>No saved connections</value></data>
+  <data name="Tree.Explorer" xml:space="preserve"><value>Explorer</value></data>
+  <data name="Documents.UnsafeJson" xml:space="preserve"><value>Editing is unavailable because converting this document to JSON would change its BSON data. Use a targeted update or BSON tools.</value></data>
+  <data name="Documents.Working" xml:space="preserve"><value>Working…</value></data>
+  <data name="Documents.OperationFailed" xml:space="preserve"><value>The operation failed. Reload the document and try again.</value></data>
+  <data name="Logging.Title" xml:space="preserve"><value>Logging</value></data>
+  <data name="Logging.Level" xml:space="preserve"><value>Logging level</value></data>
+  <data name="Logging.Hint" xml:space="preserve"><value>Shared by TUI and Web. Changes take effect without restarting.</value></data>
+  <data name="Logging.Override" xml:space="preserve"><value>The active level {0} was set at startup. Your saved choice will apply after starting without the override.</value></data>
+  <data name="Logging.Saved" xml:space="preserve"><value>Logging level saved</value></data>
+  <data name="Logging.SaveError" xml:space="preserve"><value>Could not save the logging level. The active level has not changed.</value></data>
+  <data name="Logging.LoadError" xml:space="preserve"><value>Could not load logging settings.</value></data>
+  <data name="Users.AdministratorName" xml:space="preserve"><value>Administrator</value></data>
 </root>

@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
@@ -40,17 +41,17 @@ public sealed class ImportWizardDialog : ThemedDialog
         _target = target;
         _collection = collection;
 
-        Title = localizer.Get("Import.Title");
+        Title = localizer.Get(LocalizationKeys.Import.Title);
         Width = 72;
         Height = 18;
 
-        Add(FieldLabel("Import.Field.Input", 1));
+        Add(FieldLabel(LocalizationKeys.Import.FieldInput, 1));
         _inputField.X = 22;
         _inputField.Y = 1;
         _inputField.Width = Dim.Fill();
         Add(_inputField);
 
-        Add(FieldLabel("Transfer.Field.Format", 3));
+        Add(FieldLabel(LocalizationKeys.Transfer.FieldFormat, 3));
         _formatList.X = 22;
         _formatList.Y = 3;
         _formatList.Width = Dim.Fill();
@@ -59,7 +60,7 @@ public sealed class ImportWizardDialog : ThemedDialog
         _formatList.SelectedItem = Array.IndexOf(_formats, ImportFormat.Json.ToString());
         Add(_formatList);
 
-        Add(FieldLabel("Transfer.Field.Mode", 7));
+        Add(FieldLabel(LocalizationKeys.Transfer.FieldMode, 7));
         _modeList.X = 22;
         _modeList.Y = 7;
         _modeList.Width = Dim.Fill();
@@ -68,7 +69,7 @@ public sealed class ImportWizardDialog : ThemedDialog
         _modeList.SelectedItem = Array.IndexOf(_modes, ImportMode.Insert.ToString());
         Add(_modeList);
 
-        Add(FieldLabel("Import.Field.Drop", 12));
+        Add(FieldLabel(LocalizationKeys.Import.FieldDrop, 12));
         _dropField.X = 22;
         _dropField.Y = 12;
         _dropField.Width = 6;
@@ -79,9 +80,9 @@ public sealed class ImportWizardDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var runButton = new Button { Text = localizer.Get("Transfer.Run"), IsDefault = true };
+        var runButton = new Button { Text = localizer.Get(LocalizationKeys.Transfer.Run), IsDefault = true };
         runButton.OnAcceptAsync(RunAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(runButton, cancelButton);
@@ -115,7 +116,7 @@ public sealed class ImportWizardDialog : ThemedDialog
         catch (DomainException exception)
         {
             _error.Text = exception is ProxyTransferNotSupportedException
-                ? _localizer.Get("Transfer.ProxyNotSupported")
+                ? _localizer.Get(LocalizationKeys.Transfer.ProxyNotSupported)
                 : exception.Message;
         }
     }

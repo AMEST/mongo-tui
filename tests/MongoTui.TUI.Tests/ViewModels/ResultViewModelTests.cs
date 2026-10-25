@@ -1,3 +1,4 @@
+using MongoTui.Application.Models;
 using AwesomeAssertions;
 using MongoDB.Bson;
 using MongoTui.Domain.Queries;
@@ -149,8 +150,8 @@ public sealed class ResultViewModelTests
 
         var lines = _sut.Render().Split('\n');
 
-        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 1")).Should().Be(0);
-        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 2")).Should().Be(1);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"name\" : \"a\"")).Should().Be(0);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"name\" : \"b\"")).Should().Be(1);
     }
 
     [Fact]
@@ -161,8 +162,8 @@ public sealed class ResultViewModelTests
 
         var lines = _sut.Render().Split('\n');
 
-        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 1")).Should().Be(0);
-        _sut.DocumentIndexAtRow(RowContaining(lines, "\"_id\" : 2")).Should().Be(1);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"name\" : \"a\"")).Should().Be(0);
+        _sut.DocumentIndexAtRow(RowContaining(lines, "\"name\" : \"b\"")).Should().Be(1);
     }
 
     [Fact]

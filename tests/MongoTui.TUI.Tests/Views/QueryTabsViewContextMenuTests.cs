@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Localization;
@@ -24,7 +25,7 @@ public sealed class QueryTabsViewContextMenuTests
         var subViews = tabs.ActiveEditorView!.ContextMenu!.Root!.SubViews.ToList();
 
         subViews[^2].Should().BeOfType<Line>();
-        subViews[^1].Should().BeOfType<MenuItem>().Which.Title.Should().Be("Menu.Query.Run");
+        subViews[^1].Should().BeOfType<MenuItem>().Which.Title.Should().Be(LocalizationKeys.Menu.QueryRun);
     }
 
     [Fact]
@@ -38,11 +39,11 @@ public sealed class QueryTabsViewContextMenuTests
             .ToList();
 
         menuItems.TakeLast(5).Should().Equal(
-            "Result.CopyAll",
-            "Result.CopyDocument",
-            "Result.Export",
-            "Menu.Document.Edit",
-            "Menu.Document.Delete");
+            LocalizationKeys.Result.CopyAll,
+            LocalizationKeys.Result.CopyDocument,
+            LocalizationKeys.Result.Export,
+            LocalizationKeys.Menu.DocumentEdit,
+            LocalizationKeys.Menu.DocumentDelete);
 
         tabs.ActiveResultView.ContextMenu!.Root!.SubViews
             .Should().ContainSingle(item => item is Line);
@@ -52,7 +53,7 @@ public sealed class QueryTabsViewContextMenuTests
     {
         var localizer = A.Fake<ILocalizer>();
         A.CallTo(() => localizer.Get(A<string>._)).ReturnsLazily((string key) => key);
-        var queryService = new QueryService(
+        var queryService = QueryTestServices.Create(
             A.Fake<IMongoShellSessionFactory>(),
             A.Fake<IQueryHistoryRepository>());
 

@@ -33,7 +33,8 @@ public sealed class QueryLoggingTests
             .Throws(new QueryExecutionException(sensitive));
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(session);
-        var tab = new QueryTabViewModel(new QueryService(factory, A.Fake<IQueryHistoryRepository>()),
+        var tab = new QueryTabViewModel(QueryTestServices.Create(factory, A.Fake<IQueryHistoryRepository>()),
+            new MongoTui.TUI.Localization.ResxLocalizer(),
             ConnectionId.New(), new MongoConnectionTarget($"mongodb://user:{sensitive}@localhost"), "Query",
             "app", "users", $"db.users.insertOne({{password:'{sensitive}'}})");
         try

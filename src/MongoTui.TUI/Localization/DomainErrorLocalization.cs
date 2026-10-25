@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Exceptions;
 
@@ -9,45 +10,45 @@ internal static class DomainErrorLocalization
     {
         if (exception is SecretsLockedException)
         {
-            return localizer.Get("Error.Locked");
+            return localizer.Get(LocalizationKeys.Error.Locked);
         }
 
         var message = exception.Message;
         if (message == "Insufficient privileges to manage users.")
         {
-            return localizer.Get("Users.Error.Unauthorized");
+            return localizer.Get(LocalizationKeys.Users.ErrorUnauthorized);
         }
         if (message == "User already exists.")
         {
-            return localizer.Get("Users.Error.AlreadyExists");
+            return localizer.Get(LocalizationKeys.Users.ErrorAlreadyExists);
         }
         if (message == "User not found.")
         {
-            return localizer.Get("Users.Error.NotFound");
+            return localizer.Get(LocalizationKeys.Users.ErrorNotFound);
         }
         if (message == "Failed to grant role.")
         {
-            return localizer.Get("Users.Error.RoleGrantFailed");
+            return localizer.Get(LocalizationKeys.Users.ErrorRoleGrantFailed);
         }
         if (message == "Cannot delete the user of the current connection.")
         {
-            return localizer.Get("Users.DeleteCurrentForbidden");
+            return localizer.Get(LocalizationKeys.Users.DeleteCurrentForbidden);
         }
         if (message == "MongoDB command failed.")
         {
-            return localizer.Get("Users.Error.CommandFailed");
+            return localizer.Get(LocalizationKeys.Users.ErrorCommandFailed);
         }
         if (message == "Username must not be empty.")
         {
-            return localizer.Get("Users.UsernameRequired");
+            return localizer.Get(LocalizationKeys.Users.UsernameRequired);
         }
         if (message == "Password must not be empty.")
         {
-            return localizer.Get("Users.PasswordRequired");
+            return localizer.Get(LocalizationKeys.Users.PasswordRequired);
         }
         if (message == "At least one database access or cluster role is required.")
         {
-            return localizer.Get("Users.Access.Required");
+            return localizer.Get(LocalizationKeys.Users.AccessRequired);
         }
 
         return exception.Message;

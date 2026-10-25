@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using System.Text;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -31,7 +33,7 @@ public sealed class SecurityModeServiceTests
         _secrets = new SecretKeyService(_crypto);
         var gateway = A.Fake<IMongoGateway>();
         var connections = new ConnectionService(_repository, _secrets, gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         var ai = new AiSettingsService(_settings, _secrets);
 
         A.CallTo(() => _settings.GetAsync(A<string>._, A<CancellationToken>._))

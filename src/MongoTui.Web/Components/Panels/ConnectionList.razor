@@ -1,0 +1,44 @@
+@implements IDisposable
+@inject ConnectionCatalog Catalog
+@inject QueryWorkspace Workspace
+@inject WebText L
+<main class="page-content">
+    <header class="page-heading"><div><h1>@L[LocalizationKeys.Nav.Connections]</h1></div><button class="button primary" @onclick="() => OnEdit.InvokeAsync(null)"><Icon Name="@IconNames.Plus" />@L[LocalizationKeys.Connection.Add]</button></header>
+    <FormFeedback Class="inline-feedback" Error="@_error" />
+    <section class="panel connection-list">
+        <div class="panel-heading"><strong>@L[LocalizationKeys.Connection.Saved]</strong><span class="badge">@Catalog.Profiles.Count</span></div>
+        @foreach (var profile in Catalog.Profiles)
+        {
+            var active = Catalog.Active.Any(item => item.Profile.Id == profile.Id);
+            <div @key="profile.Id" class="connection-card"><span class="connection-avatar"><Icon Name="@IconNames.Database" Size="24" /></span><div class="connection-description"><h3>@profile.Name @if (active) { <span class="badge success">@L[LocalizationKeys.Connection.Connected]</span> }</h3><code>@ConnectionUriParser.Parse(profile.Uri).Uri</code><div class="connection-meta"><span>@(profile.Ssh.Enabled ? "SSH" : L[LocalizationKeys.Connection.Direct])</span><span>@(profile.Uri.StartsWith("mongodb+srv", StringComparison.OrdinalIgnoreCase) ? "SRV" : "MongoDB")</span></div></div><div class="row-actions"><button class="icon-button" disabled="@_busy" data-pending="@(_busy ? "true" : "false")" title="@L[LocalizationKeys.Common.Edit]" @onclick="() => OnEdit.InvokeAsync(profile)"><Icon Name="@IconNames.Edit" /></button><button class="icon-button" disabled="@_busy" data-pending="@(_busy ? "true" : "false")" title="@L[LocalizationKeys.Common.Delete]" @onclick="() => _deleting = profile"><Icon Name="@IconNames.Trash" /></button><BusyButton Class="button secondary" Busy="@(_busy && _pending == profile.Id)" Pending="@(_busy && _pending != profile.Id)" Icon="@(active ? IconNames.Close : IconNames.Arrow)" IconAfter="true" OnClick="() => ConnectAsync(profile, active)">@L[active ? LocalizationKeys.Connection.Disconnect : LocalizationKeys.Connection.Connect]</BusyButton></div></div>
+        }
+        @if (Catalog.Profiles.Count == 0) { <div class="empty-section"><Icon Name="@IconNames.Plug" Size="32" /><h3>@L[LocalizationKeys.Connection.Empty]</h3><p>@L[LocalizationKeys.Connection.EmptyHint]</p></div> }
+    </section>
+</main>
+@if (_deleting is not null)
+{
+    <DeleteConnectionDialog Profile="_deleting" OnClose="() => _deleting = null" />
+}
+@code {
+    [Parameter] public EventCallback<ConnectionProfile?> OnEdit { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnConnect { get; set; }
+    private ConnectionProfile? _deleting;
+    private string? _error;
+    private bool _busy;
+    private MongoTui.Domain.Primitives.ConnectionId? _pending;
+    protected override async Task OnInitializedAsync()
+    {
+        Catalog.Changed += RefreshState;
+        await Catalog.RefreshAsync(CancellationToken.None);
+    }
+    private void RefreshState() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Catalog.Changed -= RefreshState;
+    private async Task ConnectAsync(ConnectionProfile profile, bool active)
+    {
+        if (_busy) return;
+        _busy = true; _pending = profile.Id; _error = null;
+        try { if (active) await Workspace.CloseConnectionAsync(profile.Id); else await OnConnect.InvokeAsync(profile); }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _busy = false; _pending = null; }
+    }
+}

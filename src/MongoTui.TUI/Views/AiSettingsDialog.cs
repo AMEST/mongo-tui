@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
 using Terminal.Gui.App;
@@ -24,23 +25,23 @@ public sealed class AiSettingsDialog : ThemedDialog
         _application = application;
         _localizer = localizer;
 
-        Title = localizer.Get("Ai.Settings.Title");
+        Title = localizer.Get(LocalizationKeys.Ai.SettingsTitle);
         Width = 72;
         Height = 15;
 
-        Add(new Label { Text = localizer.Get("Ai.Settings.Url"), X = 1, Y = 1 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Ai.SettingsUrl), X = 1, Y = 1 });
         _urlField.X = 20;
         _urlField.Y = 1;
         _urlField.Width = Dim.Fill();
         Add(_urlField);
 
-        Add(new Label { Text = localizer.Get("Ai.Settings.Model"), X = 1, Y = 3 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Ai.SettingsModel), X = 1, Y = 3 });
         _modelField.X = 20;
         _modelField.Y = 3;
         _modelField.Width = Dim.Fill();
         Add(_modelField);
 
-        Add(new Label { Text = localizer.Get("Ai.Settings.ApiKey"), X = 1, Y = 5 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Ai.SettingsApiKey), X = 1, Y = 5 });
         _apiKeyField.X = 20;
         _apiKeyField.Y = 5;
         _apiKeyField.Width = Dim.Fill();
@@ -51,9 +52,9 @@ public sealed class AiSettingsDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var saveButton = new Button { Text = localizer.Get("Connections.Save"), IsDefault = true };
+        var saveButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Save), IsDefault = true };
         saveButton.OnAcceptAsync(SaveAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(saveButton, cancelButton);

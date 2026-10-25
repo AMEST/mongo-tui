@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -24,7 +25,7 @@ public sealed class ErrorDialog : ThemedDialog
         text.Text = message;
         Add(text);
 
-        var okButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var okButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         okButton.OnAccept(() => application.RequestStop(this));
         this.AddButtons(okButton);
     }

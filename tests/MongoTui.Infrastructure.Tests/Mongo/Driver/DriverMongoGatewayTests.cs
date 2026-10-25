@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
@@ -10,7 +11,7 @@ public sealed class DriverMongoGatewayTests : IDisposable
 {
     private readonly MongoConnectionTarget _target = new(
         $"mongodb://127.0.0.1:1/?appName=cleanup-{Guid.NewGuid():N}&serverSelectionTimeoutMS=50");
-    private readonly DriverMongoGateway _gateway = new(new MongoDatabaseDiscovery());
+    private readonly DriverMongoGateway _gateway = new(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
     private readonly MongoClient _observer;
     private readonly ICluster _cluster;
 

@@ -125,6 +125,9 @@ AutoTest.Net/
 # Web workbench (sass)
 .sass-cache/
 
+# Playwright CLI artifacts
+.playwright-cli/
+
 # Installshield output folder
 [Ee]xpress/
 

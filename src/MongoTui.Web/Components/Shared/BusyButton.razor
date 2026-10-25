@@ -1,0 +1,27 @@
+<button type="@Type" class="@Class" title="@Title" aria-label="@Label" aria-busy="@(Busy ? "true" : "false")"
+        aria-disabled="@(Busy || Pending || Disabled ? "true" : "false")" data-pending="@((Busy || Pending) && !Disabled ? "true" : "false")"
+        disabled="@Disabled" @onclick="HandleClickAsync" @onclick:preventDefault="@(Busy || Pending)">
+    @if (!IconAfter) { <BusyIcon Name="@Icon" Size="IconSize" Busy="Busy" /> }
+    @if (ReserveText is not null)
+    {
+        <span class="button-label"><span class="button-label-reserve" aria-hidden="true">@ReserveText</span><span>@ChildContent</span></span>
+    }
+    else { @ChildContent }
+    @if (IconAfter) { <BusyIcon Name="@Icon" Size="IconSize" Busy="Busy" /> }
+</button>
+@code {
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool Pending { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public string Class { get; set; } = "button primary";
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public int IconSize { get; set; } = 16;
+    [Parameter] public bool IconAfter { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? ReserveText { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private Task HandleClickAsync() => Busy || Pending || Disabled ? Task.CompletedTask : OnClick.InvokeAsync();
+}

@@ -1,0 +1,54 @@
+@implements IDisposable
+@inject ConnectionCatalog Catalog
+@inject WebText L
+<aside class="navigator">
+    <div class="navigator-heading"><span class="eyebrow">@L[LocalizationKeys.Tree.Explorer]</span><BusyButton Class="icon-button small" Title="@L[LocalizationKeys.Common.Refresh]" Label="@L[LocalizationKeys.Common.Refresh]" Busy="_busy" Icon="@IconNames.Refresh" IconSize="15" OnClick="RefreshAsync" /></div>
+    <div class="search-field"><Icon Name="@IconNames.Search" Size="16" /><input aria-label="@L[LocalizationKeys.Tree.Search]" placeholder="@L[LocalizationKeys.Tree.Search]" @bind="_search" @bind:event="oninput" /></div>
+    <div class="tree-scroll">
+        @foreach (var profile in Catalog.ExplorerProfiles)
+        {
+            <ConnectionTreeNode @key="profile.Id" Profile="profile" Search="@_search" OnConnect="OnConnect" OnEdit="OnEdit" OnDelete="OnDelete" OnCreateDatabase="OnCreateDatabase" OnOpen="OnOpen" OnNewQuery="OnNewQuery" OnCreateCollection="OnCreate" OnManageUsers="OnManageUsers" />
+        }
+        @if (!Catalog.ExplorerProfiles.Any())
+        {
+            <div class="tree-placeholder"><Icon Name="@IconNames.Plug" Size="25" /><p>@L[LocalizationKeys.Connection.Empty]</p><button class="text-button" @onclick="OnAdd">@L[LocalizationKeys.Connection.Add]<Icon Name="@IconNames.Plus" Size="14" /></button></div>
+        }
+    </div>
+    @if (_error is not null) { <p class="error-message tree-error" role="alert">@_error</p> }
+    <button class="navigator-footer" @onclick="OnManage"><Icon Name="@IconNames.Plug" Size="16" />@L[LocalizationKeys.Connection.Manage]<Icon Name="@IconNames.Arrow" Size="14" /></button>
+</aside>
+@code {
+    [Parameter] public EventCallback<CollectionSelection> OnOpen { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnNewQuery { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnCreate { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnConnect { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnEdit { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnDelete { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnCreateDatabase { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnManageUsers { get; set; }
+    [Parameter] public EventCallback OnManage { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+    private string _search = string.Empty;
+    private string? _error;
+    private bool _busy;
+    protected override async Task OnInitializedAsync()
+    {
+        Catalog.Changed += RefreshState;
+        await Catalog.RefreshAsync(CancellationToken.None);
+    }
+    private void RefreshState() => _ = InvokeAsync(StateHasChanged);
+    public void Dispose() => Catalog.Changed -= RefreshState;
+    private async Task RefreshAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Catalog.RefreshAsync(CancellationToken.None);
+            foreach (var connection in Catalog.Active.ToArray()) await Catalog.RefreshDatabasesAsync(connection, CancellationToken.None);
+            _error = null;
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _busy = false; }
+    }
+}

@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
@@ -144,7 +145,7 @@ public sealed class ConnectionFormViewModel : ObservableObject
 
         try
         {
-            var profile = BuildProfile(_localizer.Get("Connections.Test"));
+            var profile = BuildProfile(_localizer.Get(LocalizationKeys.Connections.Test));
             await _connections.TestConnectionAsync(profile, Password, cancellationToken);
 
             return null;

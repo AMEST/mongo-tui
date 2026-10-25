@@ -1,0 +1,98 @@
+@implements IAsyncDisposable
+@inject ConnectionEditor Editor
+@inject ConnectionCatalog Catalog
+@inject QueryWorkspace Workspace
+@inject WebText L
+<Modal Title="@L[Profile is null ? LocalizationKeys.Connection.Add : LocalizationKeys.Connection.Edit]" OnClose="CloseAsync" Class="connection-form">
+    <form class="modal-body" @onsubmit="SaveAsync" @onsubmit:preventDefault="true" @oninput="ClearTestResult">
+        <label for="connection-name">@L[LocalizationKeys.Connection.Name]</label><input id="connection-name" @bind="_draft.Name" placeholder="@L[LocalizationKeys.Connection.NamePlaceholder]" disabled="@_busy" required autofocus />
+        <label for="connection-uri">@L[LocalizationKeys.Connection.Uri]</label><textarea id="connection-uri" class="mono" rows="3" @bind="_draft.Uri" spellcheck="false" disabled="@_busy" required></textarea><p class="field-hint">@L[LocalizationKeys.Connection.UriHint]</p>
+        @if (Profile?.Auth.Username is not null) { <label for="connection-password">@L[LocalizationKeys.Connection.Password] <span class="muted">(@Profile.Auth.Username)</span></label><input id="connection-password" type="password" @bind="_draft.Password" autocomplete="new-password" placeholder="@L[LocalizationKeys.Connection.KeepPassword]" disabled="@_busy" /> }
+        <details class="form-details" open="@_sshEnabled"><summary>@L[LocalizationKeys.Ssh.Settings]<span class="muted">@L[LocalizationKeys.Common.Optional]</span></summary><div class="details-content">
+            <label class="check-label"><input type="checkbox" @bind="_sshEnabled" disabled="@_busy" />@L[LocalizationKeys.Ssh.Enable]</label>
+            @if (_sshEnabled)
+            {
+                <div class="form-row"><div><label for="ssh-host">@L[LocalizationKeys.Ssh.Host]</label><input id="ssh-host" @bind="_sshHost" disabled="@_busy" required /></div><div class="short-field"><label for="ssh-port">@L[LocalizationKeys.Ssh.Port]</label><input id="ssh-port" type="number" min="1" max="65535" @bind="_sshPort" disabled="@_busy" /></div></div>
+                <label for="ssh-user">@L[LocalizationKeys.Ssh.User]</label><input id="ssh-user" @bind="_sshUser" disabled="@_busy" />
+                <label for="ssh-key">@L[LocalizationKeys.Ssh.Key]</label><input id="ssh-key" @bind="_sshKey" placeholder="~/.ssh/id_ed25519" disabled="@_busy" /><p class="field-hint">@L[LocalizationKeys.Ssh.KeyHint]</p>
+            }
+        </div></details>
+        <FormFeedback Error="@_error" Success="@(_testSucceeded ? L[LocalizationKeys.Connections.TestOk] : null)" />
+        <footer class="modal-actions">
+            <BusyButton Class="button secondary" Busy="_testing" Pending="@(_busy && !_testing)" Icon="@IconNames.Plug" OnClick="TestAsync">@L[LocalizationKeys.Connections.Test]</BusyButton>
+            <span class="spacer"></span>
+            <button type="button" class="button secondary" @onclick="CloseAsync">@L[LocalizationKeys.Common.Cancel]</button>
+            <BusyButton Type="submit" Busy="@(_busy && !_testing)" Pending="_testing" Icon="@IconNames.Check" IconAfter="true">@L[LocalizationKeys.Connection.Save]</BusyButton>
+        </footer>
+    </form>
+</Modal>
+@code {
+    [Parameter] public ConnectionProfile? Profile { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private ConnectionDraft _draft = new();
+    private bool _sshEnabled, _busy, _testing, _testSucceeded, _disposed;
+    private int _sshPort = SshTunnelOptions.DefaultPort;
+    private string _sshHost = string.Empty, _sshUser = string.Empty, _sshKey = string.Empty;
+    private string? _error;
+    protected override void OnInitialized()
+    {
+        if (Profile is null) return;
+        _draft = new() { Id = Profile.Id, Name = Profile.Name, Uri = Profile.Uri, Ssh = Profile.Ssh };
+        _sshEnabled = Profile.Ssh.Enabled; _sshPort = Profile.Ssh.Port;
+        _sshHost = Profile.Ssh.Host ?? ""; _sshUser = Profile.Ssh.Username ?? ""; _sshKey = Profile.Ssh.PrivateKeyFile ?? "";
+    }
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        _busy = true; ClearTestResult();
+        try
+        {
+            UpdateDraft();
+            await Editor.SaveAsync(_draft, _lifetime.Token);
+            if (Profile is not null && Catalog.Active.Any(item => item.Profile.Id == Profile.Id))
+                await Workspace.CloseConnectionAsync(Profile.Id);
+            _draft.Password = string.Empty;
+            if (!_disposed) await OnSaved.InvokeAsync();
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception) { _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.Error.Save]; }
+        finally { _busy = false; }
+    }
+
+    private async Task TestAsync()
+    {
+        if (_busy) return;
+        ClearTestResult(); _busy = true; _testing = true;
+        try
+        {
+            UpdateDraft();
+            await Editor.TestAsync(_draft, _lifetime.Token);
+            if (!_disposed) _testSucceeded = true;
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+        catch (Exception exception)
+        {
+            if (!_disposed) _error = exception.Message;
+        }
+        finally { _busy = false; _testing = false; }
+    }
+
+    private void UpdateDraft() => _draft.Ssh = new()
+    {
+        Enabled = _sshEnabled, Host = _sshHost, Port = _sshPort, Username = _sshUser,
+        PrivateKeyFile = string.IsNullOrWhiteSpace(_sshKey) ? null : _sshKey, LocalPort = Profile?.Ssh.LocalPort ?? 0,
+    };
+
+    private void ClearTestResult() { _testSucceeded = false; _error = null; }
+
+    private async Task CloseAsync() { await _lifetime.CancelAsync(); await OnClose.InvokeAsync(); }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        await _lifetime.CancelAsync();
+        _lifetime.Dispose();
+    }
+}

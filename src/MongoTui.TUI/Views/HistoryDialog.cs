@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Abstractions.Persistence;
@@ -28,7 +29,7 @@ public sealed class HistoryDialog : ThemedDialog
         _application = application;
         _connectionId = connectionId;
 
-        Title = localizer.Get("History.Title");
+        Title = localizer.Get(LocalizationKeys.History.Title);
         Width = 76;
         Height = 22;
 
@@ -38,7 +39,7 @@ public sealed class HistoryDialog : ThemedDialog
         _list.Height = Dim.Fill();
         Add(_list);
 
-        var closeButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var closeButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         closeButton.OnAccept(() => _application.RequestStop(this));
         this.AddButtons(closeButton);
     }
@@ -48,7 +49,7 @@ public sealed class HistoryDialog : ThemedDialog
         var entries = await _history.GetRecentAsync(_connectionId, 100, CancellationToken.None);
 
         var items = entries.Count == 0
-            ? new List<string> { _localizer.Get("History.Empty") }
+            ? new List<string> { _localizer.Get(LocalizationKeys.History.Empty) }
             : entries
                 .Select(entry => $"{entry.RanAt:HH:mm:ss} {(entry.Success ? "+" : "!")} {entry.Script}")
                 .ToList();

@@ -1,0 +1,9 @@
+<span class="busy-icon" data-busy="@(Busy ? "true" : "false")" style="width:@(Size)px;height:@(Size)px" aria-hidden="true">
+    @if (Name is not null) { <Icon Name="@Name" Size="Size" /> }
+    <span class="spinner"></span>
+</span>
+@code {
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public int Size { get; set; } = 16;
+    [Parameter] public bool Busy { get; set; }
+}

@@ -1,0 +1,60 @@
+@inject WebText L
+<section class="user-permissions">
+    <h3>@L[LocalizationKeys.Users.FieldAccess]</h3>
+    @if (Draft.Databases.Count == 0) { <p class="field-hint">@L[LocalizationKeys.Users.AccessEmpty]</p> }
+    <div class="user-access-list">
+        @foreach (var access in Draft.Databases.ToArray())
+        {
+            <div class="user-access-row"><span class="mono">@access.Database.Value</span><span class="badge subtle">@L[AccessKey(access.Level)]</span><button type="button" class="icon-button" title="@L[LocalizationKeys.Users.AccessRemove]" @onclick="() => Draft.Databases.Remove(access)"><Icon Name="@IconNames.Close" Size="15" /></button></div>
+        }
+    </div>
+    <fieldset disabled="@Draft.IsAdministrator" class="user-access-add">
+        <div><label for="user-access-database">@L[LocalizationKeys.Users.AccessDatabase]</label><input id="user-access-database" list="user-known-databases" @bind="_database" @bind:event="oninput" /><datalist id="user-known-databases">@foreach (var database in KnownDatabases.Distinct().Order()) { <option value="@database"></option> }</datalist></div>
+        <div><label for="user-access-level">@L[LocalizationKeys.Users.AccessLevel]</label><select id="user-access-level" @bind="_level">@foreach (var level in Enum.GetValues<DatabaseAccessLevel>()) { <option value="@level">@L[AccessKey(level)]</option> }</select></div>
+        <button type="button" class="button secondary compact" @onclick="AddAccess">@L[LocalizationKeys.Users.AccessAdd]</button>
+    </fieldset>
+    <FormFeedback Class="inline-feedback" Error="@_error" />
+    <h3>@L[LocalizationKeys.Users.ClusterRoles]</h3>
+    <div class="user-cluster-roles">
+        @foreach (var role in Enum.GetValues<ClusterRole>())
+        {
+            <label class="check-label"><input type="checkbox" checked="@Draft.ClusterRoles.Contains(role)" disabled="@(Draft.IsAdministrator && role != ClusterRole.Administrator)" @onchange="args => Draft.SetClusterRole(role, args.Value is true)" />@L[ClusterKey(role)]</label>
+        }
+    </div>
+    @if (Draft.IsAdministrator) { <p class="field-hint users-notice">@L[LocalizationKeys.Users.ClusterRolesAdministratorWarning]</p> }
+    else if (Draft.ClusterRoles.Contains(ClusterRole.ClusterAdmin)) { <p class="field-hint users-notice">@L[LocalizationKeys.Users.ClusterRolesClusterAdminWarning]</p> }
+    @if (Draft.AdditionalRoles.Any())
+    {
+        <h3>@L[LocalizationKeys.Users.FieldAdditionalRoles]</h3>
+        <div class="user-roles">@foreach (var role in Draft.AdditionalRoles) { <span class="badge subtle mono">@role.Name@@@role.Database</span> }</div>
+        <p class="field-hint">@L[LocalizationKeys.Users.AdditionalRolesHint]</p>
+    }
+</section>
+@code {
+    [Parameter, EditorRequired] public UserDraft Draft { get; set; } = null!;
+    [Parameter] public IReadOnlyList<string> KnownDatabases { get; set; } = [];
+    private string _database = string.Empty;
+    private DatabaseAccessLevel _level;
+    private string? _error;
+    private void AddAccess()
+    {
+        _error = null;
+        try { Draft.SetDatabaseAccess(_database, _level); _database = string.Empty; }
+        catch (MongoTui.Domain.Exceptions.DomainException) { _error = L[LocalizationKeys.Users.AccessDatabaseInvalid]; }
+    }
+    private static string AccessKey(DatabaseAccessLevel level) => level switch
+    {
+        DatabaseAccessLevel.Read => LocalizationKeys.Users.AccessRead,
+        DatabaseAccessLevel.ReadWrite => LocalizationKeys.Users.AccessReadWrite,
+        _ => LocalizationKeys.Users.AccessDbOwner,
+    };
+    private static string ClusterKey(ClusterRole role) => role switch
+    {
+        ClusterRole.ReadAnyDatabase => LocalizationKeys.Users.ClusterRolesReadAnyDatabase,
+        ClusterRole.ReadWriteAnyDatabase => LocalizationKeys.Users.ClusterRolesReadWriteAnyDatabase,
+        ClusterRole.ClusterAdmin => LocalizationKeys.Users.ClusterRolesClusterAdmin,
+        ClusterRole.ClusterManager => LocalizationKeys.Users.ClusterRolesClusterManager,
+        ClusterRole.ClusterMonitor => LocalizationKeys.Users.ClusterRolesClusterMonitor,
+        _ => LocalizationKeys.Users.ClusterRolesAdministrator,
+    };
+}

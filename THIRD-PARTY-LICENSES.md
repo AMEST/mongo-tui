@@ -6,6 +6,17 @@ This inventory was checked on 2026-10-21 against `Directory.Packages.props`, the
 
 The common license texts below apply together with the corresponding attribution notices in the tables. Additional bundled components and upstream notices are listed after the tables.
 
+## Web interface additions (2026-10-23)
+
+The browser editor bundles CodeMirror 6 and its Lezer parsers, all under MIT licenses.
+Complete package notices are distributed in `wwwroot/_content/MongoTui.Web/editor-LICENSES.txt`
+and retained in [the source asset](src/MongoTui.Web/wwwroot/editor-LICENSES.txt).
+The pinned dependency graph and build tool versions are in
+[ClientAssets/package-lock.json](src/MongoTui.Web/ClientAssets/package-lock.json).
+The .NET host also includes ASP.NET Core and its Blazor browser assets (Microsoft, MIT),
+provided by the .NET shared framework and `Microsoft.AspNetCore.App.Internal.Assets`.
+The existing NuGet inventory below predates these web additions.
+
 ## Application dependencies
 
 Includes packages used to build the application, such as analyzers, as well as runtime libraries.

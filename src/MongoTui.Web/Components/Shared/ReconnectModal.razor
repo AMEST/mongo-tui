@@ -1,0 +1,19 @@
+@inject WebText L
+<dialog id="components-reconnect-modal" class="reconnect-modal components-reconnect-hide" role="alertdialog" aria-labelledby="reconnect-title" aria-describedby="reconnect-status" data-nosnippet>
+    <div class="reconnect-heading">
+        <span class="reconnect-icon"><Icon Name="@IconNames.Plug" Size="24" /></span>
+        <h2 id="reconnect-title">@Text(LocalizationKeys.Reconnect.Title)</h2>
+    </div>
+    <div id="reconnect-status" class="reconnect-status" role="status" aria-live="polite">
+        <p class="reconnect-trying"><span class="spinner" aria-hidden="true"></span>@Text(LocalizationKeys.Reconnect.Retrying)</p>
+        <p class="reconnect-failed">@Text(LocalizationKeys.Reconnect.Failed)</p>
+        <p class="reconnect-rejected">@Text(LocalizationKeys.Reconnect.Rejected)</p>
+    </div>
+    <button type="button" class="button primary reconnect-reload" data-reconnect-reload><Icon Name="@IconNames.Refresh" Size="15" />@Text(LocalizationKeys.Reconnect.Reload)</button>
+</dialog>
+@code {
+    // Both translations remain available when the server is offline; CSS follows the page language.
+    private RenderFragment Text(string key) => @<span class="reconnect-text">
+        <span lang="@UiLanguages.English">@L.Get(key, UiLanguages.English)</span><span lang="@UiLanguages.Russian">@L.Get(key, UiLanguages.Russian)</span>
+    </span>;
+}

@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
@@ -53,11 +54,11 @@ public sealed partial class UserFormDialog : ThemedDialog
         _existing = existingUser;
         _isEdit = existingUser is not null;
 
-        Title = _isEdit ? localizer.Get("Users.Form.EditTitle") : localizer.Get("Users.Form.CreateTitle");
+        Title = _isEdit ? localizer.Get(LocalizationKeys.Users.FormEditTitle) : localizer.Get(LocalizationKeys.Users.FormCreateTitle);
         Width = 72;
         Height = _isEdit ? 24 : 22;
 
-        Add(new Label { Text = localizer.Get("Users.Field.Username"), X = 1, Y = 0 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.FieldUsername), X = 1, Y = 0 });
         Add(_username);
         if (_isEdit)
         {
@@ -65,16 +66,16 @@ public sealed partial class UserFormDialog : ThemedDialog
             _username.Text = existingUser!.Username;
         }
 
-        Add(new Label { Text = localizer.Get("Users.Field.Password"), X = 1, Y = 2 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.FieldPassword), X = 1, Y = 2 });
         Add(_password);
-        _generate.Text = localizer.Get("Users.Field.Generate");
+        _generate.Text = localizer.Get(LocalizationKeys.Users.FieldGenerate);
         _generate.OnAccept(() => _password.Text = _users.GeneratePassword());
         Add(_generate);
         _password.Width = Dim.Fill(1, _generate);
 
         if (_isEdit)
         {
-            _hint.Text = localizer.Get("Users.Form.PasswordKeepHint");
+            _hint.Text = localizer.Get(LocalizationKeys.Users.FormPasswordKeepHint);
             _hint.SetScheme(new Scheme(GetScheme()) { Normal = GetScheme().ReadOnly });
             _hint.Visible = true;
             Add(_hint);
@@ -85,18 +86,18 @@ public sealed partial class UserFormDialog : ThemedDialog
         var accessButtonsY = accessListY + 2;
         var clusterLabelY = accessButtonsY + 1;
 
-        Add(new Label { Text = localizer.Get("Users.Field.Access"), X = 1, Y = accessLabelY });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.FieldAccess), X = 1, Y = accessLabelY });
         Add(_accessList);
-        _addAccess.Text = localizer.Get("Users.Access.Add");
+        _addAccess.Text = localizer.Get(LocalizationKeys.Users.AccessAdd);
         _addAccess.Y = accessButtonsY;
         _addAccess.OnAccept(() => AddAccess());
-        _removeAccess.Text = localizer.Get("Users.Access.Remove");
+        _removeAccess.Text = localizer.Get(LocalizationKeys.Users.AccessRemove);
         _removeAccess.X = Pos.Right(_addAccess) + 1;
         _removeAccess.Y = accessButtonsY;
         _removeAccess.OnAccept(() => RemoveAccess());
         Add(_addAccess, _removeAccess);
 
-        Add(new Label { Text = localizer.Get("Users.ClusterRoles"), X = 1, Y = clusterLabelY });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.ClusterRoles), X = 1, Y = clusterLabelY });
         _clusterRoles = new ClusterRoleCheckboxes(localizer, 1, clusterLabelY + 1);
         _clusterRoles.AdministratorChanged += OnAdministratorChanged;
         foreach (var check in _clusterRoles.Checks)
@@ -106,7 +107,7 @@ public sealed partial class UserFormDialog : ThemedDialog
 
         if (_isEdit)
         {
-            _additionalLabel.Text = localizer.Get("Users.Field.AdditionalRoles");
+            _additionalLabel.Text = localizer.Get(LocalizationKeys.Users.FieldAdditionalRoles);
             _additionalLabel.Visible = true;
             _additionalList.Visible = true;
             Add(_additionalLabel);
@@ -115,9 +116,9 @@ public sealed partial class UserFormDialog : ThemedDialog
 
         Add(_error);
 
-        _save.Text = localizer.Get(_isEdit ? "Users.Edit" : "Users.Create");
+        _save.Text = localizer.Get(_isEdit ? LocalizationKeys.Users.Edit : LocalizationKeys.Users.Create);
         _save.OnAcceptAsync(SaveAsync);
-        var cancel = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancel = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancel.OnAccept(() => _application.RequestStop(this));
         this.AddButtons(_save, cancel);
 
@@ -136,7 +137,7 @@ public sealed partial class UserFormDialog : ThemedDialog
 
     private void LoadExisting(MongoUser user)
     {
-        var isAdministrator = user.Roles.Any(role => role.Database == MongoRoleCatalog.AdminDatabase && role.Name == "root");
+        var isAdministrator = user.Roles.Any(role => role.Database == MongoRoleCatalog.AdminDatabase && role.Name == MongoRoleNames.Root);
         if (isAdministrator)
         {
             _clusterRoles.Set(ClusterRole.Administrator, true);
@@ -204,7 +205,7 @@ public sealed partial class UserFormDialog : ThemedDialog
 
     private void RefreshAccessList()
     {
-        var items = _accesses.Select(a => $"{a.Database.Value}: {a.Level switch { DatabaseAccessLevel.Read => "r", DatabaseAccessLevel.ReadWrite => "rw", _ => "dbOwner" }}").ToList();
+        var items = _accesses.Select(a => $"{a.Database.Value}: {a.Level switch { DatabaseAccessLevel.Read => "r", DatabaseAccessLevel.ReadWrite => "rw", _ => MongoRoleNames.DbOwner }}").ToList();
         _accessList.SetSource(new ObservableCollection<string>(items));
     }
 }

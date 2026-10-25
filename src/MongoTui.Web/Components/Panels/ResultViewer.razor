@@ -1,0 +1,35 @@
+@inject WebText L
+<div class="result-content" aria-busy="@(Tab.Busy ? "true" : "false")">
+    @if (Tab.Result is null)
+    {
+        <div class="result-empty"><Icon Name="@IconNames.Play" Size="30" /><h3>@L[LocalizationKeys.Query.Ready]</h3><p>@L[LocalizationKeys.Query.ReadyHint]</p></div>
+    }
+    else if (Tab.Result.Documents.Count == 0)
+    {
+        <div class="result-empty"><Icon Name="@IconNames.Search" Size="30" /><h3>@L[LocalizationKeys.Query.Empty]</h3><p>@L[LocalizationKeys.Query.EmptyHint]</p></div>
+    }
+    else if (Tab.View == ResultViewMode.Json) { <pre class="json-result mono">@BsonTextCodec.Format(Documents)</pre> }
+    else if (Tab.View == ResultViewMode.Tree)
+    {
+        <div class="tree-results">@foreach (var document in Documents) { <div class="document-tree"><BsonNode Name="@(document.TryGetValue(MongoSystemNames.IdField, out var id) ? BsonDisplay.Preview(id) : "{ }")" Value="document" Expanded="true" /><button class="text-button" @onclick="() => OnSelect.InvokeAsync(document)">@L[LocalizationKeys.Document.Open]<Icon Name="@IconNames.Arrow" Size="13" /></button></div> }</div>
+    }
+    else
+    {
+        <table class="data-table"><thead><tr><th class="row-number">#</th>@foreach (var field in Fields) { <th><span class="field-type">@FieldType(field)</span>@field</th> }</tr></thead><tbody>
+        @foreach (var (document, index) in Documents.Select((document, index) => (document, index)))
+        {
+            <tr tabindex="0" @onclick="() => OnSelect.InvokeAsync(document)" @onkeydown="args => OpenOnEnterAsync(args, document)"><td class="row-number">@(Tab.Page * QueryWorkspace.PageSize + index + 1)</td>@foreach (var field in Fields) { <td>@if (document.TryGetValue(field, out var value)) { <span class="bson-@BsonDisplay.CssType(value)" title="@BsonDisplay.Preview(value)">@BsonDisplay.Preview(value)</span> } else { <span class="bson-missing">—</span> }</td> }</tr>
+        }
+        </tbody></table>
+    }
+</div>
+@code {
+    private const int MaximumTableColumns = 20;
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public EventCallback<BsonDocument> OnSelect { get; set; }
+    private IEnumerable<BsonDocument> Documents => Tab.Result?.Documents.Skip(Tab.Browse ? 0 : Tab.Page * QueryWorkspace.PageSize).Take(QueryWorkspace.PageSize) ?? [];
+    private IEnumerable<string> Fields => Documents.SelectMany(document => document.Names).Distinct().Take(MaximumTableColumns);
+    private string FieldType(string field) => Documents.FirstOrDefault(document => document.Contains(field))?[field].BsonType switch
+    { BsonType.String => "Aa", BsonType.ObjectId => "ID", BsonType.Int32 or BsonType.Int64 or BsonType.Double or BsonType.Decimal128 => "#", BsonType.Boolean => "◐", _ => "{ }" };
+    private Task OpenOnEnterAsync(KeyboardEventArgs args, BsonDocument document) => args.Key == "Enter" ? OnSelect.InvokeAsync(document) : Task.CompletedTask;
+}

@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text;
 
-namespace MongoTui.TUI.Editor;
+namespace MongoTui.Application.Queries;
 
 /// <summary>Reads the quoted names used by query completion without evaluating JavaScript.</summary>
-internal static class JavaScriptStringLiteral
+public static class JavaScriptStringLiteral
 {
     public static int FindEnd(string text, int start, char quote)
     {

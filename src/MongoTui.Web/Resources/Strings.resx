@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Cli.Usage" xml:space="preserve"><value>Usage: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="App.Navigation" xml:space="preserve"><value>Main navigation</value></data>
+  <data name="App.Theme" xml:space="preserve"><value>Theme</value></data>
+  <data name="App.Connections" xml:space="preserve"><value>{0} connected</value></data>
+  <data name="App.Tabs" xml:space="preserve"><value>{0} tabs</value></data>
+  <data name="Reconnect.Title" xml:space="preserve"><value>Connection lost</value></data>
+  <data name="Reconnect.Retrying" xml:space="preserve"><value>Reconnecting…</value></data>
+  <data name="Reconnect.Failed" xml:space="preserve"><value>The server is unavailable. Check that mongo-tui is running and reload the page.</value></data>
+  <data name="Reconnect.Rejected" xml:space="preserve"><value>The session has ended. Reload the page to continue.</value></data>
+  <data name="Reconnect.Reload" xml:space="preserve"><value>Reload page</value></data>
+  <data name="Nav.workspace" xml:space="preserve"><value>Workspace</value></data>
+  <data name="Nav.connections" xml:space="preserve"><value>Connections</value></data>
+  <data name="Nav.history" xml:space="preserve"><value>History</value></data>
+  <data name="Nav.settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Continue" xml:space="preserve"><value>Continue</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Common.Working" xml:space="preserve"><value>Working…</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Common.Saved" xml:space="preserve"><value>Changes saved</value></data>
+  <data name="Common.Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Common.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Common.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Common.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Previous</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Next</value></data>
+  <data name="Common.Optional" xml:space="preserve"><value>Optional</value></data>
+  <data name="Security.Setup" xml:space="preserve"><value>Security setup</value></data>
+  <data name="Security.Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Security.Intro" xml:space="preserve"><value>Choose how to protect saved passwords.</value></data>
+  <data name="Security.Mode" xml:space="preserve"><value>Protection method</value></data>
+  <data name="Security.Password" xml:space="preserve"><value>Master password</value></data>
+  <data name="Security.Keyring" xml:space="preserve"><value>System keychain</value></data>
+  <data name="Security.None" xml:space="preserve"><value>Local key file</value></data>
+  <data name="Security.Confirm" xml:space="preserve"><value>Confirm password</value></data>
+  <data name="Security.Continue" xml:space="preserve"><value>Open workspace</value></data>
+  <data name="Security.FileHint" xml:space="preserve"><value>The key is stored in a file accessible to your user account. Anyone who can read it can decrypt your saved secrets.</value></data>
+  <data name="Security.Invalid" xml:space="preserve"><value>The security configuration needs attention. Check the key source in the terminal app.</value></data>
+  <data name="Security.Error" xml:space="preserve"><value>Could not unlock or update the key. Check the password and access to your key source.</value></data>
+  <data name="Security.Mismatch" xml:space="preserve"><value>Enter a password and make sure both entries match.</value></data>
+  <data name="Security.Title" xml:space="preserve"><value>Security</value></data>
+  <data name="Security.NewPassword" xml:space="preserve"><value>New master password</value></data>
+  <data name="Connection.Add" xml:space="preserve"><value>Add connection</value></data>
+  <data name="Connection.Edit" xml:space="preserve"><value>Edit connection</value></data>
+  <data name="Connection.Manage" xml:space="preserve"><value>Manage connections</value></data>
+  <data name="Connection.Saved" xml:space="preserve"><value>Saved connections</value></data>
+  <data name="Connection.Connected" xml:space="preserve"><value>Connected</value></data>
+  <data name="Connection.Connect" xml:space="preserve"><value>Connect</value></data>
+  <data name="Connection.Disconnect" xml:space="preserve"><value>Disconnect</value></data>
+  <data name="Connection.Direct" xml:space="preserve"><value>Direct connection</value></data>
+  <data name="Connection.Empty" xml:space="preserve"><value>No saved connections</value></data>
+  <data name="Connection.EmptyHint" xml:space="preserve"><value>Add a connection using a MongoDB URI.</value></data>
+  <data name="Connection.StorageHint" xml:space="preserve"><value>Also applies to connection passwords and AI keys in the terminal app.</value></data>
+  <data name="Connection.DeleteTitle" xml:space="preserve"><value>Remove connection?</value></data>
+  <data name="Connection.DeleteHint" xml:space="preserve"><value>Remove “{0}” from saved connections? Its open query tabs will close. The MongoDB database is not deleted.</value></data>
+  <data name="Connection.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Connection.NamePlaceholder" xml:space="preserve"><value>Local development</value></data>
+  <data name="Connection.Uri" xml:space="preserve"><value>Connection URI</value></data>
+  <data name="Connection.UriHint" xml:space="preserve"><value>Use mongodb:// or mongodb+srv://. Authentication and TLS options can be included in the URI.</value></data>
+  <data name="Connection.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Connection.KeepPassword" xml:space="preserve"><value>Leave empty to keep the saved secret</value></data>
+  <data name="Connection.Save" xml:space="preserve"><value>Save connection</value></data>
+  <data name="Connections.Test" xml:space="preserve"><value>Test</value></data>
+  <data name="Connections.TestRunning" xml:space="preserve"><value>Testing connection…</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Connection successful</value></data>
+  <data name="Connections.TestError" xml:space="preserve"><value>Connection failed: {0}</value></data>
+  <data name="Ssh.Title" xml:space="preserve"><value>SSH authentication</value></data>
+  <data name="Ssh.Response" xml:space="preserve"><value>Password or verification code</value></data>
+  <data name="Ssh.Settings" xml:space="preserve"><value>SSH tunnel</value></data>
+  <data name="Ssh.Enable" xml:space="preserve"><value>Connect through SSH / SOCKS</value></data>
+  <data name="Ssh.Host" xml:space="preserve"><value>SSH host</value></data>
+  <data name="Ssh.Port" xml:space="preserve"><value>Port</value></data>
+  <data name="Ssh.User" xml:space="preserve"><value>SSH username</value></data>
+  <data name="Ssh.Key" xml:space="preserve"><value>Private key path</value></data>
+  <data name="Ssh.KeyHint" xml:space="preserve"><value>Leave empty to use ssh-agent or your SSH configuration. Authentication prompts appear here.</value></data>
+  <data name="Tree.Explorer" xml:space="preserve"><value>Explorer</value></data>
+  <data name="Tree.Search" xml:space="preserve"><value>Find a database or collection…</value></data>
+  <data name="Tree.NoConnection" xml:space="preserve"><value>No active connections</value></data>
+  <data name="Tree.NoCollections" xml:space="preserve"><value>No collections</value></data>
+  <data name="Workspace.SelectCollection" xml:space="preserve"><value>Select a collection</value></data>
+  <data name="Workspace.SelectHint" xml:space="preserve"><value>Open a collection in the sidebar or create a query for a database.</value></data>
+  <data name="Workspace.Connect" xml:space="preserve"><value>No active connections</value></data>
+  <data name="Workspace.ConnectHint" xml:space="preserve"><value>Connect to a saved profile or add a connection.</value></data>
+  <data name="Query.New" xml:space="preserve"><value>New query</value></data>
+  <data name="Query.Tabs" xml:space="preserve"><value>Query tabs</value></data>
+  <data name="Query.Editor" xml:space="preserve"><value>Query editor</value></data>
+  <data name="Query.Browse" xml:space="preserve"><value>Documents</value></data>
+  <data name="Query.Script" xml:space="preserve"><value>Query</value></data>
+  <data name="Query.Run" xml:space="preserve"><value>Run query</value></data>
+  <data name="Query.Apply" xml:space="preserve"><value>Apply filter</value></data>
+  <data name="Query.Stop" xml:space="preserve"><value>Stop</value></data>
+  <data name="Query.Filter" xml:space="preserve"><value>Filter</value></data>
+  <data name="Query.PageSize" xml:space="preserve"><value>50 documents / page</value></data>
+  <data name="Query.Results" xml:space="preserve"><value>Results</value></data>
+  <data name="Query.Page" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Query.Driver" xml:space="preserve"><value>Collection browser</value></data>
+  <data name="Query.Shell" xml:space="preserve"><value>mongosh</value></data>
+  <data name="Query.Cancelled" xml:space="preserve"><value>The operation was cancelled.</value></data>
+  <data name="Query.ExportResults" xml:space="preserve"><value>Download query results as JSON</value></data>
+  <data name="Query.Ready" xml:space="preserve"><value>Query not run</value></data>
+  <data name="Query.ReadyHint" xml:space="preserve"><value>Run the query to view results.</value></data>
+  <data name="Query.Empty" xml:space="preserve"><value>No documents found</value></data>
+  <data name="Query.EmptyHint" xml:space="preserve"><value>Change the filter or query.</value></data>
+  <data name="View.table" xml:space="preserve"><value>Table</value></data>
+  <data name="View.tree" xml:space="preserve"><value>Tree</value></data>
+  <data name="View.json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Document.Title" xml:space="preserve"><value>Document</value></data>
+  <data name="Document.Add" xml:space="preserve"><value>Add document</value></data>
+  <data name="Document.Open" xml:space="preserve"><value>Open document</value></data>
+  <data name="Document.Editable" xml:space="preserve"><value>Editable</value></data>
+  <data name="Document.ReadOnly" xml:space="preserve"><value>Read only</value></data>
+  <data name="Document.DeleteHint" xml:space="preserve"><value>Permanently delete this document from MongoDB?</value></data>
+  <data name="Document.ConfirmDelete" xml:space="preserve"><value>Confirm deletion</value></data>
+  <data name="Document.NotFound" xml:space="preserve"><value>The document no longer exists. Refresh the results.</value></data>
+  <data name="Collection.Create" xml:space="preserve"><value>Create collection</value></data>
+  <data name="Collection.Name" xml:space="preserve"><value>Collection name</value></data>
+  <data name="Collection.Details" xml:space="preserve"><value>Collection details</value></data>
+  <data name="Collection.Documents" xml:space="preserve"><value>Documents</value></data>
+  <data name="Collection.Indexes" xml:space="preserve"><value>Indexes</value></data>
+  <data name="Index.Create" xml:space="preserve"><value>Create index</value></data>
+  <data name="Index.Keys" xml:space="preserve"><value>Index keys (JSON)</value></data>
+  <data name="Index.Unique" xml:space="preserve"><value>Unique index</value></data>
+  <data name="Index.DeleteHint" xml:space="preserve"><value>Delete index “{0}”?</value></data>
+  <data name="History.Select" xml:space="preserve"><value>Select connection</value></data>
+  <data name="History.Recent" xml:space="preserve"><value>Recent queries</value></data>
+  <data name="History.Empty" xml:space="preserve"><value>No queries</value></data>
+  <data name="History.EmptyHint" xml:space="preserve"><value>Queries run in the editor appear here.</value></data>
+  <data name="Settings.Appearance" xml:space="preserve"><value>Appearance</value></data>
+  <data name="Settings.Language" xml:space="preserve"><value>Language</value></data>
+  <data name="Settings.LanguageHint" xml:space="preserve"><value>Shared with the terminal application.</value></data>
+  <data name="Settings.ThemeHint" xml:space="preserve"><value>Choose a theme or follow your system.</value></data>
+  <data name="Settings.Light" xml:space="preserve"><value>Light</value></data>
+  <data name="Settings.Dark" xml:space="preserve"><value>Dark</value></data>
+  <data name="Settings.Auto" xml:space="preserve"><value>System</value></data>
+  <data name="Settings.Change" xml:space="preserve"><value>Change</value></data>
+  <data name="Ai.Assistant" xml:space="preserve"><value>AI assistant</value></data>
+  <data name="Ai.Settings" xml:space="preserve"><value>AI assistant</value></data>
+  <data name="Ai.SettingsHint" xml:space="preserve"><value>OpenAI-compatible API.</value></data>
+  <data name="Ai.Url" xml:space="preserve"><value>API base URL</value></data>
+  <data name="Ai.Model" xml:space="preserve"><value>Model</value></data>
+  <data name="Ai.Key" xml:space="preserve"><value>API key</value></data>
+  <data name="Ai.Privacy" xml:space="preserve"><value>Your prompt and collection schema (field names and types) are sent to the configured AI endpoint. Document values are not included.</value></data>
+  <data name="Ai.Mode" xml:space="preserve"><value>Task</value></data>
+  <data name="Ai.Describe" xml:space="preserve"><value>Write a query from a description</value></data>
+  <data name="Ai.Translate" xml:space="preserve"><value>Translate a query to MongoDB</value></data>
+  <data name="Ai.Prompt" xml:space="preserve"><value>Query or description</value></data>
+  <data name="Ai.Placeholder" xml:space="preserve"><value>Find documents created in the last seven days…</value></data>
+  <data name="Ai.Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="Ai.Review" xml:space="preserve"><value>Opens in the editor without running.</value></data>
+  <data name="Ai.Use" xml:space="preserve"><value>Open in a query tab</value></data>
+  <data name="Transfer.Title" xml:space="preserve"><value>Import &amp; export</value></data>
+  <data name="Transfer.Import" xml:space="preserve"><value>Import</value></data>
+  <data name="Transfer.Export" xml:space="preserve"><value>Export</value></data>
+  <data name="Transfer.Download" xml:space="preserve"><value>Download JSON</value></data>
+  <data name="Transfer.ImportHint" xml:space="preserve"><value>Insert documents from a JSON array or JSON Lines file (up to 32 MB). Existing documents are not replaced. SSH / SOCKS transfers are not supported.</value></data>
+  <data name="Transfer.Array" xml:space="preserve"><value>File contains a JSON array</value></data>
+  <data name="Transfer.Limit" xml:space="preserve"><value>Maximum documents (1–10,000)</value></data>
+  <data name="Transfer.ExportHint" xml:space="preserve"><value>Downloads canonical Extended JSON Lines, up to 32 MB. BSON types are preserved. SSH / SOCKS transfers are not supported.</value></data>
+  <data name="Transfer.Imported" xml:space="preserve"><value>Import completed.</value></data>
+  <data name="Error.TabLimit" xml:space="preserve"><value>Close a query tab before opening another (maximum 12).</value></data>
+  <data name="Error.ScriptSize" xml:space="preserve"><value>The query is too large (maximum 256 KB).</value></data>
+  <data name="Error.Query" xml:space="preserve"><value>Could not execute the query. Check the connection and query syntax.</value></data>
+  <data name="Error.Connection" xml:space="preserve"><value>Could not connect or load databases. Check the address, credentials, and network access.</value></data>
+  <data name="Error.Save" xml:space="preserve"><value>Could not save changes. Check the input and connection permissions.</value></data>
+  <data name="Error.Load" xml:space="preserve"><value>Could not load the data. Try refreshing.</value></data>
+  <data name="Error.Url" xml:space="preserve"><value>Enter an HTTP or HTTPS URL.</value></data>
+  <data name="Error.Operation" xml:space="preserve"><value>The operation could not be completed. Check the connection and permissions.</value></data>
+  <data name="Error.Transfer" xml:space="preserve"><value>Transfer failed. Check the JSON format, file size and installed MongoDB Database Tools.</value></data>
+  <data name="Query.Settings.Title" xml:space="preserve"><value>Queries</value></data>
+  <data name="Query.Timeout" xml:space="preserve"><value>Query timeout (seconds)</value></data>
+  <data name="Query.TimeoutHint" xml:space="preserve"><value>0 disables the timeout. Shared by TUI and web.</value></data>
+  <data name="Query.TimeoutInvalid" xml:space="preserve"><value>Enter a whole number from 0 to {0}.</value></data>
+  <data name="Query.TimedOut" xml:space="preserve"><value>Query timed out after {0} seconds.</value></data>
+  <data name="Query.Settings.Saved" xml:space="preserve"><value>Query settings saved</value></data>
+  <data name="Query.Settings.SaveError" xml:space="preserve"><value>Could not save query settings.</value></data>
+  <data name="Nav.logs" xml:space="preserve"><value>Logs</value></data>
+  <data name="Logs.AutoRefresh" xml:space="preserve"><value>Auto-refresh</value></data>
+  <data name="Logs.Contents" xml:space="preserve"><value>Log contents</value></data>
+  <data name="Logs.Empty" xml:space="preserve"><value>No log entries yet</value></data>
+  <data name="Logs.File" xml:space="preserve"><value>Log file</value></data>
+  <data name="Logs.Latest" xml:space="preserve"><value>Latest file</value></data>
+  <data name="Tree.CreateDatabase" xml:space="preserve"><value>Create database...</value></data>
+  <data name="Tree.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Create.DatabaseTitle" xml:space="preserve"><value>Create database</value></data>
+  <data name="Create.DatabaseName" xml:space="preserve"><value>Database name</value></data>
+  <data name="Create.FirstCollection" xml:space="preserve"><value>First collection</value></data>
+  <data name="Create.DatabaseHint" xml:space="preserve"><value>The database will be created with its first empty collection.</value></data>
+  <data name="Connection.Remove" xml:space="preserve"><value>Remove saved connection…</value></data>
+  <data name="Tree.ConnectionActions" xml:space="preserve"><value>Actions for {0}</value></data>
+  <data name="Tree.ManageUsers" xml:space="preserve"><value>Manage users...</value></data>
+  <data name="Tree.ManageUsersAdmin" xml:space="preserve"><value>Manage users (admin)...</value></data>
+  <data name="Users.Title" xml:space="preserve"><value>Users — {0}</value></data>
+  <data name="Users.Empty" xml:space="preserve"><value>No users found.</value></data>
+  <data name="Users.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Users.Create" xml:space="preserve"><value>Create</value></data>
+  <data name="Users.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Users.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Users.DeleteConfirmTitle" xml:space="preserve"><value>Delete user</value></data>
+  <data name="Users.DeleteConfirmMessage" xml:space="preserve"><value>Delete user '{0}' from database '{1}'?</value></data>
+  <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Cannot delete the user of the current connection.</value></data>
+  <data name="Users.LoadFailed" xml:space="preserve"><value>Failed to load users.</value></data>
+  <data name="Users.SaveFailed" xml:space="preserve"><value>Failed to save user.</value></data>
+  <data name="Users.Saving" xml:space="preserve"><value>Saving user…</value></data>
+  <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Create user</value></data>
+  <data name="Users.Form.EditTitle" xml:space="preserve"><value>Edit user</value></data>
+  <data name="Users.Field.Username" xml:space="preserve"><value>Username</value></data>
+  <data name="Users.Field.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Users.Field.Generate" xml:space="preserve"><value>Generate</value></data>
+  <data name="Users.Form.PasswordKeepHint" xml:space="preserve"><value>Leave empty to keep the current password.</value></data>
+  <data name="Users.Field.Access" xml:space="preserve"><value>Database access</value></data>
+  <data name="Users.Field.AdditionalRoles" xml:space="preserve"><value>Additional roles</value></data>
+  <data name="Users.Access.Add" xml:space="preserve"><value>Add access...</value></data>
+  <data name="Users.Access.Remove" xml:space="preserve"><value>Remove</value></data>
+  <data name="Users.Access.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="Users.Access.Read" xml:space="preserve"><value>Read only (read)</value></data>
+  <data name="Users.Access.ReadWrite" xml:space="preserve"><value>Read and write (readWrite)</value></data>
+  <data name="Users.Access.DbOwner" xml:space="preserve"><value>Database owner (dbOwner)</value></data>
+  <data name="Users.Access.Required" xml:space="preserve"><value>At least one access or role is required.</value></data>
+  <data name="Users.Access.DatabaseInvalid" xml:space="preserve"><value>Database name is invalid.</value></data>
+  <data name="Users.ClusterRoles" xml:space="preserve"><value>Cluster roles</value></data>
+  <data name="Users.ClusterRoles.ReadAnyDatabase" xml:space="preserve"><value>readAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ReadWriteAnyDatabase" xml:space="preserve"><value>readWriteAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ClusterAdmin" xml:space="preserve"><value>clusterAdmin</value></data>
+  <data name="Users.ClusterRoles.ClusterManager" xml:space="preserve"><value>clusterManager</value></data>
+  <data name="Users.ClusterRoles.ClusterMonitor" xml:space="preserve"><value>clusterMonitor</value></data>
+  <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
+  <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator grants full access.</value></data>
+  <data name="Users.Created.Title" xml:space="preserve"><value>User created</value></data>
+  <data name="Users.PasswordChanged.Title" xml:space="preserve"><value>Password changed</value></data>
+  <data name="Users.Credentials.CopyPassword" xml:space="preserve"><value>Copy password</value></data>
+  <data name="Users.Credentials.PasswordCopied" xml:space="preserve"><value>Password copied.</value></data>
+  <data name="Users.Credentials.PasswordCopyFailed" xml:space="preserve"><value>Could not copy password.</value></data>
+  <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Password and connection string are shown once. Save them now.</value></data>
+  <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Copy connection string</value></data>
+  <data name="Users.Created.Copied" xml:space="preserve"><value>Connection string copied.</value></data>
+  <data name="Users.Created.SshWarning" xml:space="preserve"><value>Connection string is built from the saved profile URI and may not include SSH tunnel settings.</value></data>
+  <data name="Users.Error.Unauthorized" xml:space="preserve"><value>Insufficient privileges to manage users.</value></data>
+  <data name="Users.Error.AlreadyExists" xml:space="preserve"><value>User already exists.</value></data>
+  <data name="Users.Error.NotFound" xml:space="preserve"><value>User not found.</value></data>
+  <data name="Users.Error.RoleGrantFailed" xml:space="preserve"><value>Failed to grant role.</value></data>
+  <data name="Users.Error.CommandFailed" xml:space="preserve"><value>MongoDB command failed.</value></data>
+  <data name="Users.UsernameRequired" xml:space="preserve"><value>Username must not be empty.</value></data>
+  <data name="Users.PasswordRequired" xml:space="preserve"><value>Password must not be empty.</value></data>
+  <data name="Users.Created.CopyFailed" xml:space="preserve"><value>Could not copy connection string.</value></data>
+  <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>The password of the current connection user was changed. Reconnect to use the new password.</value></data>
+  <data name="Users.Access.Level" xml:space="preserve"><value>Access</value></data>
+  <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} roles</value></data>
+  <data name="Users.AuthDatabase" xml:space="preserve"><value>Authentication database</value></data>
+  <data name="Users.ScopeHint" xml:space="preserve"><value>Users authenticate in this database. Their roles can grant access to other databases.</value></data>
+  <data name="Users.CurrentUser" xml:space="preserve"><value>Current user</value></data>
+  <data name="Users.AdditionalRolesHint" xml:space="preserve"><value>These additional roles are preserved when you save.</value></data>
+  <data name="Users.Access.Empty" xml:space="preserve"><value>No database access selected.</value></data>
+  <data name="Users.Credentials.ConnectionString" xml:space="preserve"><value>Connection string</value></data>
+  <data name="Users.Error.Cancelled" xml:space="preserve"><value>Operation cancelled.</value></data>
+  <data name="Users.Error.ConnectionClosed" xml:space="preserve"><value>The connection was closed. Reconnect to manage users.</value></data>
+  <data name="Users.Error.Timeout" xml:space="preserve"><value>User management operation timed out. Refresh the list before retrying.</value></data>
+  <data name="Users.ClusterRoles.ClusterAdminWarning" xml:space="preserve"><value>Cluster administrator grants broad permissions to manage the cluster.</value></data>
+  <data name="Common.CopyFailed" xml:space="preserve"><value>Could not copy to clipboard.</value></data>
+  <data name="Documents.UnsafeJson" xml:space="preserve"><value>Editing is unavailable because converting this document to JSON would change its BSON data. Use a targeted update or BSON tools.</value></data>
+  <data name="Documents.IdChanged" xml:space="preserve"><value>The document _id and its BSON type cannot be changed.</value></data>
+  <data name="Logging.Title" xml:space="preserve"><value>Logging</value></data>
+  <data name="Logging.Level" xml:space="preserve"><value>Logging level</value></data>
+  <data name="Logging.Hint" xml:space="preserve"><value>Shared by TUI and Web. Changes take effect without restarting.</value></data>
+  <data name="Logging.Override" xml:space="preserve"><value>The active level {0} was set at startup. Your saved choice will apply after starting without the override.</value></data>
+  <data name="Logging.Saved" xml:space="preserve"><value>Logging level saved</value></data>
+  <data name="Logging.SaveError" xml:space="preserve"><value>Could not save the logging level. The active level has not changed.</value></data>
+  <data name="Logging.LoadError" xml:space="preserve"><value>Could not load logging settings.</value></data>
+  <data name="Index.UniqueBadge" xml:space="preserve"><value>unique</value></data>
+</root>

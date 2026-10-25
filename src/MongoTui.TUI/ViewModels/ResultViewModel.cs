@@ -1,6 +1,7 @@
+using MongoTui.Application.Models;
 using System.Text;
 using MongoDB.Bson;
-using MongoDB.Bson.IO;
+using MongoTui.Application.Services;
 using MongoTui.Domain.Queries;
 
 namespace MongoTui.TUI.ViewModels;
@@ -8,8 +9,6 @@ namespace MongoTui.TUI.ViewModels;
 /// <summary>Projects a <see cref="QueryResult"/> into tabular, tree and JSON views.</summary>
 public sealed class ResultViewModel : ObservableObject
 {
-    private static readonly JsonWriterSettings IndentedJson = new() { Indent = true };
-
     private QueryResultKind _kind = QueryResultKind.Documents;
     private IReadOnlyList<BsonDocument> _documents = [];
     private IReadOnlyList<string> _columns = [];
@@ -154,7 +153,7 @@ public sealed class ResultViewModel : ObservableObject
         {
             ResultViewMode.Json => Json,
             ResultViewMode.Raw => Raw,
-            ResultViewMode.Tree => string.Join("\n", Documents.Select(document => document.ToJson(IndentedJson))),
+            ResultViewMode.Tree => string.Join("\n", Documents.Select(document => BsonTextCodec.Format(document))),
             _ => RenderTable(),
         };
     }
@@ -197,11 +196,11 @@ public sealed class ResultViewModel : ObservableObject
                 .ToList())
             .ToList();
 
-        Json = new BsonArray(Documents).ToJson(IndentedJson);
+        Json = BsonTextCodec.Format(Documents);
     }
 
     private static int LineCount(BsonDocument document) =>
-        document.ToJson(IndentedJson).Count(character => character == '\n') + 1;
+        BsonTextCodec.Format(document).Count(character => character == '\n') + 1;
 
     private static string FormatValue(BsonDocument document, string column)
     {

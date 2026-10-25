@@ -115,7 +115,7 @@ public sealed class PaneFocusCycleTests
     {
         var localizer = A.Fake<ILocalizer>();
         A.CallTo(() => localizer.Get(A<string>._)).ReturnsLazily((string key) => key);
-        var queryService = new QueryService(
+        var queryService = QueryTestServices.Create(
             A.Fake<IMongoShellSessionFactory>(),
             A.Fake<IQueryHistoryRepository>());
 

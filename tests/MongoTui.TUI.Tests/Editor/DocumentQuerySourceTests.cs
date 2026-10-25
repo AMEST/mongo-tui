@@ -1,5 +1,5 @@
+using MongoTui.Application.Queries;
 using AwesomeAssertions;
-using MongoTui.TUI.Editor;
 
 namespace MongoTui.TUI.Tests.Editor;
 
@@ -7,6 +7,7 @@ public sealed class DocumentQuerySourceTests
 {
     [Theory]
     [InlineData("db.users.find({})", "app", "app", "users")]
+    [InlineData("db.getCollection('system.version').find({})", "admin", "admin", "system.version")]
     [InlineData("db.orders.find().limit(10).skip(2).sort({date:-1}).toArray();", "app", "app", "orders")]
     [InlineData("db.getSiblingDB('other').getCollection('items').findOne({_id:1})", "app", "other", "items")]
     [InlineData("db.getSiblingDB(\"other\").getCollection(\"a\\\"b\").find({}).limit(50).toArray()", null, "other", "a\"b")]

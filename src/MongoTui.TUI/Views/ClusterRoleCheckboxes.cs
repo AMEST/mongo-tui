@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Users;
 using Terminal.Gui.Views;
@@ -9,12 +10,12 @@ public sealed class ClusterRoleCheckboxes
 {
     private static readonly (string Key, ClusterRole Role)[] Items =
     [
-        ("Users.ClusterRoles.ReadAnyDatabase", ClusterRole.ReadAnyDatabase),
-        ("Users.ClusterRoles.ReadWriteAnyDatabase", ClusterRole.ReadWriteAnyDatabase),
-        ("Users.ClusterRoles.ClusterAdmin", ClusterRole.ClusterAdmin),
-        ("Users.ClusterRoles.ClusterManager", ClusterRole.ClusterManager),
-        ("Users.ClusterRoles.ClusterMonitor", ClusterRole.ClusterMonitor),
-        ("Users.ClusterRoles.Administrator", ClusterRole.Administrator),
+        (LocalizationKeys.Users.ClusterRolesReadAnyDatabase, ClusterRole.ReadAnyDatabase),
+        (LocalizationKeys.Users.ClusterRolesReadWriteAnyDatabase, ClusterRole.ReadWriteAnyDatabase),
+        (LocalizationKeys.Users.ClusterRolesClusterAdmin, ClusterRole.ClusterAdmin),
+        (LocalizationKeys.Users.ClusterRolesClusterManager, ClusterRole.ClusterManager),
+        (LocalizationKeys.Users.ClusterRolesClusterMonitor, ClusterRole.ClusterMonitor),
+        (LocalizationKeys.Users.ClusterRolesAdministrator, ClusterRole.Administrator),
     ];
 
     private readonly Dictionary<CheckBox, ClusterRole> _roles = new();

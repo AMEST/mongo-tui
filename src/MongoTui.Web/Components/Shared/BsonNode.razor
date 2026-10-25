@@ -1,0 +1,16 @@
+@if (Value is BsonDocument or BsonArray && Depth < MaximumDepth)
+{
+    <details class="bson-node" open="@Expanded"><summary><span class="bson-key">@Name</span><span class="bson-complex">@BsonDisplay.Preview(Value)</span></summary><div class="bson-children">
+    @if (Value is BsonDocument document) { @foreach (var element in document.Elements.Take(MaximumChildren)) { <BsonNode Name="@element.Name" Value="element.Value" Depth="@(Depth + 1)" /> } }
+    else if (Value is BsonArray array) { @foreach (var (value, index) in array.Take(MaximumChildren).Select((value, index) => (value, index))) { <BsonNode Name="@index.ToString()" Value="value" Depth="@(Depth + 1)" /> } }
+    </div></details>
+}
+else { <div class="bson-leaf"><span class="bson-key">@Name</span><span class="bson-@BsonDisplay.CssType(Value)">@BsonDisplay.Preview(Value)</span><span class="bson-type">@Value.BsonType</span></div> }
+@code {
+    private const int MaximumChildren = 100;
+    private const int MaximumDepth = 10;
+    [Parameter] public string Name { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public BsonValue Value { get; set; } = BsonNull.Value;
+    [Parameter] public int Depth { get; set; }
+    [Parameter] public bool Expanded { get; set; }
+}

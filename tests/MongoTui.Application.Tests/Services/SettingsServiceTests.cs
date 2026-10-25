@@ -46,4 +46,45 @@ public sealed class SettingsServiceTests
 
         keys.Should().OnlyHaveUniqueItems().And.HaveCount(2);
     }
+
+    [Theory]
+    [InlineData(null, 30)]
+    [InlineData("0", 0)]
+    [InlineData("120", 120)]
+    [InlineData("86400", 86_400)]
+    [InlineData("-1", 30)]
+    [InlineData("invalid", 30)]
+    [InlineData("86401", 30)]
+    public async Task Should_ReadQueryTimeout_WhenSettingsLoaded(string? stored, int expected)
+    {
+        A.CallTo(() => _store.GetAsync("query.timeoutSeconds", A<CancellationToken>._)).Returns(stored);
+
+        var seconds = await _sut.GetQueryTimeoutSecondsAsync(CancellationToken.None);
+
+        seconds.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(86_400)]
+    public async Task Should_PersistQueryTimeout_WhenChanged(int seconds)
+    {
+        await _sut.SetQueryTimeoutSecondsAsync(seconds, CancellationToken.None);
+
+        A.CallTo(() => _store.SetAsync("query.timeoutSeconds",
+            seconds.ToString(System.Globalization.CultureInfo.InvariantCulture), A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(86_401)]
+    public async Task ShouldThrow_ArgumentOutOfRangeException_WhenQueryTimeoutInvalid(int seconds)
+    {
+        var act = () => _sut.SetQueryTimeoutSecondsAsync(seconds, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+        A.CallTo(() => _store.SetAsync(A<string>._, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
 }

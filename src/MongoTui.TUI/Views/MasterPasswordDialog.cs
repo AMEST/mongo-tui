@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
 using Terminal.Gui.App;
@@ -20,11 +21,11 @@ public sealed class MasterPasswordDialog : ThemedDialog
         _security = security;
         _application = application;
 
-        Title = localizer.Get("MasterPassword.Title");
+        Title = localizer.Get(LocalizationKeys.MasterPassword.Title);
         Width = 60;
         Height = 10;
 
-        Add(new Label { Text = localizer.Get("MasterPassword.Field"), X = 1, Y = 1 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.MasterPassword.Field), X = 1, Y = 1 });
         _passwordField.X = 1;
         _passwordField.Y = 3;
         _passwordField.Width = Dim.Fill();
@@ -36,9 +37,9 @@ public sealed class MasterPasswordDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var unlockButton = new Button { Text = localizer.Get("MasterPassword.Unlock"), IsDefault = true };
+        var unlockButton = new Button { Text = localizer.Get(LocalizationKeys.MasterPassword.Unlock), IsDefault = true };
         unlockButton.OnAcceptAsync(UnlockAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(unlockButton, cancelButton);

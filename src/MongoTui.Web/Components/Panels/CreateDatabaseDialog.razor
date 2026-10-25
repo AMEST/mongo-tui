@@ -1,0 +1,49 @@
+@implements IDisposable
+@inject DatabaseService Databases
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject ILogger<CreateDatabaseDialog> Logger
+<Modal Title="@L[LocalizationKeys.Create.DatabaseTitle]" OnClose="CloseAsync">
+    <form class="modal-body" @onsubmit="CreateAsync" @onsubmit:preventDefault="true">
+        <p class="muted">@Profile.Name</p>
+        <label for="database-name">@L[LocalizationKeys.Create.DatabaseName]</label>
+        <input id="database-name" required autofocus disabled="@_busy" @bind="_database" />
+        <label for="first-collection-name">@L[LocalizationKeys.Create.FirstCollection]</label>
+        <input id="first-collection-name" required disabled="@_busy" @bind="_collection" />
+        <p class="field-hint">@L[LocalizationKeys.Create.DatabaseHint]</p>
+        <FormFeedback Error="@_error" />
+        <footer class="modal-actions"><BusyButton Class="button secondary" Pending="_busy" Icon="@IconNames.Close" OnClick="CloseAsync">@L[LocalizationKeys.Common.Cancel]</BusyButton><BusyButton Type="submit" Busy="_busy" Icon="@IconNames.Plus">@L[LocalizationKeys.Common.Create]</BusyButton></footer>
+    </form>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public ConnectionProfile Profile { get; set; } = null!;
+    [Parameter] public EventCallback<CollectionSelection> OnCreated { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private string _database = string.Empty, _collection = string.Empty;
+    private string? _error;
+    private bool _busy, _disposed;
+    private Task CloseAsync() => _busy ? Task.CompletedTask : OnClose.InvokeAsync();
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task CreateAsync()
+    {
+        if (_busy) return;
+        _busy = true; _error = null;
+        CollectionSelection selection;
+        try
+        {
+            var collection = new CollectionRef(DatabaseName.Create(_database.Trim()), CollectionName.Create(_collection.Trim()));
+            await Databases.CreateDatabaseAsync(Catalog.Get(Profile.Id).Target, collection, _lifetime.Token);
+            Logger.LogInformation("Database {Database} created", collection.Database.Value);
+            selection = new(Profile.Id, collection.Database.Value, collection.Collection.Value);
+        }
+        catch (Exception exception)
+        {
+            if (!_disposed) Logger.LogWarning("Database creation failed: {Failure}", ExceptionDiagnostics.Describe(exception));
+            _error = exception.Message; _busy = false; return;
+        }
+        if (_disposed) return;
+        await OnClose.InvokeAsync();
+        await OnCreated.InvokeAsync(selection);
+    }
+}

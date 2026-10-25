@@ -11,6 +11,9 @@ namespace MongoTui.Application.Services;
 /// <summary>Provides context-aware completion candidates with a field cache.</summary>
 public sealed class AutocompleteService
 {
+    private const int FieldSampleLimit = 20;
+    private const int MaximumFieldDepth = 8;
+    private const int FieldCacheLifetimeMinutes = 1;
     private readonly IMongoGateway _gateway;
     private readonly ConcurrentDictionary<(MongoConnectionTarget, string, string),
         (DateTimeOffset FetchedAt, IReadOnlyList<string> Fields)> _fieldCache = new();
@@ -48,7 +51,7 @@ public sealed class AutocompleteService
     {
         var key = (target, database, collection);
         if (_fieldCache.TryGetValue(key, out var cached)
-            && DateTimeOffset.UtcNow - cached.FetchedAt < TimeSpan.FromMinutes(1))
+            && DateTimeOffset.UtcNow - cached.FetchedAt < TimeSpan.FromMinutes(FieldCacheLifetimeMinutes))
         {
             return cached.Fields;
         }
@@ -58,7 +61,7 @@ public sealed class AutocompleteService
             target,
             collectionRef,
             "{}",
-            new QueryExecutionOptions { Limit = 20 },
+            new QueryExecutionOptions { Limit = FieldSampleLimit },
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -74,7 +77,7 @@ public sealed class AutocompleteService
 
     private static void CollectFields(BsonDocument document, string prefix, ISet<string> names, int depth)
     {
-        if (depth >= 8) return;
+        if (depth >= MaximumFieldDepth) return;
         foreach (var element in document)
         {
             var path = prefix + element.Name;

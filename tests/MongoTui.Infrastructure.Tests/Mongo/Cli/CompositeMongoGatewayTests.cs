@@ -1,3 +1,4 @@
+using MongoTui.Application.Abstractions.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;

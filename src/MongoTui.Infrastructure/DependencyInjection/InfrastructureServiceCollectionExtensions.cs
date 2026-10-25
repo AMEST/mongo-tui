@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using MongoTui.Infrastructure.Diagnostics;
 using MongoTui.Application.Abstractions.Ai;
+using MongoTui.Application.Abstractions.Diagnostics;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
 using MongoTui.Application.Abstractions.Process;
@@ -33,9 +36,12 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddSingleton<ISettingsStore, SqliteSettingsStore>();
+        services.AddSingleton<ILoggingSettings, SerilogLoggingSettings>();
+        services.AddSingleton<IHostedService, LoggingSettingsMonitor>();
         services.AddSingleton<IStorageTransaction>(provider => provider.GetRequiredService<SqliteDatabase>());
         services.AddSingleton<IConnectionRepository, SqliteConnectionRepository>();
         services.AddSingleton<IQueryHistoryRepository, SqliteQueryHistoryRepository>();
+        services.AddSingleton<IApplicationLogReader>(_ => new FileApplicationLogReader(AppPaths.LogsDirectory));
         services.AddSingleton<ICryptoService, AesGcmCryptoService>();
         services.AddSingleton(Argon2Parameters.Default);
         services.AddSingleton<PasswordKekSource>();

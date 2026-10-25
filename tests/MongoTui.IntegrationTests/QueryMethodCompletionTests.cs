@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
@@ -20,7 +21,7 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     [InlineData("db.getCollection('items').find({}).so|rt({name: 1}).limit(1).toArray()", "sort", 1)]
     public async Task Should_ReturnDocuments_WhenCompletedMethodChainExecuted(string marked, string method, int count)
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -39,7 +40,7 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     [InlineData("db.getCollection('items').countD|", "countDocuments")]
     public async Task Should_ReturnCount_WhenCompletedCountMethodExecuted(string marked, string method)
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -60,7 +61,7 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     }
 
     private MongoShellSession CreateSession(MongoConnectionTarget target) =>
-        new(new MongoContainerProcessRunner(fixture.Container), new MongoToolsLocator(new MongoToolsOptions()), target);
+        new(new MongoContainerProcessRunner(fixture.Container), new MongoToolsLocator(new MongoToolsOptions()), target, NullLogger<MongoShellSession>.Instance);
 
     private static CollectionRef NewCollection() =>
         new(DatabaseName.Create($"it_{Guid.NewGuid():N}"), CollectionName.Create("items"));

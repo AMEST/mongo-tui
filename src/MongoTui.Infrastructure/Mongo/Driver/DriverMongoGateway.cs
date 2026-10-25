@@ -5,6 +5,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
+using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Databases;
 using MongoTui.Domain.Exceptions;
@@ -80,16 +81,16 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
     {
         var stats = await GetClient(target)
             .GetDatabase(database.Value)
-            .RunCommandAsync<BsonDocument>(new BsonDocument("dbStats", 1), cancellationToken: cancellationToken);
+            .RunCommandAsync<BsonDocument>(new BsonDocument(MongoWireNames.Commands.DatabaseStats, 1), cancellationToken: cancellationToken);
 
         return new DatabaseStats
         {
             Name = database.Value,
-            CollectionCount = GetInt(stats, "collections"),
-            ObjectCount = GetLong(stats, "objects"),
-            DataSizeBytes = TryGetLong(stats, "dataSize"),
-            StorageSizeBytes = TryGetLong(stats, "storageSize"),
-            IndexCount = GetInt(stats, "indexes"),
+            CollectionCount = GetInt(stats, MongoWireNames.Fields.Collections),
+            ObjectCount = GetLong(stats, MongoWireNames.Fields.Objects),
+            DataSizeBytes = TryGetLong(stats, MongoWireNames.Fields.DataSize),
+            StorageSizeBytes = TryGetLong(stats, MongoWireNames.Fields.StorageSize),
+            IndexCount = GetInt(stats, MongoWireNames.Fields.Indexes),
         };
     }
 
@@ -152,19 +153,25 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        var documents = await GetCollection(target, collection)
-            .Find(ParseFilter(filterJson))
-            .Skip(options.Skip)
-            .Limit(options.Limit)
-            .ToListAsync(cancellationToken);
-        stopwatch.Stop();
-
-        return new QueryResult
+        try
         {
-            Kind = QueryResultKind.Documents,
-            Documents = documents,
-            Elapsed = stopwatch.Elapsed,
-        };
+            var documents = await GetCollection(target, collection)
+                .Find(ParseFilter(filterJson), new FindOptions { MaxTime = options.Timeout })
+                .Skip(options.Skip)
+                .Limit(options.Limit)
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
+            stopwatch.Stop();
+            return new QueryResult
+            {
+                Kind = QueryResultKind.Documents,
+                Documents = documents,
+                Elapsed = stopwatch.Elapsed,
+            };
+        }
+        catch (MongoExecutionTimeoutException exception) when (options.Timeout is not null)
+        {
+            throw new QueryTimeoutException(options.Timeout.Value, exception);
+        }
     }
 
     public async Task<QueryResult> AggregateAsync(
@@ -203,7 +210,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         CollectionRef collection,
         string documentJson,
         CancellationToken cancellationToken) =>
-        GetCollection(target, collection).InsertOneAsync(BsonDocument.Parse(documentJson), cancellationToken: cancellationToken);
+        GetCollection(target, collection).InsertOneAsync(BsonTextCodec.ParseDocument(documentJson), cancellationToken: cancellationToken);
 
     public async Task<long> ReplaceOneAsync(
         MongoConnectionTarget target,
@@ -214,8 +221,8 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
     {
         var result = await GetCollection(target, collection).ReplaceOneAsync(
             ParseFilter(idFilterJson),
-            BsonDocument.Parse(documentJson),
-            cancellationToken: cancellationToken);
+            BsonTextCodec.ParseDocument(documentJson),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return result.MatchedCount;
     }
@@ -227,7 +234,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         CancellationToken cancellationToken)
     {
         var result = await GetCollection(target, collection)
-            .DeleteOneAsync(ParseFilter(idFilterJson), cancellationToken);
+            .DeleteOneAsync(ParseFilter(idFilterJson), cancellationToken).ConfigureAwait(false);
 
         return result.DeletedCount;
     }
@@ -251,7 +258,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
             .GetCollection<BsonDocument>(collection.Collection.Value);
 
     private static BsonDocument ParseFilter(string filterJson) =>
-        string.IsNullOrWhiteSpace(filterJson) ? new BsonDocument() : BsonDocument.Parse(filterJson);
+        string.IsNullOrWhiteSpace(filterJson) ? new BsonDocument() : BsonTextCodec.ParseDocument(filterJson);
 
     private static int GetInt(BsonDocument document, string name) =>
         document.TryGetValue(name, out var value) && value.IsNumeric ? value.ToInt32() : 0;
@@ -270,10 +277,10 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         try
         {
             var db = GetClient(target).GetDatabase(database.Value);
-            var command = new BsonDocument("usersInfo", 1);
+            var command = new BsonDocument(MongoWireNames.Commands.UsersInfo, 1);
             var result = await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
             var users = new List<MongoUser>();
-            if (result.TryGetValue("users", out var usersArray) && usersArray.IsBsonArray)
+            if (result.TryGetValue(MongoWireNames.Fields.Users, out var usersArray) && usersArray.IsBsonArray)
             {
                 foreach (var userDoc in usersArray.AsBsonArray)
                 {
@@ -282,17 +289,17 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
                         continue;
                     }
 
-                    var username = doc.TryGetValue("user", out var u) ? u.AsString : string.Empty;
-                    var dbName = doc.TryGetValue("db", out var d) ? d.AsString : database.Value;
+                    var username = doc.TryGetValue(MongoWireNames.Fields.User, out var u) ? u.AsString : string.Empty;
+                    var dbName = doc.TryGetValue(MongoWireNames.Fields.Database, out var d) ? d.AsString : database.Value;
                     var rolesList = new List<MongoRole>();
-                    if (doc.TryGetValue("roles", out var rolesArr) && rolesArr.IsBsonArray)
+                    if (doc.TryGetValue(MongoWireNames.Fields.Roles, out var rolesArr) && rolesArr.IsBsonArray)
                     {
                         foreach (var roleVal in rolesArr.AsBsonArray)
                         {
                             if (roleVal is BsonDocument roleDoc)
                             {
-                                var roleName = roleDoc.TryGetValue("role", out var rn) ? rn.AsString : string.Empty;
-                                var roleDb = roleDoc.TryGetValue("db", out var rdb) ? rdb.AsString : string.Empty;
+                                var roleName = roleDoc.TryGetValue(MongoWireNames.Fields.Role, out var rn) ? rn.AsString : string.Empty;
+                                var roleDb = roleDoc.TryGetValue(MongoWireNames.Fields.Database, out var rdb) ? rdb.AsString : string.Empty;
                                 if (!string.IsNullOrEmpty(roleName))
                                 {
                                     rolesList.Add(new MongoRole(roleName, roleDb));
@@ -324,9 +331,9 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
             var db = GetClient(target).GetDatabase(database.Value);
             var command = new BsonDocument
             {
-                { "createUser", username },
-                { "pwd", password },
-                { "roles", BuildRolesArray(roles) }
+                { MongoWireNames.Commands.CreateUser, username },
+                { MongoWireNames.Fields.Password, password },
+                { MongoWireNames.Fields.Roles, BuildRolesArray(roles) }
             };
             await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -349,12 +356,12 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
             var db = GetClient(target).GetDatabase(database.Value);
             var command = new BsonDocument
             {
-                { "updateUser", username },
-                { "roles", BuildRolesArray(roles) }
+                { MongoWireNames.Commands.UpdateUser, username },
+                { MongoWireNames.Fields.Roles, BuildRolesArray(roles) }
             };
             if (!string.IsNullOrEmpty(password))
             {
-                command["pwd"] = password;
+                command[MongoWireNames.Fields.Password] = password;
             }
             await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
@@ -373,7 +380,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         try
         {
             var db = GetClient(target).GetDatabase(database.Value);
-            var command = new BsonDocument { { "dropUser", username } };
+            var command = new BsonDocument { { MongoWireNames.Commands.DropUser, username } };
             await db.RunCommandAsync<BsonDocument>(command, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (MongoCommandException ex)
@@ -387,7 +394,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         var array = new BsonArray();
         foreach (var role in roles)
         {
-            array.Add(new BsonDocument { { "role", role.Name }, { "db", role.Database } });
+            array.Add(new BsonDocument { { MongoWireNames.Fields.Role, role.Name }, { MongoWireNames.Fields.Database, role.Database } });
         }
         return array;
     }
@@ -417,16 +424,16 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
 
     private static IndexInfo MapIndex(BsonDocument index)
     {
-        var fields = index["key"].AsBsonDocument.Elements
+        var fields = index[MongoWireNames.Fields.IndexKeys].AsBsonDocument.Elements
             .Select(element => new IndexField(element.Name, ToDirection(element.Value)))
             .ToList();
 
         return new IndexInfo
         {
-            Name = index["name"].AsString,
+            Name = index[MongoWireNames.Fields.Name].AsString,
             Fields = fields,
-            Unique = index.TryGetValue("unique", out var unique) && unique.ToBoolean(),
-            Sparse = index.TryGetValue("sparse", out var sparse) && sparse.ToBoolean(),
+            Unique = index.TryGetValue(MongoWireNames.Fields.Unique, out var unique) && unique.ToBoolean(),
+            Sparse = index.TryGetValue(MongoWireNames.Fields.Sparse, out var sparse) && sparse.ToBoolean(),
         };
     }
 

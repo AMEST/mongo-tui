@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Users;
 using MongoTui.TUI.Localization;
@@ -24,7 +25,7 @@ public sealed partial class UserFormDialog
 
         _saving = true;
         _save.Enabled = false;
-        SetStatus(_localizer.Get("Users.Saving"), ColorName16.BrightYellow);
+        SetStatus(_localizer.Get(LocalizationKeys.Users.Saving), ColorName16.BrightYellow);
         Exception? saveError = null;
         try
         {
@@ -73,10 +74,10 @@ public sealed partial class UserFormDialog
 
     private string? ValidationError(string username, string password)
     {
-        if (string.IsNullOrWhiteSpace(username)) return "Users.UsernameRequired";
-        if (!_isEdit && string.IsNullOrWhiteSpace(password)) return "Users.PasswordRequired";
+        if (string.IsNullOrWhiteSpace(username)) return LocalizationKeys.Users.UsernameRequired;
+        if (!_isEdit && string.IsNullOrWhiteSpace(password)) return LocalizationKeys.Users.PasswordRequired;
         return !_isEdit && _accesses.Count == 0 && _clusterRoles.Selected().Count == 0
-            ? "Users.Access.Required"
+            ? LocalizationKeys.Users.AccessRequired
             : null;
     }
 

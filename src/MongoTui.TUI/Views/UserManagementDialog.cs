@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
@@ -47,7 +48,7 @@ public sealed class UserManagementDialog : ThemedDialog
         _currentUsername = currentUsername;
         _currentAuthDatabase = currentAuthDatabase;
 
-        Title = localizer.Format("Users.Title", scope.Value);
+        Title = localizer.Format(LocalizationKeys.Users.Title, scope.Value);
         Width = 88;
         Height = 20;
 
@@ -69,15 +70,15 @@ public sealed class UserManagementDialog : ThemedDialog
         _status.Width = Dim.Fill();
         Add(_status);
 
-        var create = new Button { Text = localizer.Get("Users.Create") };
+        var create = new Button { Text = localizer.Get(LocalizationKeys.Users.Create) };
         create.OnAcceptAsync(() => GuardedAsync(CreateAsync));
-        _edit = new Button { Text = localizer.Get("Users.Edit"), Enabled = false };
+        _edit = new Button { Text = localizer.Get(LocalizationKeys.Users.Edit), Enabled = false };
         _edit.OnAcceptAsync(() => GuardedAsync(EditAsync));
-        _delete = new Button { Text = localizer.Get("Users.Delete"), Enabled = false };
+        _delete = new Button { Text = localizer.Get(LocalizationKeys.Users.Delete), Enabled = false };
         _delete.OnAcceptAsync(() => GuardedAsync(DeleteAsync));
-        var refresh = new Button { Text = localizer.Get("Users.Refresh") };
+        var refresh = new Button { Text = localizer.Get(LocalizationKeys.Users.Refresh) };
         refresh.OnAcceptAsync(() => GuardedAsync(LoadAsync));
-        var close = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var close = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         close.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(create, _edit, _delete, refresh, close);
@@ -92,7 +93,7 @@ public sealed class UserManagementDialog : ThemedDialog
             {
                 _userList = users;
                 var items = users.Count == 0
-                    ? new List<string> { _localizer.Get("Users.Empty") }
+                    ? new List<string> { _localizer.Get(LocalizationKeys.Users.Empty) }
                     : users.Select(FormatUser).ToList();
                 _list.SetSource(new ObservableCollection<string>(items));
                 _list.SelectedItem = users.Count > 0 ? 0 : null;
@@ -103,7 +104,7 @@ public sealed class UserManagementDialog : ThemedDialog
         catch (Exception exception)
         {
             await _application.InvokeAsync(() =>
-                _status.Text = $"{_localizer.Get("Users.LoadFailed")} {ErrorText(exception)}").ConfigureAwait(false);
+                _status.Text = $"{_localizer.Get(LocalizationKeys.Users.LoadFailed)} {ErrorText(exception)}").ConfigureAwait(false);
         }
     }
 
@@ -169,7 +170,7 @@ public sealed class UserManagementDialog : ThemedDialog
             if (form.PasswordChanged && IsCurrentUser(user))
             {
                 await _application.InvokeAsync(() =>
-                    _status.Text = _localizer.Get("Users.PasswordChangedCurrent")).ConfigureAwait(false);
+                    _status.Text = _localizer.Get(LocalizationKeys.Users.PasswordChangedCurrent)).ConfigureAwait(false);
             }
         }
     }
@@ -183,15 +184,15 @@ public sealed class UserManagementDialog : ThemedDialog
 
         if (IsCurrentUser(user))
         {
-            _status.Text = _localizer.Get("Users.DeleteCurrentForbidden");
+            _status.Text = _localizer.Get(LocalizationKeys.Users.DeleteCurrentForbidden);
             return;
         }
 
         var confirmed = new ConfirmDialog(
             _localizer,
             _application,
-            _localizer.Get("Users.DeleteConfirmTitle"),
-            _localizer.Format("Users.DeleteConfirmMessage", user.Username, user.Database));
+            _localizer.Get(LocalizationKeys.Users.DeleteConfirmTitle),
+            _localizer.Format(LocalizationKeys.Users.DeleteConfirmMessage, user.Username, user.Database));
         _application.Run(confirmed);
         if (!confirmed.Confirmed)
         {
@@ -243,7 +244,7 @@ public sealed class UserManagementDialog : ThemedDialog
         {
             if (MongoRoleCatalog.TryGetClusterRole(role, out _))
             {
-                clusterParts.Add(role.Name == "root" ? "Administrator" : role.Name);
+                clusterParts.Add(role.Name == MongoRoleNames.Root ? _localizer.Get(LocalizationKeys.Users.AdministratorName) : role.Name);
             }
             else if (MongoRoleCatalog.TryGetDatabaseAccess(role, out var access))
             {
@@ -251,7 +252,7 @@ public sealed class UserManagementDialog : ThemedDialog
                 {
                     DatabaseAccessLevel.Read => "r",
                     DatabaseAccessLevel.ReadWrite => "rw",
-                    _ => "dbOwner",
+                    _ => MongoRoleNames.DbOwner,
                 }}");
             }
             else
@@ -266,7 +267,7 @@ public sealed class UserManagementDialog : ThemedDialog
             groups.Add($"[{string.Join(", ", databaseParts)}]");
         }
         groups.AddRange(clusterParts.Select(role => $"[{role}]"));
-        var suffix = additional > 0 ? $" {_localizer.Format("Users.MoreRoles", additional)}" : string.Empty;
+        var suffix = additional > 0 ? $" {_localizer.Format(LocalizationKeys.Users.MoreRoles, additional)}" : string.Empty;
         var details = string.Join(" ", groups);
         return details.Length == 0 ? $"{user.Username}{suffix}" : $"{user.Username}  {details}{suffix}";
     }

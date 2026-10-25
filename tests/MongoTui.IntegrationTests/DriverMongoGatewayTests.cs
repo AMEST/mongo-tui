@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Mongo;
@@ -21,7 +22,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_InsertAndFindDocument_When_CollectionAvailable()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
 
         await gateway.InsertOneAsync(_target, collection, "{ \"name\": \"alice\", \"age\": 30 }", CancellationToken.None);
@@ -34,7 +35,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_ReturnEmpty_When_CollectionIsEmpty()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
 
         var result = await gateway.FindAsync(_target, collection, "{}", new QueryExecutionOptions(), CancellationToken.None);
@@ -45,7 +46,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_CountDocuments_When_CollectionHasDocs()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 1 }", CancellationToken.None);
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 2 }", CancellationToken.None);
@@ -58,7 +59,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_ReplaceDocument_When_IdFilterMatches()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"_id\": 1, \"v\": 1 }", CancellationToken.None);
 
@@ -77,7 +78,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_DeleteDocument_When_IdFilterMatches()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"_id\": 1, \"v\": 1 }", CancellationToken.None);
 
@@ -93,7 +94,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [InlineData(2, 0)]
     public async Task Should_ReturnMatchedCount_When_ReplacementIsUnchangedOrMissing(int id, long expected)
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{\"_id\":1,\"v\":1}", CancellationToken.None);
 
@@ -106,7 +107,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_ListCollections_When_DatabaseHasCollection()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 1 }", CancellationToken.None);
 
@@ -118,7 +119,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_ListIndexes_When_CollectionExists()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 1 }", CancellationToken.None);
 
@@ -130,7 +131,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_AggregateDocuments_When_PipelineProvided()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 1 }", CancellationToken.None);
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 2 }", CancellationToken.None);
@@ -149,7 +150,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_CreateAndDropIndex_When_Requested()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"email\": \"a\" }", CancellationToken.None);
         await gateway.CreateIndexAsync(_target, collection, "{ \"email\": 1 }", "email_1", false, false, CancellationToken.None);
@@ -162,7 +163,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_ReturnStats_When_CollectionHasDocuments()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         await gateway.InsertOneAsync(_target, collection, "{ \"v\": 1 }", CancellationToken.None);
 
@@ -175,11 +176,11 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_CreateEmptyCollectionAndDatabase_WhenRequested()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         var service = new DatabaseService(gateway);
 
-        await service.CreateCollectionAsync(_target, collection, CancellationToken.None);
+        await service.CreateDatabaseAsync(_target, collection, CancellationToken.None);
 
         var collections = await gateway.ListCollectionsAsync(_target, collection.Database, CancellationToken.None);
         collections.Should().ContainSingle().Which.Should().Be(collection.Collection.Value);
@@ -191,7 +192,7 @@ public sealed class DriverMongoGatewayTests : IClassFixture<MongoFixture>
     [Fact]
     public async Task Should_CreateListUpdateAndDeleteUser_When_Requested()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var userGateway = (IMongoUserGateway)gateway;
         var database = DatabaseName.Create($"it_users_{Guid.NewGuid():N}");
         var username = "reader";

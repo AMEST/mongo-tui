@@ -1,4 +1,6 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
+using MongoTui.Domain.Exceptions;
 using MongoTui.TUI.ViewModels;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -19,6 +21,9 @@ public sealed class DocumentEditDialog : ThemedDialog
     private readonly FrameView _documentFrame;
     private readonly Button _loadButton;
     private readonly Button _deleteButton;
+    private readonly Button _saveButton;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _busy;
 #pragma warning disable CS0618 // TextView is superseded by the external Editor package; kept for M7.
     private readonly TextView _filter = new() { Multiline = true };
     private readonly TextView _editor = new() { Multiline = true };
@@ -30,17 +35,18 @@ public sealed class DocumentEditDialog : ThemedDialog
         _viewModel = viewModel;
         _application = application;
         _localizer = localizer;
+        Disposing += (_, _) => { _lifetime.Cancel(); _lifetime.Dispose(); };
 
         _filter.TrackContents();
         _editor.TrackContents();
 
-        Title = localizer.Get("Documents.Title");
+        Title = localizer.Get(LocalizationKeys.Documents.Title);
         Width = 76;
         Height = 24;
 
         _filterFrame = new FrameView
         {
-            Title = localizer.Get("Documents.Filter"),
+            Title = localizer.Get(LocalizationKeys.Documents.Filter),
             X = 1,
             Y = 1,
             Width = Dim.Fill(),
@@ -54,13 +60,13 @@ public sealed class DocumentEditDialog : ThemedDialog
         _filterFrame.Add(_filter);
         Add(_filterFrame);
 
-        _loadButton = new Button { Text = localizer.Get("Documents.Load"), X = 1, Y = Pos.Bottom(_filterFrame) };
+        _loadButton = new Button { Text = localizer.Get(LocalizationKeys.Documents.Load), X = 1, Y = Pos.Bottom(_filterFrame) };
         _loadButton.OnAcceptAsync(LoadAsync);
         Add(_loadButton);
 
         _documentFrame = new FrameView
         {
-            Title = localizer.Get("Documents.Document"),
+            Title = localizer.Get(LocalizationKeys.Documents.Document),
             X = 1,
             Y = 8,
             Width = Dim.Fill(),
@@ -79,14 +85,14 @@ public sealed class DocumentEditDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var saveButton = new Button { Text = localizer.Get("Connections.Save"), IsDefault = true };
-        saveButton.OnAcceptAsync(SaveAsync);
-        _deleteButton = new Button { Text = localizer.Get("Connections.Delete") };
+        _saveButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Save), IsDefault = true, Enabled = viewModel.CanWrite };
+        _saveButton.OnAcceptAsync(SaveAsync);
+        _deleteButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Delete) };
         _deleteButton.OnAcceptAsync(DeleteAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
-        this.AddButtons(saveButton, _deleteButton, cancelButton);
+        this.AddButtons(_saveButton, _deleteButton, cancelButton);
 
         if (_viewModel.IsNew)
         {
@@ -101,49 +107,68 @@ public sealed class DocumentEditDialog : ThemedDialog
 
     public bool Deleted { get; private set; }
 
-    private async Task LoadAsync()
+    private Task LoadAsync()
     {
+        if (_busy) return Task.CompletedTask;
         _viewModel.Filter = _filter.Text ?? string.Empty;
-
-        if (await _viewModel.LoadAsync(CancellationToken.None))
+        return RunAsync(_viewModel.LoadAsync, () =>
         {
             _editor.Text = _viewModel.Json;
             _error.Text = string.Empty;
-        }
-        else
-        {
-            _error.Text = ValidationMessage() ?? _localizer.Get("Documents.NotFound");
-        }
+        });
     }
 
-    private async Task SaveAsync()
+    private Task SaveAsync()
     {
+        if (_busy) return Task.CompletedTask;
         _viewModel.Json = _editor.Text ?? string.Empty;
-
-        if (await _viewModel.SaveAsync(CancellationToken.None))
+        return RunAsync(_viewModel.SaveAsync, () =>
         {
             Saved = true;
             _application.RequestStop(this);
-        }
-        else
-        {
-            _error.Text = ValidationMessage() ?? string.Empty;
-        }
+        });
     }
 
-    private async Task DeleteAsync()
+    private Task DeleteAsync()
     {
+        if (_busy) return Task.CompletedTask;
         _viewModel.Json = _editor.Text ?? string.Empty;
-
-        if (await _viewModel.DeleteAsync(CancellationToken.None))
+        return RunAsync(_viewModel.DeleteAsync, () =>
         {
             Deleted = true;
             _application.RequestStop(this);
-        }
-        else
+        });
+    }
+
+    private async Task RunAsync(Func<CancellationToken, Task<bool>> action, Action onSuccess)
+    {
+        if (_busy) return;
+        SetBusy(true);
+        _error.Text = _localizer.Get(LocalizationKeys.Documents.Working);
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        operation.CancelAfter(TimeSpan.FromSeconds(30));
+        var succeeded = false;
+        Exception? error = null;
+        try { succeeded = await action(operation.Token).ConfigureAwait(false); }
+        catch (Exception exception) { error = exception; }
+        if (_lifetime.IsCancellationRequested) return;
+        await _application.InvokeAsync(() =>
         {
-            _error.Text = ValidationMessage() ?? string.Empty;
-        }
+            if (_lifetime.IsCancellationRequested) return;
+            SetBusy(false);
+            if (succeeded) onSuccess();
+            else _error.Text = error is not null && error is not DomainException
+                ? _localizer.Get(LocalizationKeys.Documents.OperationFailed)
+                : error?.Message ?? ValidationMessage() ?? _localizer.Get(LocalizationKeys.Documents.NotFound);
+        }).ConfigureAwait(false);
+    }
+
+    private void SetBusy(bool busy)
+    {
+        _busy = busy;
+        _loadButton.Enabled = _editor.Enabled = _filter.Enabled = !busy;
+        _saveButton.Enabled = !busy && _viewModel.CanWrite;
+        _deleteButton.Enabled = !busy && !_viewModel.IsNew && _viewModel.CanWrite;
     }
     private string? ValidationMessage() => _viewModel.ValidationErrorKey is { } key
         ? _localizer.Get(key) : _viewModel.ValidationError;

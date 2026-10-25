@@ -22,7 +22,7 @@ public sealed partial class MainWindow
             connection,
             scope,
             current.Username,
-            current.AuthDatabase ?? "admin");
+            current.AuthDatabase ?? MongoSystemNames.AdminDatabase);
 
         await dialog.LoadAsync();
         Application.Run(dialog);

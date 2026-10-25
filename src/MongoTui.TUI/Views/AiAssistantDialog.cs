@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Ai;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Ai;
@@ -47,11 +48,11 @@ public sealed class AiAssistantDialog : ThemedDialog
             running?.Dispose();
         };
 
-        Title = localizer.Get("Ai.Title");
+        Title = localizer.Get(LocalizationKeys.Ai.Title);
         Width = 76;
         Height = 22;
 
-        Add(new Label { Text = localizer.Get("Ai.Field.Prompt"), X = 1, Y = 1 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Ai.FieldPrompt), X = 1, Y = 1 });
         _promptField.X = 12;
         _promptField.Y = 1;
         _promptField.Width = Dim.Fill();
@@ -69,9 +70,9 @@ public sealed class AiAssistantDialog : ThemedDialog
         _status.Width = Dim.Fill();
         Add(_status);
 
-        _askButton = new Button { Text = localizer.Get("Ai.Ask"), IsDefault = true };
+        _askButton = new Button { Text = localizer.Get(LocalizationKeys.Ai.Ask), IsDefault = true };
         _askButton.OnAccept(AskAsync);
-        var closeButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var closeButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(_askButton, closeButton);
@@ -104,7 +105,7 @@ public sealed class AiAssistantDialog : ThemedDialog
         var cancellation = new CancellationTokenSource();
         _running = cancellation;
         _askButton.Enabled = false;
-        SetStatus(_localizer.Get("Ai.Running"));
+        SetStatus(_localizer.Get(LocalizationKeys.Ai.Running));
         SetNeedsDraw();
 
         var request = _request with { Prompt = _promptField.Text ?? string.Empty };

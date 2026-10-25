@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
@@ -29,7 +30,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         _localizer = localizer;
         _application = application;
 
-        Title = localizer.Get("Connections.Title");
+        Title = localizer.Get(LocalizationKeys.Connections.Title);
         Width = 70;
         Height = 20;
 
@@ -50,19 +51,19 @@ public sealed class ConnectionManagerDialog : ThemedDialog
 
     private void AddActions()
     {
-        _copyUriButton = new Button { Text = _localizer.Get("Connections.CopyUri"), X = 1, Y = Pos.AnchorEnd(5) };
+        _copyUriButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.CopyUri), X = 1, Y = Pos.AnchorEnd(5) };
         _copyUriButton.OnAcceptAsync(() => GuardedAsync(CopyUriAsync));
         Add(_copyUriButton);
 
-        var connectButton = new Button { Text = _localizer.Get("Connections.Connect"), IsDefault = true };
+        var connectButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.Connect), IsDefault = true };
         connectButton.OnAcceptAsync(ConnectAsync);
-        var newButton = new Button { Text = _localizer.Get("Connections.New") };
+        var newButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.New) };
         newButton.OnAcceptAsync(CreateAsync);
-        var editButton = new Button { Text = _localizer.Get("Connections.Edit") };
+        var editButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.Edit) };
         editButton.OnAcceptAsync(() => GuardedAsync(EditAsync));
-        var deleteButton = new Button { Text = _localizer.Get("Connections.Delete") };
+        var deleteButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.Delete) };
         deleteButton.OnAcceptAsync(() => GuardedAsync(DeleteAsync));
-        var closeButton = new Button { Text = _localizer.Get("Common.Ok") };
+        var closeButton = new Button { Text = _localizer.Get(LocalizationKeys.Common.Ok) };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(connectButton, newButton, editButton, deleteButton, closeButton);
@@ -94,7 +95,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         _profiles = await _connections.GetProfilesAsync(CancellationToken.None);
 
         var names = _profiles.Count == 0
-            ? new List<string> { _localizer.Get("Connections.Empty") }
+            ? new List<string> { _localizer.Get(LocalizationKeys.Connections.Empty) }
             : _profiles.Select(profile => profile.Name).ToList();
 
         _list.SetSource(new ObservableCollection<string>(names));
@@ -143,7 +144,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         var index = SelectedIndex();
         if (index is null)
         {
-            _status.Text = _localizer.Get("Connections.Empty");
+            _status.Text = _localizer.Get(LocalizationKeys.Connections.Empty);
             return;
         }
 
@@ -158,7 +159,7 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         catch (DomainException exception)
         {
             _status.Text = _localizer.GetErrorMessage(exception);
-            _application.Run(new ErrorDialog(_localizer, _application, _localizer.Get("Common.Error"), _status.Text));
+            _application.Run(new ErrorDialog(_localizer, _application, _localizer.Get(LocalizationKeys.Common.Error), _status.Text));
         }
     }
 
@@ -179,13 +180,13 @@ public sealed class ConnectionManagerDialog : ThemedDialog
         var index = SelectedIndex();
         if (index is null)
         {
-            _status.Text = _localizer.Get("Connections.Empty");
+            _status.Text = _localizer.Get(LocalizationKeys.Connections.Empty);
             return;
         }
 
         var target = await _connections.ResolveTargetAsync(_profiles[index.Value].Id, CancellationToken.None);
         var copied = _application.Clipboard?.TrySetClipboardData(target.ConnectionString) == true;
-        _status.Text = _localizer.Get(copied ? "Connections.UriCopied" : "Connections.CopyUriFailed");
+        _status.Text = _localizer.Get(copied ? LocalizationKeys.Connections.UriCopied : LocalizationKeys.Connections.CopyUriFailed);
     }
 
     private async Task GuardedAsync(Func<Task> action)

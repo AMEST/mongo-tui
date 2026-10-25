@@ -1,0 +1,76 @@
+@implements IDisposable
+@inject WebTransferService Transfer
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject IJSRuntime JS
+@inject ILogger<TransferDialog> Logger
+<Modal Title="@L[LocalizationKeys.Transfer.Title]" OnClose="CloseAsync" Class="transfer-dialog">
+    <div class="modal-body">
+        <p class="muted mono">@Tab.Database / @Tab.Collection</p>
+        <div class="segmented"><button class="@(_import ? "active" : "")" disabled="@_busy" data-pending="@(_busy ? "true" : "false")" @onclick="() => _import = true">@L[LocalizationKeys.Transfer.Import]</button><button class="@(!_import ? "active" : "")" disabled="@_busy" data-pending="@(_busy ? "true" : "false")" @onclick="() => _import = false">@L[LocalizationKeys.Transfer.Export]</button></div>
+        @if (_import)
+        {
+            <p class="muted">@L[LocalizationKeys.Transfer.ImportHint]</p>
+            <InputFile OnChange="SelectFile" accept=".json,.jsonl,.ndjson" disabled="@_busy" />
+            <label class="check-label"><input type="checkbox" @bind="_array" disabled="@_busy" />@L[LocalizationKeys.Transfer.Array]</label>
+        }
+        else
+        {
+            <label for="transfer-filter">@L[LocalizationKeys.Query.Filter]</label><input id="transfer-filter" class="mono" @bind="_filter" disabled="@_busy" />
+            <label for="transfer-limit">@L[LocalizationKeys.Transfer.Limit]</label><input id="transfer-limit" type="number" min="1" max="@WebTransferService.MaximumExportDocuments" @bind="_limit" disabled="@_busy" />
+            <p class="field-hint">@L[LocalizationKeys.Transfer.ExportHint]</p>
+        }
+        <FormFeedback Error="@_error" Success="@_message" />
+        <footer class="modal-actions">
+            <button class="button secondary cancel-slot" disabled="@(!_busy)" aria-hidden="@(!_busy ? "true" : "false")" @onclick="() => _cancel.Cancel()">@L[LocalizationKeys.Query.Stop]</button>
+            <BusyButton Busy="_busy" Disabled="@(_import && _file is null)" Icon="@(_import ? IconNames.Upload : IconNames.Download)" OnClick="RunAsync">@L[_import ? LocalizationKeys.Transfer.Import : LocalizationKeys.Transfer.Download]</BusyButton>
+        </footer>
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnImported { get; set; }
+    private bool _import = true, _array = true, _busy, _disposed;
+    private const int DefaultExportDocuments = 1000;
+    private int _limit = DefaultExportDocuments;
+    private string _filter = "{}";
+    private string? _error, _message;
+    private IBrowserFile? _file;
+    private CancellationTokenSource _cancel = new();
+    private void SelectFile(InputFileChangeEventArgs args) { _file = args.File; _array = args.File.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase); }
+    private async Task RunAsync()
+    {
+        if (_busy || _disposed || _import && _file is null) return;
+        _busy = true; _error = _message = null;
+        _cancel.Dispose(); _cancel = new(TimeSpan.FromSeconds(WebOperationTimeouts.LongOperationSeconds));
+        try
+        {
+            var collection = new CollectionRef(DatabaseName.Create(Tab.Database), CollectionName.Create(Tab.Collection!));
+            var target = Catalog.Get(Tab.ConnectionId).Target;
+            if (_import && _file is not null)
+            {
+                await using var input = _file.OpenReadStream(WebTransferService.MaxBytes, _cancel.Token);
+                await Transfer.ImportAsync(target, collection, input, _array, _cancel.Token);
+                Logger.LogInformation("Collection imported into {Database}.{Collection}", Tab.Database, Tab.Collection);
+                if (!_disposed) { _message = L[LocalizationKeys.Transfer.Imported]; await OnImported.InvokeAsync(); }
+            }
+            else
+            {
+                await using var file = await Transfer.ExportAsync(target, collection, _filter, _limit, _cancel.Token);
+                using var reference = new DotNetStreamReference(file, leaveOpen: true);
+                await JS.InvokeVoidAsync(JavaScriptCalls.DownloadStream, _cancel.Token, "collection.jsonl", reference);
+                Logger.LogInformation("Collection exported from {Database}.{Collection}", Tab.Database, Tab.Collection);
+            }
+        }
+        catch (OperationCanceledException) { Logger.LogInformation("Collection transfer cancelled"); if (!_disposed) _error = L[LocalizationKeys.Query.Cancelled]; }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("Collection transfer failed in {Database}.{Collection}: {Failure}", Tab.Database, Tab.Collection, ExceptionDiagnostics.Describe(exception));
+            if (!_disposed) _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.Error.Transfer];
+        }
+        finally { if (!_disposed) _busy = false; }
+    }
+    private async Task CloseAsync() { _cancel.Cancel(); await OnClose.InvokeAsync(); }
+    public void Dispose() { _disposed = true; _cancel.Cancel(); _cancel.Dispose(); }
+}

@@ -1,0 +1,89 @@
+@implements IDisposable
+@inject IndexService Indexes
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject ILogger<CollectionPanel> Logger
+<Modal Title="@L[LocalizationKeys.Collection.Details]" OnClose="OnClose" Class="wide-modal collection-dialog">
+    <div class="modal-body">
+        <div class="collection-heading"><BusyIcon Name="@IconNames.Database" Size="26" Busy="@(_operation == CollectionOperation.Load)" /><div><span class="eyebrow">@Tab.Database</span><h2>@Tab.Collection</h2></div></div>
+        <div class="stats-grid"><div><span>@L[LocalizationKeys.Collection.Documents]</span><strong>@(_stats?.DocumentCount.ToString("N0") ?? "—")</strong></div><div><span>@L[LocalizationKeys.Collection.Indexes]</span><strong>@(_stats?.IndexCount.ToString() ?? "—")</strong></div></div>
+        <h3>@L[LocalizationKeys.Collection.Indexes]</h3>
+        <div class="index-list">
+            @foreach (var index in _indexes)
+            {
+                <div @key="index.Name" class="index-row"><div><strong class="mono">@index.Name</strong><p class="mono muted">@string.Join(", ", index.Fields.Select(field => $"{field.Path}: {field.Direction}"))</p></div>@if (index.Unique) { <span class="badge">@L[LocalizationKeys.Index.UniqueBadge]</span> }<button class="icon-button" disabled="@(_busy || index.Name == MongoSystemNames.IdIndex)" data-pending="@(_busy && index.Name != MongoSystemNames.IdIndex ? "true" : "false")" title="@L[LocalizationKeys.Common.Delete]" @onclick="() => _deleting = index.Name"><Icon Name="@IconNames.Trash" Size="16" /></button></div>
+            }
+        </div>
+        @if (_deleting is not null)
+        {
+            <div class="inline-confirm"><p>@L.Format(LocalizationKeys.Index.DeleteHint, _deleting)</p><BusyButton Class="button secondary compact" Pending="_busy" Icon="@IconNames.Close" OnClick="() => _deleting = null">@L[LocalizationKeys.Common.Cancel]</BusyButton><BusyButton Class="button danger compact" Busy="@(_operation == CollectionOperation.Delete)" Pending="@(_busy && _operation != CollectionOperation.Delete)" Icon="@IconNames.Trash" OnClick="DropAsync">@L[LocalizationKeys.Common.Delete]</BusyButton></div>
+        }
+        <details class="form-details"><summary>@L[LocalizationKeys.Index.Create]</summary><form class="details-content" @onsubmit="CreateAsync" @onsubmit:preventDefault="true">
+            <label for="index-keys">@L[LocalizationKeys.Index.Keys]</label><input id="index-keys" class="mono" disabled="@_busy" @bind="_keys" />
+            <label for="index-name">@L[LocalizationKeys.Connection.Name]</label><input id="index-name" disabled="@_busy" @bind="_name" />
+            <label class="check-label"><input type="checkbox" disabled="@_busy" @bind="_unique" />@L[LocalizationKeys.Index.Unique]</label>
+            <BusyButton Type="submit" Busy="@(_operation == CollectionOperation.Create)" Pending="@(_busy && _operation != CollectionOperation.Create)" Icon="@IconNames.Plus">@L[LocalizationKeys.Index.Create]</BusyButton>
+        </form></details>
+        <FormFeedback Error="@_error" />
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private IReadOnlyList<IndexInfo> _indexes = [];
+    private CollectionStats? _stats;
+    private string _keys = "{ \"createdAt\": -1 }", _name = string.Empty;
+    private string? _error, _deleting;
+    private CollectionOperation? _operation;
+    private enum CollectionOperation { Load, Create, Delete }
+    private bool _unique, _busy, _disposed;
+    private CollectionRef Collection => new(DatabaseName.Create(Tab.Database), CollectionName.Create(Tab.Collection!));
+    protected override Task OnInitializedAsync() => GuardAsync(LoadAsync, CollectionOperation.Load);
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task LoadAsync()
+    {
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.CommandSeconds));
+        var indexes = await Indexes.ListAsync(Catalog.Get(Tab.ConnectionId).Target, Collection, timeout.Token);
+        var stats = await Indexes.GetStatsAsync(Catalog.Get(Tab.ConnectionId).Target, Collection, timeout.Token);
+        if (!_disposed && !timeout.IsCancellationRequested) { _indexes = indexes; _stats = stats; }
+    }
+    private Task CreateAsync() => GuardAsync(async () =>
+    {
+        DocumentService.Parse(_keys);
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        timeout.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.LongOperationSeconds));
+        await Indexes.CreateAsync(Catalog.Get(Tab.ConnectionId).Target, Collection, _keys, _name.Length == 0 ? null : _name, _unique, false, timeout.Token);
+        await LoadAsync();
+    }, CollectionOperation.Create);
+    private Task DropAsync() => GuardAsync(async () =>
+    {
+        await Indexes.DropAsync(Catalog.Get(Tab.ConnectionId).Target, Collection, _deleting!, _lifetime.Token);
+        if (!_disposed) { _deleting = null; await LoadAsync(); }
+    }, CollectionOperation.Delete);
+    private static string ActionName(CollectionOperation operation) => operation switch
+    {
+        CollectionOperation.Load => "load",
+        CollectionOperation.Create => "create",
+        CollectionOperation.Delete => "delete",
+        _ => throw new ArgumentOutOfRangeException(nameof(operation)),
+    };
+    private async Task GuardAsync(Func<Task> action, CollectionOperation operation)
+    {
+        if (_busy || _disposed) return;
+        _busy = true; _operation = operation; _error = null;
+        try
+        {
+            await action();
+            if (operation != CollectionOperation.Load) Logger.LogInformation("Collection index {Action} completed in {Database}.{Collection}", ActionName(operation), Tab.Database, Tab.Collection);
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("Collection {Action} failed in {Database}.{Collection}: {Failure}", ActionName(operation), Tab.Database, Tab.Collection, ExceptionDiagnostics.Describe(exception));
+            if (!_disposed) _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.Error.Operation];
+        }
+        finally { if (!_disposed) { _busy = false; _operation = null; } }
+    }
+}

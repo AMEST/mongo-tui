@@ -60,7 +60,9 @@ public sealed class QueryTabsView : View
     internal TextView? ActiveResultView => CurrentPane()?.ResultView;
 
     /// <summary>JSON of the result document at the cursor, or the first one when not applicable.</summary>
-    public string? SelectedDocumentJson => CurrentPane()?.SelectedDocumentJson();
+    public string? SelectedDocumentJson => SelectedDocument is { } document ? BsonTextCodec.Format(document) : null;
+
+    public MongoDB.Bson.BsonDocument? SelectedDocument => CurrentPane()?.SelectedDocument();
 
     public QueryTabViewModel AddTab(
         ConnectionId connectionId,
@@ -70,7 +72,7 @@ public sealed class QueryTabsView : View
         string script = "")
     {
         _counter++;
-        var model = new QueryTabViewModel(_queryService, connectionId, target, $"Query {_counter}", database, collection, script);
+        var model = new QueryTabViewModel(_queryService, _localizer, connectionId, target, $"Query {_counter}", database, collection, script);
         model.Result.Mode = _resultViewMode;
 
         var pane = new QueryTabPane(this, model, _localizer, _autocomplete);

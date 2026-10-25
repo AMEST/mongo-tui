@@ -1,10 +1,12 @@
+using MongoTui.Application.Localization;
+using MongoTui.Application.Queries;
+using MongoTui.Application.Abstractions.Localization;
 using Serilog;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Collections;
-using MongoTui.TUI.Editor;
 
 namespace MongoTui.TUI.ViewModels;
 
@@ -12,12 +14,14 @@ namespace MongoTui.TUI.ViewModels;
 public sealed class QueryTabViewModel : ObservableObject
 {
     private readonly QueryService _queryService;
+    private readonly ILocalizer _localizer;
     private string _title;
     private string _script;
     private bool _isExecuting;
 
     public QueryTabViewModel(
         QueryService queryService,
+        ILocalizer localizer,
         ConnectionId connectionId,
         MongoConnectionTarget target,
         string title,
@@ -26,6 +30,7 @@ public sealed class QueryTabViewModel : ObservableObject
         string script = "")
     {
         _queryService = queryService;
+        _localizer = localizer;
         Id = Guid.NewGuid();
         ConnectionId = connectionId;
         Target = target;
@@ -88,14 +93,15 @@ public sealed class QueryTabViewModel : ObservableObject
 
             var result = await _queryService.ExecuteAsync(context, cancellationToken);
             Result.Load(result);
-            ResultCollection = result.Documents.All(document => document.Contains("_id"))
+            ResultCollection = result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
                 ? DocumentQuerySource.Resolve(context.Script, context.Database) : null;
             Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result.Documents.Count, result.Elapsed);
         }
         catch (DomainException exception)
         {
             Log.Warning("Query tab {TabId}: execution failed ({ExceptionType})", Id, exception.GetType().Name);
-            Result.LoadError(exception.Message);
+            Result.LoadError(exception is QueryTimeoutException timeout
+                ? _localizer.Format(LocalizationKeys.Query.TimedOut, timeout.Timeout.TotalSeconds) : exception.Message);
         }
         catch (Exception exception)
         {

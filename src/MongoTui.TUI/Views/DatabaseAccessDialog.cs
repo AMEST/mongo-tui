@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Primitives;
@@ -21,27 +22,27 @@ public sealed class DatabaseAccessDialog : ThemedDialog
     {
         _localizer = localizer;
         _application = application;
-        Title = localizer.Get("Users.Access.Add");
+        Title = localizer.Get(LocalizationKeys.Users.AccessAdd);
         Width = 60;
         Height = 16;
 
-        Add(new Label { Text = localizer.Get("Users.Access.Database"), X = 1, Y = 0 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.AccessDatabase), X = 1, Y = 0 });
         Add(_database);
         var databases = knownDatabases.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
         if (databases.Count > 0)
         {
             _database.Source = new ListWrapper<string>(new ObservableCollection<string>(databases));
         }
-        Add(new Label { Text = localizer.Get("Users.Access.Level"), X = 1, Y = 4 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Users.AccessLevel), X = 1, Y = 4 });
 
-        _levelList.SetSource(new ObservableCollection<string>(new[] { localizer.Get("Users.Access.Read"), localizer.Get("Users.Access.ReadWrite"), localizer.Get("Users.Access.DbOwner") }));
+        _levelList.SetSource(new ObservableCollection<string>(new[] { localizer.Get(LocalizationKeys.Users.AccessRead), localizer.Get(LocalizationKeys.Users.AccessReadWrite), localizer.Get(LocalizationKeys.Users.AccessDbOwner) }));
         _levelList.SelectedItem = 0;
         Add(_levelList);
         Add(_error);
 
-        var ok = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var ok = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         ok.OnAccept(() => Accept());
-        var cancel = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancel = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancel.OnAccept(() => application.RequestStop(this));
         this.AddButtons(ok, cancel);
     }
@@ -54,7 +55,7 @@ public sealed class DatabaseAccessDialog : ThemedDialog
         var dbName = (_database.Text ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(dbName))
         {
-            _error.Text = _localizer.Get("Users.Access.DatabaseInvalid");
+            _error.Text = _localizer.Get(LocalizationKeys.Users.AccessDatabaseInvalid);
             return;
         }
 
@@ -72,7 +73,7 @@ public sealed class DatabaseAccessDialog : ThemedDialog
         }
         catch (Exception)
         {
-            _error.Text = _localizer.Get("Users.Access.DatabaseInvalid");
+            _error.Text = _localizer.Get(LocalizationKeys.Users.AccessDatabaseInvalid);
         }
     }
 }

@@ -74,9 +74,9 @@ public sealed class SshCliTunnelFactory : ISshTunnelFactory
         AddOptionalArgument(info, "-i", options.PrivateKeyFile);
         AddOptionalArgument(info, "-l", options.Username);
         info.ArgumentList.Add(options.Host!);
-        info.Environment["SSH_ASKPASS"] = _options.AskPassExecutable;
-        info.Environment["SSH_ASKPASS_REQUIRE"] = "force";
-        info.Environment["MONGOTUI_ASKPASS_PIPE"] = pipeName;
+        info.Environment[SshAskPassEnvironment.Executable] = _options.AskPassExecutable;
+        info.Environment[SshAskPassEnvironment.Require] = SshAskPassEnvironment.Force;
+        info.Environment[SshAskPassEnvironment.Pipe] = pipeName;
         return info;
     }
 
