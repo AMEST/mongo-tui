@@ -376,6 +376,9 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Query.TimedOut" xml:space="preserve"><value>Превышено время выполнения запроса ({0} с).</value></data>
   <data name="Query.Settings.Saved" xml:space="preserve"><value>Настройки запросов сохранены</value></data>
   <data name="Query.Settings.SaveError" xml:space="preserve"><value>Не удалось сохранить настройки запросов.</value></data>
+  <data name="Query.Settings.LoadError" xml:space="preserve"><value>Не удалось загрузить настройки запросов.</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Загрузка…</value></data>
+  <data name="Common.Working" xml:space="preserve"><value>Выполнение…</value></data>
   <data name="Menu.Settings.Queries" xml:space="preserve"><value>Запросы…</value></data>
   <data name="Connection.Remove" xml:space="preserve"><value>Удалить из сохранённых…</value></data>
   <data name="Create.DatabaseName" xml:space="preserve"><value>Название базы</value></data>

@@ -103,6 +103,7 @@ public static partial class LocalizationKeys
         public const string Run = "Query.Run";
         public const string Script = "Query.Script";
         public const string SettingsSaveError = "Query.Settings.SaveError";
+        public const string SettingsLoadError = "Query.Settings.LoadError";
         public const string SettingsSaved = "Query.Settings.Saved";
         public const string SettingsTitle = "Query.Settings.Title";
         public const string Shell = "Query.Shell";

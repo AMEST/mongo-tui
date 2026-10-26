@@ -15,8 +15,8 @@ public sealed class MongoDatabaseDiscovery(ILogger<MongoDatabaseDiscovery> logge
         string? defaultDatabase,
         CancellationToken cancellationToken)
     {
-        using var cursor = await client.ListDatabasesAsync(cancellationToken);
-        var documents = await cursor.ToListAsync(cancellationToken);
+        using var cursor = await client.ListDatabasesAsync(cancellationToken).ConfigureAwait(false);
+        var documents = await cursor.ToListAsync(cancellationToken).ConfigureAwait(false);
         var databases = documents.Select(document => new DatabaseInfo(document[MongoWireNames.Fields.Name].AsString,
                 document.TryGetValue(MongoWireNames.Fields.Empty, out var empty) && empty.ToBoolean()))
             .ToDictionary(database => database.Name, StringComparer.Ordinal);
@@ -28,7 +28,7 @@ public sealed class MongoDatabaseDiscovery(ILogger<MongoDatabaseDiscovery> logge
         {
             var status = await client.GetDatabase(MongoSystemNames.AdminDatabase).RunCommandAsync<BsonDocument>(
                 new BsonDocument { { MongoWireNames.Commands.ConnectionStatus, 1 }, { MongoWireNames.Fields.ShowPrivileges, true } },
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             foreach (var name in AuthorizedDatabaseNames(status)) IncludeEmpty(databases, name);
         }
         catch (MongoCommandException exception)

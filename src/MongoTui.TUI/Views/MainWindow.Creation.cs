@@ -11,8 +11,8 @@ public sealed partial class MainWindow
     private async Task CreateDatabaseAsync(ActiveConnection connection)
     {
         if (Application is null) return;
-        using var dialog = new CreateDatabaseDialog(_localizer, Application, collection =>
-            _databases.CreateDatabaseAsync(connection.Target, collection, CancellationToken.None));
+        using var dialog = new CreateDatabaseDialog(_localizer, Application, (collection, token) =>
+            _databases.CreateDatabaseAsync(connection.Target, collection, token));
         Application.Run(dialog);
         if (dialog.CreatedCollection is not { } created) return;
         await RefreshConnectionAsync(connection);

@@ -54,12 +54,12 @@ public sealed class DatabaseService
         CancellationToken cancellationToken)
     {
         firstCollection.Collection.ValidateForCreation();
-        var databases = await _gateway.ListDatabasesAsync(target, cancellationToken);
+        var databases = await _gateway.ListDatabasesAsync(target, cancellationToken).ConfigureAwait(false);
         if (databases.Any(database => database.Name.Equals(firstCollection.Database.Value, StringComparison.OrdinalIgnoreCase)))
         {
             throw new DomainException("A database with this name already exists.");
         }
 
-        await _gateway.CreateCollectionAsync(target, firstCollection, cancellationToken);
+        await _gateway.CreateCollectionAsync(target, firstCollection, cancellationToken).ConfigureAwait(false);
     }
 }

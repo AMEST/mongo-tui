@@ -376,6 +376,9 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Query.TimedOut" xml:space="preserve"><value>Query timed out after {0} seconds.</value></data>
   <data name="Query.Settings.Saved" xml:space="preserve"><value>Query settings saved</value></data>
   <data name="Query.Settings.SaveError" xml:space="preserve"><value>Could not save query settings.</value></data>
+  <data name="Query.Settings.LoadError" xml:space="preserve"><value>Could not load query settings.</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Common.Working" xml:space="preserve"><value>Working…</value></data>
   <data name="Menu.Settings.Queries" xml:space="preserve"><value>Queries…</value></data>
   <data name="Connection.Remove" xml:space="preserve"><value>Remove saved connection…</value></data>
   <data name="Create.DatabaseName" xml:space="preserve"><value>Database name</value></data>
