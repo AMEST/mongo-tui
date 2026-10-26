@@ -56,7 +56,8 @@ public sealed class SecurityModeService
     public Task InitializeAsync(SecurityMode mode, string? password, CancellationToken cancellationToken) =>
         _secrets.RunExclusiveAsync(async token =>
         {
-            if (CurrentMode is not null)
+            var detection = await DetectAsync(token).ConfigureAwait(false);
+            if (detection.State != SecurityState.FirstRun)
             {
                 throw new DomainException("The security mode is already initialized.");
             }

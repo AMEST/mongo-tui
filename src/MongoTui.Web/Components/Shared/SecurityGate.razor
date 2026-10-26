@@ -58,10 +58,7 @@ else
         try
         {
             L.SetLanguage(await Settings.GetLanguageAsync(CancellationToken.None));
-            var detection = await Security.DetectAsync(CancellationToken.None);
-            _firstRun = detection.State == SecurityState.FirstRun;
-            if (!_firstRun) _ready = await Security.TryAutoUnlockAsync(CancellationToken.None) == AutoUnlockResult.Unlocked;
-            if (detection.State == SecurityState.Invalid) _error = L[LocalizationKeys.Security.Invalid];
+            await RefreshSecurityAsync();
         }
         catch { _error = L[LocalizationKeys.Security.Error]; }
         finally { _loading = false; }
@@ -93,8 +90,22 @@ else
             _ready = Security.IsUnlocked;
             if (!_ready) _error = L[LocalizationKeys.Security.Error];
         }
-        catch { _error = L[LocalizationKeys.Security.Error]; }
+        catch
+        {
+            _error = L[LocalizationKeys.Security.Error];
+            try { await RefreshSecurityAsync(); }
+            catch { }
+        }
         finally { _password = _confirmation = string.Empty; _busy = false; }
+    }
+
+    private async Task RefreshSecurityAsync()
+    {
+        var detection = await Security.DetectAsync(CancellationToken.None);
+        _firstRun = detection.State == SecurityState.FirstRun;
+        _ready = !_firstRun && detection.State != SecurityState.Invalid
+            && await Security.TryAutoUnlockAsync(CancellationToken.None) == AutoUnlockResult.Unlocked;
+        if (detection.State == SecurityState.Invalid) _error = L[LocalizationKeys.Security.Invalid];
     }
 
     private async Task ToggleLanguageAsync()
