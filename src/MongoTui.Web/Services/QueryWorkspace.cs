@@ -46,11 +46,12 @@ public sealed class QueryWorkspace(
     public async Task ExecuteAsync(WebTab tab)
     {
         if (tab.Busy || !_tabs.Contains(tab)) return;
+        var request = new QueryRequest(tab.Script, tab.Browse, tab.Filter, tab.Page);
         tab.Cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         tab.Busy = true;
         tab.Error = null;
         Changed?.Invoke();
-        tab.Operation = ExecuteCoreAsync(tab, tab.Cancellation.Token);
+        tab.Operation = ExecuteCoreAsync(tab, request, tab.Cancellation.Token);
         try { await tab.Operation; }
         finally
         {
@@ -100,7 +101,7 @@ public sealed class QueryWorkspace(
         _lifetime.Dispose();
     }
 
-    private async Task ExecuteCoreAsync(WebTab tab, CancellationToken cancellationToken)
+    private async Task ExecuteCoreAsync(WebTab tab, QueryRequest request, CancellationToken cancellationToken)
     {
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
@@ -109,7 +110,7 @@ public sealed class QueryWorkspace(
         try
         {
             await limiter.EnterAsync(cancellationToken);
-            try { await LoadAsync(tab, cancellationToken); }
+            try { await LoadAsync(tab, request, cancellationToken); }
             finally { limiter.Exit(); }
         }
         catch (QueryTimeoutException exception) { tab.Error = text.Format(LocalizationKeys.Query.TimedOut, exception.Timeout.TotalSeconds); }
@@ -120,28 +121,32 @@ public sealed class QueryWorkspace(
         }
     }
 
-    private async Task LoadAsync(WebTab tab, CancellationToken cancellationToken)
+    private async Task LoadAsync(WebTab tab, QueryRequest request, CancellationToken cancellationToken)
     {
         var connection = connections.Get(tab.ConnectionId);
-        if (tab.Browse && tab.Collection is not null)
+        if (request.Browse && tab.Collection is not null)
         {
             var collection = new CollectionRef(DatabaseName.Create(tab.Database), CollectionName.Create(tab.Collection));
-            var result = await queries.FindAsync(connection.Target, collection, tab.Filter,
-                new QueryExecutionOptions { Skip = tab.Page * PageSize, Limit = PageSize + 1 }, cancellationToken);
+            var result = await queries.FindAsync(connection.Target, collection, request.Filter,
+                new QueryExecutionOptions { Skip = request.Page * PageSize, Limit = PageSize + 1 }, cancellationToken);
             tab.HasNext = result.Documents.Count > PageSize;
             tab.Result = result with { Documents = result.Documents.Take(PageSize).ToArray() };
             tab.EditableCollection = collection;
             return;
         }
-        if (tab.Script.Length > MaximumScriptCharacters) throw new DomainException(text[LocalizationKeys.Error.ScriptSize]);
-        tab.Result = await queries.ExecuteAsync(new QueryExecutionContext
+        if (request.Script.Length > MaximumScriptCharacters) throw new DomainException(text[LocalizationKeys.Error.ScriptSize]);
+        var scriptResult = await queries.ExecuteAsync(new QueryExecutionContext
         {
             TabId = tab.Id, ConnectionId = tab.ConnectionId, Target = connection.Target,
-            Database = tab.Database, Collection = tab.Collection, Script = tab.Script,
+            Database = tab.Database, Collection = tab.Collection, Script = request.Script,
         }, cancellationToken);
+        var source = scriptResult.Documents.All(document => document.Contains(MongoSystemNames.IdField))
+            ? DocumentQuerySource.Resolve(request.Script, tab.Database) : null;
+        tab.Result = scriptResult;
         tab.Page = 0;
         tab.HasNext = tab.Result.Documents.Count > PageSize;
-        tab.EditableCollection = tab.Result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
-            ? DocumentQuerySource.Resolve(tab.Script, tab.Database) : null;
+        tab.EditableCollection = source;
     }
+
+    private sealed record QueryRequest(string Script, bool Browse, string Filter, int Page);
 }

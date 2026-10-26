@@ -26,9 +26,9 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
     public ConnectionService Connections { get; }
     public QueryWorkspace Workspace { get; }
     public ConnectionCatalog Catalog { get; }
+    public WebQueryLimiter Limiter { get; } = new();
     private readonly QueryService _queries;
     private readonly ConnectionTunnelService _tunnels;
-    private readonly WebQueryLimiter _limiter = new();
 
     public ILoggerFactory Loggers { get; }
 
@@ -48,7 +48,7 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(Shell);
         A.CallTo(() => Shell.IsRunning).Returns(true);
         _queries = new(factory, A.Fake<IQueryHistoryRepository>(), Gateway, new SettingsService(Settings), Loggers.CreateLogger<QueryService>());
-        Workspace = new(_queries, Catalog, _limiter, Text, Loggers.CreateLogger<QueryWorkspace>());
+        Workspace = new(_queries, Catalog, Limiter, Text, Loggers.CreateLogger<QueryWorkspace>());
     }
 
     public async ValueTask DisposeAsync()
@@ -57,6 +57,6 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
         await Catalog.DisposeAsync();
         await _queries.DisposeAsync();
         await _tunnels.DisposeAsync();
-        _limiter.Dispose();
+        Limiter.Dispose();
     }
 }
