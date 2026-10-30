@@ -92,8 +92,7 @@ public sealed class QueryWorkspaceRefreshTests
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).Returns(Result());
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders");
         tab.Filter = filter;
-        tab.Page = 2;
-        await fixture.Workspace.ExecuteAsync(tab);
+        await fixture.Workspace.ExecuteAsync(tab, 2);
         tab.Filter = "{\"status\":\"draft\"}";
 
         await fixture.Workspace.RefreshAsync(tab);

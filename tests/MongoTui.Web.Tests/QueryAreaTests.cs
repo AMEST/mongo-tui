@@ -14,11 +14,88 @@ using MongoTui.Application.Services;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Queries;
 using MongoTui.Web.Components.Panels;
+using MongoTui.Web.Services;
 
 namespace MongoTui.Web.Tests;
 
 public sealed class QueryAreaTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task Should_KeepDisplayedPage_WhenFilterApplicationFailsOrIsCancelled(bool submit, bool cancelled)
+    {
+        await using var fixture = new WorkspaceFixture();
+        var tab = await OpenBrowseAsync(fixture);
+        var previous = tab.Result;
+        var editable = tab.EditableCollection;
+        const string filter = "{invalid";
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            filter, A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .Throws(cancelled ? new OperationCanceledException() : new FormatException("Invalid filter."));
+        using var services = CreateServices(fixture);
+        await using var renderer = new ComponentTestRenderer(services);
+        await renderer.MountAsync<QueryArea>(new());
+        await renderer.ChangeAsync("mono", filter);
+
+        if (submit) await renderer.SubmitAsync();
+        else await renderer.ClickAsync("primary");
+
+        tab.Page.Should().Be(2);
+        tab.Result.Should().BeSameAs(previous);
+        tab.EditableCollection.Should().BeSameAs(editable);
+        tab.HasNext.Should().BeTrue();
+        tab.Busy.Should().BeFalse();
+        tab.Filter.Should().Be(filter);
+        tab.Error.Should().NotBeNullOrEmpty();
+        (await renderer.TextAsync()).Should().Contain(fixture.Text.Format(LocalizationKeys.Query.Page, 3));
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == 0 && options.Limit == 51),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_ResetPageWithResults_WhenFilterApplicationSucceeds(bool submit)
+    {
+        await using var fixture = new WorkspaceFixture();
+        var tab = await OpenBrowseAsync(fixture);
+        var previous = tab.Result;
+        const string filter = "{\"status\":\"paid\"}";
+        var response = new TaskCompletionSource<QueryResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            filter, A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .ReturnsLazily(call => response.Task.WaitAsync(call.GetArgument<CancellationToken>(4)));
+        using var services = CreateServices(fixture);
+        await using var renderer = new ComponentTestRenderer(services);
+        await renderer.MountAsync<QueryArea>(new());
+        await renderer.ChangeAsync("mono", filter);
+        var result = new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] };
+
+        var pending = submit ? renderer.SubmitAsync() : renderer.ClickAsync("primary");
+        var loading = (tab.Page, tab.Result, tab.HasNext, tab.Busy, Text: await renderer.TextAsync());
+        response.SetResult(result);
+        await pending.WaitAsync(TimeSpan.FromSeconds(5));
+
+        loading.Page.Should().Be(2);
+        loading.Result.Should().BeSameAs(previous);
+        loading.HasNext.Should().BeTrue();
+        loading.Busy.Should().BeTrue();
+        loading.Text.Should().Contain(fixture.Text.Format(LocalizationKeys.Query.Page, 3));
+        tab.Page.Should().Be(0);
+        tab.Result!.Documents.Should().Equal(result.Documents);
+        tab.HasNext.Should().BeFalse();
+        tab.Busy.Should().BeFalse();
+        tab.Error.Should().BeNull();
+        (await renderer.TextAsync()).Should().Contain(fixture.Text.Format(LocalizationKeys.Query.Page, 1));
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == 0 && options.Limit == 51),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -157,6 +234,22 @@ public sealed class QueryAreaTests
         tab.Script.Should().Be(draft);
         (await renderer.TextAsync()).Should().NotContain(fixture.Text[LocalizationKeys.Ai.Use]);
         A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    private async Task<WebTab> OpenBrowseAsync(WorkspaceFixture fixture)
+    {
+        await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._))
+            .ReturnsLazily(call => Task.FromResult(new QueryResult
+            {
+                Kind = QueryResultKind.Documents,
+                Documents = Enumerable.Range(call.GetArgument<QueryExecutionOptions>(3)!.Skip, 51)
+                    .Select(id => new BsonDocument("_id", id)).ToArray(),
+            }));
+        var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders");
+        await fixture.Workspace.ExecuteAsync(tab, 2);
+        return tab;
     }
 
     private ServiceProvider CreateServices(WorkspaceFixture fixture)

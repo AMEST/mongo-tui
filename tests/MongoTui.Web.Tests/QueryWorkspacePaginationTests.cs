@@ -14,6 +14,78 @@ public sealed class QueryWorkspacePaginationTests
 {
     [Theory]
     [InlineData(0, 1)]
+    [InlineData(2, -1)]
+    public async Task Should_PaginateSuccessfulFilterSnapshot_WhenFilterDraftChanges(int page, int direction)
+    {
+        await using var fixture = new WorkspaceFixture();
+        const string filter = "{\"status\":\"paid\"}";
+        const string draft = "{\"status\":\"draft\"}";
+        var tab = await BrowseAsync(fixture, page, filter);
+        tab.Filter = draft;
+
+        await fixture.Workspace.PageAsync(tab, direction);
+
+        tab.Page.Should().Be(page + direction);
+        tab.Filter.Should().Be(draft);
+        tab.Result!.Documents.Select(document => document["_id"].AsInt32)
+            .Should().Equal(Enumerable.Range((page + direction) * QueryWorkspace.PageSize, 50));
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == (page + direction) * 50 && options.Limit == 51),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            draft, A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_RefreshLatestPageSnapshot_WhenPaginationSucceedsAfterFilterDraftChanges()
+    {
+        await using var fixture = new WorkspaceFixture();
+        const string filter = "{\"status\":\"paid\"}";
+        var tab = await BrowseAsync(fixture, 0, filter);
+        tab.Filter = "{invalid";
+        await fixture.Workspace.PageAsync(tab, 1);
+
+        await fixture.Workspace.RefreshAsync(tab);
+
+        tab.Page.Should().Be(1);
+        tab.Filter.Should().Be("{invalid");
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == 50 && options.Limit == 51),
+            A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            tab.Filter, A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(-1)]
+    public async Task Should_PaginateDisplayedSnapshot_WhenFilterApplicationFails(int direction)
+    {
+        await using var fixture = new WorkspaceFixture();
+        const string filter = "{\"status\":\"paid\"}";
+        var tab = await BrowseAsync(fixture, 2, filter);
+        tab.Filter = "{invalid";
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
+            tab.Filter, A<QueryExecutionOptions>._, A<CancellationToken>._)).Throws(new FormatException("Invalid filter."));
+        await fixture.Workspace.ExecuteAsync(tab);
+
+        await fixture.Workspace.PageAsync(tab, direction);
+
+        tab.Page.Should().Be(2 + direction);
+        tab.Filter.Should().Be("{invalid");
+        tab.Error.Should().BeNull();
+        tab.Result!.Documents.Select(document => document["_id"].AsInt32)
+            .Should().Equal(Enumerable.Range((2 + direction) * QueryWorkspace.PageSize, 50));
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == (2 + direction) * 50 && options.Limit == 51),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, tab.Filter,
+            A<QueryExecutionOptions>.That.Matches(options => options.Skip == 0),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
     [InlineData(1, -1)]
     public async Task Should_CommitBrowsePageWithResults_WhenPaginationSucceeds(int page, int direction)
     {
@@ -147,15 +219,15 @@ public sealed class QueryWorkspacePaginationTests
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
-    private async Task<WebTab> BrowseAsync(WorkspaceFixture fixture, int page)
+    private async Task<WebTab> BrowseAsync(WorkspaceFixture fixture, int page, string filter = "{}")
     {
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._))
             .ReturnsLazily(call => Task.FromResult(Result(call.GetArgument<QueryExecutionOptions>(3)!.Skip)));
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders");
-        tab.Page = page;
-        await fixture.Workspace.ExecuteAsync(tab);
+        tab.Filter = filter;
+        await fixture.Workspace.ExecuteAsync(tab, page);
         return tab;
     }
 

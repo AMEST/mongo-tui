@@ -30,7 +30,7 @@
         <div class="query-toolbar"><div class="segmented">@if (tab.Collection is not null) { <button class="@(tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(true)">@L[LocalizationKeys.Query.Browse]</button> }<button class="@(!tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(false)">@L[LocalizationKeys.Query.Script]</button></div><div class="toolbar-right"><span class="shortcut">@(tab.Browse ? L[LocalizationKeys.Query.PageSize] : "⌘ / Ctrl ↵")</span><div class="query-run-control"><button class="button compact primary" aria-busy="@(tab.Busy ? "true" : "false")" @onclick="RunOrCancelAsync"><Icon Name="@(tab.Busy ? IconNames.Stop : IconNames.Play)" Size="15" /><span class="button-label"><span class="@(!tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(tab.Busy ? "true" : "false")">@L[tab.Browse ? LocalizationKeys.Query.Apply : LocalizationKeys.Query.Run]</span><span class="@(tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(!tab.Busy ? "true" : "false")">@L[LocalizationKeys.Query.Stop]</span></span></button></div></div></div>
         @if (tab.Browse)
         {
-            <form class="filter-bar" @onsubmit="ApplyFilterAsync" @onsubmit:preventDefault="true"><span class="filter-label">@L[LocalizationKeys.Query.Filter]</span><input class="mono" aria-label="@L[LocalizationKeys.Query.Filter]" @bind="tab.Filter" spellcheck="false" /><span class="badge subtle">JSON</span></form>
+            <form class="filter-bar" @onsubmit="RunAsync" @onsubmit:preventDefault="true"><span class="filter-label">@L[LocalizationKeys.Query.Filter]</span><input class="mono" aria-label="@L[LocalizationKeys.Query.Filter]" @bind="tab.Filter" spellcheck="false" /><span class="badge subtle">JSON</span></form>
         }
         else
         {
@@ -89,9 +89,12 @@
         if (Workspace.Selected is { Busy: true } tab) { Workspace.Cancel(tab); return; }
         await RunAsync();
     }
-    private async Task RunAsync() { await SaveDraftAsync(); if (Workspace.Selected is { } tab) { if (tab.Browse) tab.Page = 0; await Workspace.ExecuteAsync(tab); } }
+    private async Task RunAsync()
+    {
+        await SaveDraftAsync();
+        if (Workspace.Selected is { } tab) await Workspace.ExecuteAsync(tab);
+    }
     private async Task ImportedAsync() { if (Workspace.Selected is { Browse: true }) await RunAsync(); }
-    private async Task ApplyFilterAsync() { if (Workspace.Selected is { } tab) tab.Page = 0; await RunAsync(); }
     private void Inspect(BsonDocument document) { if (Workspace.Selected?.Busy == true) return; _insert = false; _document = document; }
     private void Insert() { if (Workspace.Selected?.Busy == true) return; _insert = true; _document = new BsonDocument(); }
     private async Task DocumentSavedAsync(WebTab tab) { _document = null; await Workspace.RefreshAsync(tab); }

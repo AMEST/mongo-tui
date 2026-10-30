@@ -44,7 +44,8 @@ public sealed class QueryWorkspace(
 
     public void Select(WebTab tab) { Selected = tab; Changed?.Invoke(); }
 
-    public Task ExecuteAsync(WebTab tab) => ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, tab.Page));
+    /// <summary>Executes the editor draft at the requested page, committing the page only when the query succeeds.</summary>
+    public Task ExecuteAsync(WebTab tab, int page = 0) => ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
 
     /// <summary>Reloads the displayed results using their successful query snapshot, preserving the editor draft.</summary>
     public Task RefreshAsync(WebTab tab) => tab.Result is not null && _resultRequests.TryGetValue(tab.Id, out var request)
@@ -92,8 +93,9 @@ public sealed class QueryWorkspace(
     public async Task PageAsync(WebTab tab, int direction)
     {
         var page = tab.Page + direction;
-        if (tab.Busy || page < 0 || direction > 0 && !tab.HasNext) return;
-        if (tab.Browse) await ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
+        if (tab.Busy || tab.Result is null || page < 0 || direction > 0 && !tab.HasNext
+            || !_resultRequests.TryGetValue(tab.Id, out var request)) return;
+        if (request.Browse) await ExecuteAsync(tab, request with { Page = page });
         else
         {
             tab.Page = page;
