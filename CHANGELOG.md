@@ -8,12 +8,20 @@ All notable changes to this project are documented in this file.
 
 - **TUI query context** — each tab shows its connection profile and database above the editor,
   including the URI/default database when no database was explicitly selected.
+- **TUI query history** — choose a saved connection, inspect the query, database, collection,
+  date, status and duration, and reopen it in a new tab without executing it.
+- **TUI syntax highlighting** — JavaScript/JSON tokens are colored in query and document editors
+  and history previews, preserving editing, autocomplete and selection.
+- **TUI index details** — show key fields, directions and uniqueness; require confirmation
+  before dropping an index and disable dropping the built-in `_id_` index.
 
 ### Changed
 
 - TUI document dialogs grow with the terminal height and reserve more space for the document editor.
 - Opening a collection in TUI immediately runs its generated `find({}).limit(50)` query,
   including opening it from the collection context menu. Closing a tab cancels its pending query.
+- TUI refreshes results after document insertion, editing and deletion by replaying the last
+  verified read in its original tab, preserving the editor draft and selected tab.
 
 ### Fixed
 

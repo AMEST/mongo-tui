@@ -115,23 +115,34 @@ public sealed class QueryTabsView : View
         return pane.Operation = RunAsync(application, pane);
     }
 
-    private async Task<QueryRunSummary?> RunAsync(IApplication application, QueryTabPane pane)
+    /// <summary>Reloads the tab's last verified read without changing its editor or the selected tab.</summary>
+    public Task<QueryRunSummary?> RefreshAsync(IApplication application, QueryTabViewModel tab)
+    {
+        var pane = _panes.Values.FirstOrDefault(candidate => candidate.Model == tab);
+        if (pane is null || tab.IsExecuting || pane.Operation is { IsCompleted: false } || tab.ResultCollection is null)
+            return Task.FromResult<QueryRunSummary?>(null);
+        return pane.Operation = RunAsync(application, pane, refresh: true);
+    }
+
+    private async Task<QueryRunSummary?> RunAsync(IApplication application, QueryTabPane pane, bool refresh = false)
     {
         var cancellationToken = pane.CancellationToken;
         Log.Debug("RunActive: executing tab {TabId} ({Title})", pane.Model.Id, pane.Model.Title);
         pane.Editor.CancelCompletion();
         QueryRunSummary? summary = null;
-        await pane.Model.ExecuteAsync(update => application.InvokeAsync(() =>
+        Task UpdateAsync(Action update) => application.InvokeAsync(() =>
         {
             if (cancellationToken.IsCancellationRequested || !_panes.ContainsKey(pane.Container)) return;
             update();
             InvalidateCompletions();
             pane.ShowResult();
-            if (CurrentPane() == pane) pane.FocusResult();
+            if (!refresh && CurrentPane() == pane) pane.FocusResult();
             summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed);
             Log.Debug("RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
                 pane.Model.Id, pane.Model.Result.Documents.Count, pane.Model.Result.HasError);
-        }), cancellationToken).ConfigureAwait(false);
+        });
+        await (refresh ? pane.Model.RefreshAsync(UpdateAsync, cancellationToken)
+            : pane.Model.ExecuteAsync(UpdateAsync, cancellationToken)).ConfigureAwait(false);
 
         return summary;
     }

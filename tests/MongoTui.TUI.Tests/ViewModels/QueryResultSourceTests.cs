@@ -99,5 +99,38 @@ public sealed class QueryResultSourceTests
         await execution;
     }
 
+    [Fact]
+    public async Task Should_RefreshExecutedSnapshot_WhenDraftAndDatabaseHaveChanged()
+    {
+        _tab.Script = "db.getSiblingDB('other').orders.find({})";
+        await _tab.ExecuteAsync(CancellationToken.None);
+        _tab.Script = "db.users.deleteMany({})";
+        _tab.Database = "draft";
+
+        await _tab.RefreshAsync(action => { action(); return Task.CompletedTask; }, CancellationToken.None);
+
+        A.CallTo(() => _session.EvaluateAsync("db.getSiblingDB('other').orders.find({})", "app", A<CancellationToken>._))
+            .MustHaveHappenedTwiceExactly();
+        A.CallTo(() => _session.EvaluateAsync("db.users.deleteMany({})", A<string?>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+        _tab.Script.Should().Be("db.users.deleteMany({})");
+        _tab.Database.Should().Be("draft");
+        _tab.ResultCollection!.Database.Value.Should().Be("other");
+    }
+
+    [Theory]
+    [InlineData("db.users.deleteMany({})")]
+    [InlineData("db.users.find({}); db.users.insertOne({name:'x'})")]
+    [InlineData("db.users.aggregate([])")]
+    public async Task ShouldNot_ReplayScript_WhenDisplayedSourceIsUnverified(string script)
+    {
+        _tab.Script = script;
+        await _tab.ExecuteAsync(CancellationToken.None);
+
+        await _tab.RefreshAsync(action => { action(); return Task.CompletedTask; }, CancellationToken.None);
+
+        A.CallTo(() => _session.EvaluateAsync(script, "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
     private static QueryResult Result() => new() { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] };
 }

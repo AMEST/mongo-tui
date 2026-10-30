@@ -425,4 +425,14 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="WebAuth.SignOut" xml:space="preserve"><value>Выйти</value></data>
   <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
   <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
+  <data name="History.Entry" xml:space="preserve"><value>{0:g} | {1} | {2}{3} | {4} мс</value></data>
+  <data name="History.Success" xml:space="preserve"><value>Успешно</value></data>
+  <data name="History.Failed" xml:space="preserve"><value>Ошибка</value></data>
+  <data name="History.Open" xml:space="preserve"><value>Открыть запрос</value></data>
+  <data name="History.Select" xml:space="preserve"><value>Выберите подключение</value></data>
+  <data name="History.LoadError" xml:space="preserve"><value>Не удалось загрузить историю запросов.</value></data>
+  <data name="Query.Script" xml:space="preserve"><value>Скрипт</value></data>
+  <data name="Index.DeleteHint" xml:space="preserve"><value>Удалить индекс «{0}»?</value></data>
+  <data name="Index.UniqueBadge" xml:space="preserve"><value>уникальный</value></data>
+  <data name="Common.Refresh" xml:space="preserve"><value>Обновить</value></data>
 </root>

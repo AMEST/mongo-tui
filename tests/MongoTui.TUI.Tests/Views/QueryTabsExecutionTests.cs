@@ -88,15 +88,47 @@ public sealed class QueryTabsExecutionTests : IDisposable
         else _rendered.Should().BeTrue();
     }
 
-    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails)
+    [Theory]
+    [InlineData("en", false, false)]
+    [InlineData("ru", true, false)]
+    [InlineData("en", false, true)]
+    public async Task Should_RefreshOriginalTabWithoutExecutingDraft_WhenBackgroundResultArrives(
+        string language, bool switchTab, bool closeTab)
+    {
+        _localizer.SetLanguage(language);
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+            .ReturnsNextFromSequence(Task.FromResult(new QueryResult { Kind = QueryResultKind.Documents,
+                Documents = [new BsonDocument("_id", 1)] }), _response.Task);
+        ScheduleExecution(switchTab, closeTab, false, refresh: true);
+
+        _app.Run(_parent);
+
+        await _operation!;
+        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<CancellationToken>._))
+            .MustHaveHappenedTwiceExactly();
+        A.CallTo(() => _session.EvaluateAsync("db.orders.deleteMany({})", A<string?>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+        _original!.Script.Should().Be("db.orders.deleteMany({})");
+        if (closeTab) _tabs.TabCount.Should().Be(0);
+        else if (switchTab) _tabs.ActiveEditorView!.HasFocus.Should().BeTrue();
+        else _rendered.Should().BeTrue();
+    }
+
+    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails, bool refresh = false)
     {
         _app.AddTimeout(TimeSpan.Zero, () => { _app.Run(_dialog); _app.RequestStop(_parent); return false; });
         _app.AddTimeout(TimeSpan.FromMilliseconds(40), () =>
         {
             _original = _tabs.AddTab(ConnectionId.New(), _target, "app", "orders",
                 "db.orders.find({}).limit(50).toArray()", "Production");
-            _operation = _tabs.RunActiveAsync(_app);
-            _ = _tabs.RunActiveAsync(_app);
+            if (refresh)
+            {
+                _tabs.RunActiveAsync(_app).IsCompleted.Should().BeTrue();
+                _original.Script = "db.orders.deleteMany({})";
+                _original.Database = "draft";
+                _operation = _tabs.RefreshAsync(_app, _original);
+            }
+            else { _operation = _tabs.RunActiveAsync(_app); _ = _tabs.RunActiveAsync(_app); }
             if (switchTab) _tabs.AddTab(ConnectionId.New(), _target, "other", script: "db.unrelated.find({})");
             if (closeTab) _close = _tabs.CloseActiveAsync();
             _ = CompleteAsync(fails);

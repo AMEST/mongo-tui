@@ -19,6 +19,7 @@ public sealed class QueryTabViewModel : ObservableObject
     private string _title;
     private string _script;
     private bool _isExecuting;
+    private QueryExecutionContext? _resultContext;
 
     public QueryTabViewModel(
         QueryService queryService,
@@ -85,24 +86,27 @@ public sealed class QueryTabViewModel : ObservableObject
     public Task ExecuteAsync(CancellationToken cancellationToken) =>
         ExecuteAsync(action => { action(); return Task.CompletedTask; }, cancellationToken);
 
-    internal async Task ExecuteAsync(Func<Action, Task> update, CancellationToken cancellationToken)
+    internal Task ExecuteAsync(Func<Action, Task> update, CancellationToken cancellationToken) =>
+        ExecuteAsync(new QueryExecutionContext
+        {
+            TabId = Id, ConnectionId = ConnectionId, Target = Target,
+            Script = Script, Database = Database, Collection = Collection,
+        }, update, cancellationToken);
+
+    // Only verified reads can be replayed after document mutations; the editor may contain a different script.
+    internal Task RefreshAsync(Func<Action, Task> update, CancellationToken cancellationToken) =>
+        _resultContext is { } context && ResultCollection is not null
+            ? ExecuteAsync(context, update, cancellationToken) : Task.CompletedTask;
+
+    private async Task ExecuteAsync(QueryExecutionContext context, Func<Action, Task> update, CancellationToken cancellationToken)
     {
         IsExecuting = true;
         ResultCollection = null;
-        Log.Debug("Query tab {TabId}: executing ({ScriptLength} chars)", Id, Script.Length);
+        _resultContext = null;
+        Log.Debug("Query tab {TabId}: executing ({ScriptLength} chars)", Id, context.Script.Length);
 
         try
         {
-            var context = new QueryExecutionContext
-            {
-                TabId = Id,
-                ConnectionId = ConnectionId,
-                Target = Target,
-                Script = Script,
-                Database = Database,
-                Collection = Collection,
-            };
-
             QueryResult? result = null;
             Exception? failure = null;
             try
@@ -132,6 +136,7 @@ public sealed class QueryTabViewModel : ObservableObject
             {
                 Result.Load(result!);
                 ResultCollection = DocumentQuerySource.Resolve(context, result!);
+                _resultContext = ResultCollection is null ? null : context;
                 Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result!.Documents.Count, result.Elapsed);
                 return;
             }

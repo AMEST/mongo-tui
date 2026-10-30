@@ -425,4 +425,14 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="WebAuth.SignOut" xml:space="preserve"><value>Sign out</value></data>
   <data name="WebAuth.StartupLink" xml:space="preserve"><value>Sign-in link: {0}</value></data>
   <data name="WebAuth.StartupHint" xml:space="preserve"><value>The link is single-use and expires in 15 minutes. With master-password protection, you can also sign in at the regular Web address.</value></data>
+  <data name="History.Entry" xml:space="preserve"><value>{0:g} | {1} | {2}{3} | {4} ms</value></data>
+  <data name="History.Success" xml:space="preserve"><value>Success</value></data>
+  <data name="History.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="History.Open" xml:space="preserve"><value>Open query</value></data>
+  <data name="History.Select" xml:space="preserve"><value>Select connection</value></data>
+  <data name="History.LoadError" xml:space="preserve"><value>Could not load query history.</value></data>
+  <data name="Query.Script" xml:space="preserve"><value>Script</value></data>
+  <data name="Index.DeleteHint" xml:space="preserve"><value>Delete index “{0}”?</value></data>
+  <data name="Index.UniqueBadge" xml:space="preserve"><value>unique</value></data>
+  <data name="Common.Refresh" xml:space="preserve"><value>Refresh</value></data>
 </root>

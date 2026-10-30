@@ -74,6 +74,11 @@ public static partial class LocalizationKeys
 
     public static class History
     {
+        public const string Entry = "History.Entry";
+        public const string Failed = "History.Failed";
+        public const string LoadError = "History.LoadError";
+        public const string Open = "History.Open";
+        public const string Success = "History.Success";
         public const string Empty = "History.Empty";
         public const string EmptyHint = "History.EmptyHint";
         public const string Recent = "History.Recent";

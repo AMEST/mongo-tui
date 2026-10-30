@@ -938,129 +938,17 @@ public sealed partial class MainWindow : Window
         SetStatus(row.Profile.Name);
     }
 
-    private void InsertDocument()
-    {
-        if (ResolveContext() is not { } context)
-        {
-            return;
-        }
-
-        var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection);
-        using var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
-        Application!.Run(dialog);
-
-        SetStatus(dialog.Saved ? _localizer.Get(LocalizationKeys.Documents.Saved) : null);
-    }
-
-    private void EditDocument() => Safe(EditDocumentAsync);
-
-    private async Task EditDocumentAsync()
-    {
-        if (_openingDocument || ResolveResultContext() is not { } context) return;
-        var document = _queryTabs.SelectedDocument;
-        if (document is null)
-        {
-            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoDocument));
-            return;
-        }
-        _openingDocument = true;
-        try
-        {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_documentLifetime.Token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(30));
-            var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection, document);
-            var loaded = await viewModel.InitializeAsync(timeout.Token).ConfigureAwait(false);
-            if (_documentLifetime.IsCancellationRequested) return;
-            await Application!.InvokeAsync(() =>
-            {
-                if (_documentLifetime.IsCancellationRequested) return;
-                if (!loaded)
-                {
-                    SetStatus(viewModel.ValidationErrorKey is { } key ? _localizer.Get(key) : viewModel.ValidationError);
-                    return;
-                }
-                using var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
-                Application!.Run(dialog);
-                if (dialog.Deleted) SetStatus(_localizer.Get(LocalizationKeys.Documents.Deleted));
-                else if (dialog.Saved) SetStatus(_localizer.Get(LocalizationKeys.Documents.Saved));
-            }).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (_documentLifetime.IsCancellationRequested) { }
-        finally { _openingDocument = false; }
-    }
-
-    private void DeleteDocument()
-    {
-        if (ResolveResultContext() is not { } context)
-        {
-            return;
-        }
-
-        if (_queryTabs.SelectedDocument is not { } document)
-        {
-            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoDocument));
-            return;
-        }
-
-        var filter = BsonTextCodec.ForEditing(BsonTextCodec.IdFilter(document));
-        var confirm = new ConfirmDialog(
-            _localizer,
-            Application!,
-            _localizer.Get(LocalizationKeys.Menu.DocumentDelete),
-            _localizer.Format(LocalizationKeys.Documents.DeleteCondition, filter));
-        Application!.Run(confirm);
-
-        if (confirm.Confirmed)
-        {
-            Safe(() => DeleteDocumentAsync(context, filter));
-        }
-    }
-
-    private async Task DeleteDocumentAsync((MongoConnectionTarget Target, CollectionRef Collection) context, string filter)
-    {
-        try
-        {
-            var deleted = await _documents.DeleteAsync(context.Target, context.Collection, filter, CancellationToken.None);
-            SetStatus(_localizer.Get(deleted > 0 ? LocalizationKeys.Documents.Deleted : LocalizationKeys.Documents.NotFound));
-        }
-        catch (DomainException exception)
-        {
-            SetStatus(exception.Message);
-        }
-    }
-
-    private (MongoConnectionTarget Target, CollectionRef Collection)? ResolveResultContext()
-    {
-        if (_queryTabs.ActiveTab is { IsExecuting: false, ResultCollection: { } collection } tab)
-            return (tab.Target, collection);
-        SetStatus(_localizer.Get(LocalizationKeys.Documents.UnsafeResult));
-        return null;
-    }
-
-    private (MongoConnectionTarget Target, CollectionRef Collection)? ResolveContext()
-    {
-        var tab = _queryTabs.ActiveTab;
-        if (tab?.Database is null || tab.Collection is null)
-        {
-            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoContext));
-            return null;
-        }
-
-        var collection = new CollectionRef(DatabaseName.Create(tab.Database), CollectionName.Create(tab.Collection));
-
-        return (tab.Target, collection);
-    }
-
-    private async Task OpenIndexesAsync()
+    private Task OpenIndexesAsync()
     {
         if (ResolveContext() is not { } context || Application is null)
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        var dialog = new IndexManagerDialog(_indexes, _localizer, Application, context.Target, context.Collection);
-        await dialog.LoadAsync();
+        using var dialog = new IndexManagerDialog(_indexes, _localizer, Application, context.Target, context.Collection);
+        _ = dialog.LoadAsync();
         Application.Run(dialog);
+        return Task.CompletedTask;
     }
 
     private void OpenExport()
@@ -1137,20 +1025,6 @@ public sealed partial class MainWindow : Window
         }
 
         var dialog = new TranslateDialog(_translate, _localizer, Application);
-        Application.Run(dialog);
-    }
-
-    private async Task OpenHistoryAsync()
-    {
-        if (Application is null || SelectedRow() is not { } row)
-        {
-            SetStatus(_localizer.Get(LocalizationKeys.Tree.Empty));
-            return;
-        }
-
-        var connectionId = row.Profile.Id;
-        var dialog = new HistoryDialog(_history, _localizer, Application, connectionId);
-        await dialog.LoadAsync();
         Application.Run(dialog);
     }
 

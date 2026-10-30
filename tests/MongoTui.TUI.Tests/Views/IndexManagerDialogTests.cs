@@ -27,6 +27,7 @@ public sealed class IndexManagerDialogTests
 
     public IndexManagerDialogTests()
     {
+        A.CallTo(() => _application.MainThreadId).Returns(Environment.CurrentManagedThreadId);
         A.CallTo(() => _gateway.ListIndexesAsync(Target, Collection, A<CancellationToken>._))
             .Returns(Task.FromResult<IReadOnlyList<IndexInfo>>([]));
         A.CallTo(() => _gateway.GetCollectionStatsAsync(Target, Collection, A<CancellationToken>._))
@@ -55,6 +56,33 @@ public sealed class IndexManagerDialogTests
     {
         Field<CheckBox>("_uniqueCheck").Value.Should().Be(CheckState.UnChecked);
         Field<CheckBox>("_backgroundCheck").Value.Should().Be(CheckState.UnChecked);
+    }
+
+    [Fact]
+    public async Task Should_ShowFieldsAndUniqueFlag_WhenIndexesAreLoaded()
+    {
+        A.CallTo(() => _gateway.ListIndexesAsync(Target, Collection, A<CancellationToken>._))
+            .Returns(new[] { new IndexInfo { Name = "email_date", Unique = true,
+                Fields = [new IndexField("email", IndexDirection.Ascending), new IndexField("date", IndexDirection.Descending)] } });
+
+        await _dialog.LoadAsync();
+
+        Field<Label>("_details").Text.Should().Contain("email: 1").And.Contain("date: -1")
+            .And.Contain(_localizer.Get(MongoTui.Application.Localization.LocalizationKeys.Index.UniqueBadge));
+        _dialog.Buttons[2].Enabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ShouldNot_AllowDroppingIdIndex_WhenSelected()
+    {
+        A.CallTo(() => _gateway.ListIndexesAsync(Target, Collection, A<CancellationToken>._))
+            .Returns(new[] { new IndexInfo { Name = "_id_", Fields = [new IndexField("_id", IndexDirection.Ascending)] } });
+        await _dialog.LoadAsync();
+
+        _dialog.Buttons[2].InvokeCommand(Command.Accept);
+
+        _dialog.Buttons[2].Enabled.Should().BeFalse();
+        A.CallTo(() => _gateway.DropIndexAsync(Target, Collection, A<string>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     private T Field<T>(string name) =>

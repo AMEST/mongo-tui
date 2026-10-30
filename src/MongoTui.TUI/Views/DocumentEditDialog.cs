@@ -25,8 +25,8 @@ public sealed class DocumentEditDialog : ThemedDialog
     private readonly CancellationTokenSource _lifetime = new();
     private bool _busy;
 #pragma warning disable CS0618 // TextView is superseded by the external Editor package; kept for M7.
-    private readonly TextView _filter = new() { Multiline = true };
-    private readonly TextView _editor = new() { Multiline = true };
+    private readonly SyntaxTextView _filter = new() { Multiline = true };
+    private readonly SyntaxTextView _editor = new() { Multiline = true };
 #pragma warning restore CS0618
     private readonly Label _error = new();
 
