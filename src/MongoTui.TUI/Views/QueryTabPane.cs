@@ -14,8 +14,10 @@ internal sealed class QueryTabPane
 {
     private readonly QueryTabsView _owner;
     private readonly ResultTextView _result;
+    private readonly Label _context = new() { X = 1, Y = 0, Width = Dim.Fill(1), Height = 1 };
     private readonly FrameView _editorFrame;
     private readonly FrameView _resultFrame;
+    private readonly CancellationTokenSource _lifetime = new();
     private bool _menuBuilt;
 
     public QueryTabPane(QueryTabsView owner, QueryTabViewModel model, ILocalizer localizer, AutocompleteService autocomplete)
@@ -23,12 +25,14 @@ internal sealed class QueryTabPane
         _owner = owner;
         Model = model;
         Container = new View { Title = model.Title, Width = Dim.Fill(), Height = Dim.Fill() };
+        Container.Disposing += (_, _) => { _lifetime.Cancel(); _lifetime.Dispose(); };
+        RefreshContext(localizer);
 
         _editorFrame = new FrameView
         {
             Title = localizer.Get(LocalizationKeys.Query.Pane),
             X = 0,
-            Y = 0,
+            Y = Pos.Bottom(_context),
             Width = Dim.Fill(),
             Height = Dim.Percent(50),
         };
@@ -49,8 +53,7 @@ internal sealed class QueryTabPane
         };
         _resultFrame.Add(_result);
 
-        Container.Add(_editorFrame);
-        Container.Add(_resultFrame);
+        Container.Add(_context, _editorFrame, _resultFrame);
 
         Container.Initialized += (_, _) => BuildContextMenus(localizer);
     }
@@ -60,6 +63,12 @@ internal sealed class QueryTabPane
     public View Container { get; }
 
     public QueryEditorView Editor { get; }
+
+    public CancellationToken CancellationToken => _lifetime.Token;
+
+    public Task<QueryRunSummary?>? Operation { get; set; }
+
+    public void Cancel() => _lifetime.Cancel();
 
     /// <summary>Result text view (exposed for tests).</summary>
     internal TextView ResultView => _result;
@@ -81,9 +90,13 @@ internal sealed class QueryTabPane
 
     public void RefreshLocalization(ILocalizer localizer)
     {
+        RefreshContext(localizer);
         _editorFrame.Title = localizer.Get(LocalizationKeys.Query.Pane);
         _resultFrame.Title = localizer.Get(LocalizationKeys.Query.Result);
     }
+
+    private void RefreshContext(ILocalizer localizer) => _context.Text =
+        localizer.Format(LocalizationKeys.Query.Context, Model.ConnectionName, Model.ContextDatabase);
 
     private void BuildContextMenus(ILocalizer localizer)
     {

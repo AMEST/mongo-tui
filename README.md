@@ -27,6 +27,7 @@ with English and Russian interfaces.
   Right-click a connection to create a database with its first collection, or a database to create a collection or open an empty query tab bound to it. Creating a database writes to the server immediately.
   Right-click a database (or a connection for `admin`) to create, edit and delete MongoDB users, assign database and cluster roles, generate passwords and copy a ready-to-use connection string.
 - JavaScript query tabs with autocomplete and query history.
+  Each TUI tab shows its connection name and database above the query editor.
 - Table, Tree and JSON result views; document editing as Canonical Extended JSON with BSON type checks.
 - Collection import and export in JSON.
 - AI query assistance and translation through an OpenAI-compatible API.
@@ -99,7 +100,7 @@ The query timeout is shared by TUI and web. Configure it under **Settings → Qu
    **From URI** fills the authentication fields from a full connection string.
    **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
 3. Expand a database and open a collection with **Enter** or a double-click. A query tab opens
-   with a ready-to-run `find` query.
+   with a `find` query that runs immediately and loads up to 50 documents.
 4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree or JSON in
    **Settings → Result view**.
 

@@ -17,9 +17,9 @@ public sealed partial class MainWindow
         if (dialog.CreatedCollection is not { } created) return;
         await RefreshConnectionAsync(connection);
         var row = await RevealCollectionAsync(connection, created.Database.Value, created.Collection.Value);
-        if (row is not null) OpenCollectionTab(row);
         SetStatus(_localizer.Format(LocalizationKeys.Status.DatabaseCreated, created.Database.Value));
         _logger.LogInformation("Database created");
+        if (row is not null) await OpenCollectionTabAsync(row).ConfigureAwait(false);
     }
 
     private async Task CreateCollectionAsync(ActiveConnection connection, string database)

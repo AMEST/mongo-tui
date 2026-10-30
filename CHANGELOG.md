@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+
+- **TUI query context** — each tab shows its connection profile and database above the editor,
+  including the URI/default database when no database was explicitly selected.
+
+### Changed
+
+- TUI document dialogs grow with the terminal height and reserve more space for the document editor.
+- Opening a collection in TUI immediately runs its generated `find({}).limit(50)` query,
+  including opening it from the collection context menu. Closing a tab cancels its pending query.
+
+### Fixed
+
+- Collection names are escaped as JavaScript string literals before generating TUI queries.
+- Pending TUI queries do not run twice or steal focus after switching tabs; delayed results
+  are applied through the UI loop and never update a closed tab.
+
 ## v0.8.0 — since v0.7.0
 
 ### Added

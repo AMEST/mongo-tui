@@ -73,13 +73,15 @@ public sealed class UserManagementDialogRenderingTests
             _ = CompleteResponseAsync();
             app.AddTimeout(TimeSpan.FromMilliseconds(150), () =>
             {
-                screen = ScreenText(app);
+                var current = ScreenText(app);
+                if (!current.Contains("new_writer  [orders: rw]", StringComparison.Ordinal)) return true;
+                screen = current;
                 app.RequestStop(dialog);
                 return false;
             });
             return false;
         });
-        app.AddTimeout(TimeSpan.FromSeconds(3), () => { app.RequestStop(dialog); return false; });
+        app.AddTimeout(TimeSpan.FromSeconds(3), () => { screen ??= ScreenText(app); app.RequestStop(dialog); return false; });
         return () => screen;
     }
 

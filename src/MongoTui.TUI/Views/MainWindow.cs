@@ -1,6 +1,7 @@
 using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Text.Json;
 using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Ai;
 using MongoTui.Application.Abstractions.Diagnostics;
@@ -492,11 +493,17 @@ public sealed partial class MainWindow : Window
 
     private async Task RunActiveQueryAsync()
     {
-        var summary = await _queryTabs.RunActiveAsync();
+        if (Application is not { } application || _queryTabs.ActiveTab is not { IsExecuting: false } tab) return;
+        SetStatus(_localizer.Get(LocalizationKeys.Query.Running));
+        var summary = await _queryTabs.RunActiveAsync(application).ConfigureAwait(false);
 
         if (summary is { } result)
         {
-            SetStatus(_localizer.Format(LocalizationKeys.Status.QueryResult, result.DocumentCount, result.Elapsed.TotalMilliseconds));
+            await application.InvokeAsync(() =>
+            {
+                if (_queryTabs.ActiveTab == tab)
+                    SetStatus(_localizer.Format(LocalizationKeys.Status.QueryResult, result.DocumentCount, result.Elapsed.TotalMilliseconds));
+            }).ConfigureAwait(false);
         }
     }
 
@@ -558,26 +565,29 @@ public sealed partial class MainWindow : Window
                 RebuildTree(index);
                 break;
             case TreeRowKind.Collection:
-                OpenCollectionTab(row);
+                await OpenCollectionTabAsync(row).ConfigureAwait(false);
                 break;
         }
     }
 
-    private void OpenCollectionTab(TreeRow row)
+    private async Task OpenCollectionTabAsync(TreeRow row)
     {
         var script = BuildCollectionScript(row.Collection!);
-        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, row.Collection, script);
+        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, row.Collection, script,
+            connectionName: row.Profile.Name);
         SetStatus($"{row.Database}.{row.Collection}");
+        await RunActiveQueryAsync().ConfigureAwait(false);
     }
 
     private void OpenDatabaseQueryTab(TreeRow row)
     {
-        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, collection: null, EmptyQueryScript);
+        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, collection: null, EmptyQueryScript,
+            connectionName: row.Profile.Name);
         SetStatus(row.Database!);
     }
 
     private static string BuildCollectionScript(string collection) =>
-        $"db.getCollection(\"{collection}\").find({{}}).limit(50).toArray()";
+        $"db.getCollection({JsonSerializer.Serialize(collection)}).find({{}}).limit(50).toArray()";
 
     private void OnTreeMouseEvent(object? sender, Mouse mouse)
     {
@@ -644,11 +654,7 @@ public sealed partial class MainWindow : Window
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.DropDatabase), () => DropDatabaseAsync(connection, row.Database!)));
                 break;
             case TreeRowKind.Collection:
-                actions.Add((_localizer.Get(LocalizationKeys.Tree.NewQuery), () =>
-                {
-                    OpenCollectionTab(row);
-                    return Task.CompletedTask;
-                }));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.NewQuery), () => OpenCollectionTabAsync(row)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.Statistics), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.Indexes), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.ClearCollection), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));
@@ -928,7 +934,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        _queryTabs.AddTab(row.Profile.Id, connection.Target, row.Database, row.Collection);
+        _queryTabs.AddTab(row.Profile.Id, connection.Target, row.Database, row.Collection, connectionName: row.Profile.Name);
         SetStatus(row.Profile.Name);
     }
 

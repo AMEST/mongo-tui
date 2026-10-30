@@ -86,6 +86,7 @@ public static partial class LocalizationKeys
         public const string Apply = "Query.Apply";
         public const string Browse = "Query.Browse";
         public const string Cancelled = "Query.Cancelled";
+        public const string Context = "Query.Context";
         public const string Driver = "Query.Driver";
         public const string Editor = "Query.Editor";
         public const string Empty = "Query.Empty";
@@ -101,6 +102,7 @@ public static partial class LocalizationKeys
         public const string Result = "Query.Result";
         public const string Results = "Query.Results";
         public const string Run = "Query.Run";
+        public const string Running = "Query.Running";
         public const string Script = "Query.Script";
         public const string SettingsSaveError = "Query.Settings.SaveError";
         public const string SettingsLoadError = "Query.Settings.LoadError";

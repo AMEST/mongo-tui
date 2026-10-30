@@ -151,6 +151,8 @@
   <data name="ChangePassword.Changed" xml:space="preserve"><value>Master password changed.</value></data>
   <data name="Database.Empty" xml:space="preserve"><value>(empty)</value></data>
   <data name="Query.Pane" xml:space="preserve"><value>Query  (F5/Ctrl+R: run, Ctrl+W: close)</value></data>
+  <data name="Query.Context" xml:space="preserve"><value>Connection: {0} / Database: {1}</value></data>
+  <data name="Query.Running" xml:space="preserve"><value>Running query…</value></data>
   <data name="Query.Result" xml:space="preserve"><value>Result</value></data>
   <data name="Result.Table" xml:space="preserve"><value>Table</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Tree</value></data>

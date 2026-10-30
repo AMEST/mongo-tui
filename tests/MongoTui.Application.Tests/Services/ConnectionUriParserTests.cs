@@ -15,6 +15,7 @@ public sealed class ConnectionUriParserTests
         parsed.Uri.Should().Be("mongodb://localhost:27017/app?authSource=admin");
         parsed.Username.Should().Be("bob");
         parsed.Password.Should().Be("pw");
+        parsed.Database.Should().Be("app");
         parsed.AuthDatabase.Should().Be("admin");
         parsed.AuthKind.Should().Be(AuthKind.ScramSha256);
         parsed.Host.Should().Be("localhost");
@@ -26,6 +27,18 @@ public sealed class ConnectionUriParserTests
         var parsed = ConnectionUriParser.Parse("mongodb://localhost:27017/app");
 
         parsed.AuthDatabase.Should().Be("app");
+    }
+
+    [Theory]
+    [InlineData("mongodb://localhost/?authSource=admin", null)]
+    [InlineData("mongodb://localhost:27017", null)]
+    [InlineData("mongodb://host1,host2/orders%2Darchive?authSource=admin", "orders-archive")]
+    [InlineData("mongodb+srv://cluster.example/catalog?authSource=admin", "catalog")]
+    public void Should_ParseDatabaseSeparately_WhenUriIncludesAuthenticationSource(string uri, string? expected)
+    {
+        var parsed = ConnectionUriParser.Parse(uri);
+
+        parsed.Database.Should().Be(expected);
     }
 
     [Fact]

@@ -151,6 +151,8 @@
   <data name="ChangePassword.Changed" xml:space="preserve"><value>Мастер-пароль изменён.</value></data>
   <data name="Database.Empty" xml:space="preserve"><value>(пустая)</value></data>
   <data name="Query.Pane" xml:space="preserve"><value>Запрос  (F5/Ctrl+R: выполнить, Ctrl+W: закрыть)</value></data>
+  <data name="Query.Context" xml:space="preserve"><value>Подключение: {0} / База: {1}</value></data>
+  <data name="Query.Running" xml:space="preserve"><value>Запрос выполняется…</value></data>
   <data name="Query.Result" xml:space="preserve"><value>Результат</value></data>
   <data name="Result.Table" xml:space="preserve"><value>Таблица</value></data>
   <data name="Result.Tree" xml:space="preserve"><value>Дерево</value></data>
