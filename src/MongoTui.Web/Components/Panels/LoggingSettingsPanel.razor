@@ -1,0 +1,63 @@
+@implements IDisposable
+@inject ILoggingSettings Settings
+@inject WebText L
+<section class="panel settings-card" aria-labelledby="logging-settings-title">
+    <header class="panel-heading"><Icon Name="@IconNames.Logs" /><h2 id="logging-settings-title">@L[LocalizationKeys.Logging.Title]</h2></header>
+    <form @onsubmit="SaveAsync" @onsubmit:preventDefault="true">
+        <div class="settings-field">
+            <div class="settings-description">
+                <label for="logging-level">@L[LocalizationKeys.Logging.Level]</label>
+                <p id="logging-level-hint">@L[LocalizationKeys.Logging.Hint]</p>
+                @if (_settings is { IsOverridden: true } current)
+                {
+                    <p class="muted" role="status">@L.Format(LocalizationKeys.Logging.Override, current.EffectiveLevel)</p>
+                }
+            </div>
+            <div class="settings-control compact-control">
+                <select id="logging-level" disabled="@(_busy || _settings is null)" aria-describedby="logging-level-hint" @bind="_level">
+                    @foreach (var level in Enum.GetValues<ApplicationLogLevel>()) { <option value="@level">@level</option> }
+                </select>
+            </div>
+        </div>
+        <footer class="settings-actions">
+            <FormFeedback Class="inline-feedback" Error="@_error" Success="@(_saved ? L[LocalizationKeys.Logging.Saved] : null)" />
+            <BusyButton Type="submit" Busy="_busy" Disabled="@(_settings is null)" Icon="@IconNames.Check">@L[LocalizationKeys.Common.Save]</BusyButton>
+        </footer>
+    </form>
+</section>
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+    private LoggingSettings? _settings;
+    private ApplicationLogLevel _level = ApplicationLogLevel.Information;
+    private bool _busy, _saved, _disposed;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var settings = await Settings.GetAsync(_lifetime.Token);
+            if (_disposed) return;
+            _settings = settings; _level = settings.SavedLevel;
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch { if (!_disposed) _error = L[LocalizationKeys.Logging.LoadError]; }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _settings is null) return;
+        var level = _level;
+        _busy = true; _error = null; _saved = false;
+        try
+        {
+            var settings = await Settings.SaveAsync(level, _lifetime.Token);
+            if (!_disposed) { _settings = settings; _saved = true; }
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch { if (!_disposed) _error = L[LocalizationKeys.Logging.SaveError]; }
+        finally { if (!_disposed) _busy = false; }
+    }
+
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+}

@@ -1,0 +1,61 @@
+@implements IDisposable
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject ILogger<DatabaseTreeNode> Logger
+<div class="database-tree-node" data-database="@Database.Name">
+    <div class="database-row">
+        <button class="tree-row database" aria-disabled="@(_busy || Disabled ? "true" : "false")" data-pending="@(_busy || Disabled ? "true" : "false")"
+                aria-busy="@(_busy ? "true" : "false")" aria-expanded="@(Database.Expanded ? "true" : "false")" @onclick="ToggleAsync">
+            <span class="chevron @(Database.Expanded ? "expanded" : "")"><BusyIcon Name="@IconNames.Chevron" Size="12" Busy="_busy" /></span>
+            <Icon Name="@IconNames.Database" Size="15" /><span>@Database.Name</span>
+        </button>
+        <button class="icon-button tree-action" title="@L[LocalizationKeys.Query.New]" @onclick="() => OnNewQuery.InvokeAsync(Selection)"><Icon Name="@IconNames.Code" Size="14" /></button>
+        <button class="icon-button tree-action" title="@L[LocalizationKeys.Collection.Create]" @onclick="() => OnCreateCollection.InvokeAsync(Selection)"><Icon Name="@IconNames.Plus" Size="14" /></button>
+        <button class="icon-button tree-action manage-users" title="@L[LocalizationKeys.Tree.ManageUsers]" aria-label="@L[LocalizationKeys.Tree.ManageUsers]" @onclick="() => OnManageUsers.InvokeAsync(Selection)"><Icon Name="@IconNames.Users" Size="14" /></button>
+    </div>
+    @if (Database.Expanded && Database.Collections is { } collections)
+    {
+        @foreach (var name in collections.Where(Matches))
+        {
+            <button @key="name" class="tree-row collection" @onclick="() => OnOpen.InvokeAsync(new CollectionSelection(Connection.Profile.Id, Database.Name, name))"><Icon Name="@IconNames.Grid" Size="14" /><span>@name</span></button>
+        }
+        @if (collections.Count == 0) { <span class="tree-empty">@L[LocalizationKeys.Tree.NoCollections]</span> }
+    }
+    @if (_error is not null) { <p class="error-message tree-error" role="alert">@_error</p> }
+</div>
+@code {
+    [Parameter, EditorRequired] public WebConnection Connection { get; set; } = null!;
+    [Parameter, EditorRequired] public WebDatabase Database { get; set; } = null!;
+    [Parameter] public string Search { get; set; } = string.Empty;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public EventCallback<CollectionSelection> OnOpen { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnNewQuery { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnCreateCollection { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnManageUsers { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private DatabaseSelection Selection => new(Connection.Profile.Id, Database.Name);
+    private string? _error;
+    private bool _busy, _disposed;
+    private bool Matches(string name) => Connection.Profile.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+        || Database.Name.Contains(Search, StringComparison.OrdinalIgnoreCase) || name.Contains(Search, StringComparison.OrdinalIgnoreCase);
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task ToggleAsync()
+    {
+        if (_busy || Disabled) return;
+        if (Database.Expanded) { Database.Expanded = false; return; }
+        if (Database.Collections is not null) Database.Expanded = true;
+        _busy = true;
+        try
+        {
+            await Catalog.ExpandAsync(Connection, Database, _lifetime.Token);
+            if (!_disposed) _error = null;
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("Could not load collections in {Database}: {Failure}", Database.Name, ExceptionDiagnostics.Describe(exception));
+            if (!_disposed) _error = SafeError.Message(exception);
+        }
+        finally { if (!_disposed) _busy = false; }
+    }
+}

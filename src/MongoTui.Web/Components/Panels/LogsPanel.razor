@@ -1,0 +1,107 @@
+@implements IAsyncDisposable
+@inject MongoTui.Application.Abstractions.Diagnostics.IApplicationLogReader Logs
+@inject WebText L
+<main class="page-content logs-page">
+    <header class="page-heading">
+        <h1>@L[LocalizationKeys.Nav.Logs]</h1>
+        <BusyButton Class="button secondary" Busy="_foreground" Icon="@IconNames.Refresh" OnClick="() => LoadAsync(true)">@L[LocalizationKeys.Common.Refresh]</BusyButton>
+    </header>
+    <div class="logs-toolbar">
+        <div class="logs-file-field">
+            <label for="log-file">@L[LocalizationKeys.Logs.File]</label>
+            <select id="log-file" value="@_selection" @onchange="SelectAsync" disabled="@(_files.Count == 0)">
+                <option value="">@L[LocalizationKeys.Logs.Latest]</option>
+                @foreach (var file in _files) { <option @key="file.Name" value="@file.Name">@file.Name</option> }
+            </select>
+        </div>
+        <label class="check-label"><input type="checkbox" @bind="_autoRefresh" />@L[LocalizationKeys.Logs.AutoRefresh]</label>
+    </div>
+    <FormFeedback Class="inline-feedback" Error="@_error" />
+    <section class="panel logs-panel" aria-label="@L[LocalizationKeys.Logs.Contents]">
+        <div class="panel-heading">
+            <Icon Name="@IconNames.Logs" /><strong>@(_currentFile?.Name ?? L[LocalizationKeys.Logs.File])</strong>
+            <span class="muted">@(_currentFile?.LastWriteTimeUtc.ToLocalTime().ToString("g") ?? "\u00a0")</span>
+        </div>
+        @if (_content.Length > 0) { <pre class="log-output" tabindex="0" aria-label="@L[LocalizationKeys.Logs.Contents]">@_content</pre> }
+        else { <div class="logs-empty"><BusyIcon Name="@IconNames.Logs" Size="32" Busy="@(_busy && !_loaded)" /><h3>@L[_loaded ? LocalizationKeys.Logs.Empty : LocalizationKeys.Common.Loading]</h3></div> }
+    </section>
+</main>
+@code {
+    private const int AutoRefreshIntervalSeconds = 2;
+    private readonly CancellationTokenSource _lifetime = new();
+    private IReadOnlyList<ApplicationLogFile> _files = [];
+    private ApplicationLogFile? _currentFile;
+    private string _selection = string.Empty, _content = string.Empty;
+    private string? _error;
+    private bool _autoRefresh = true, _busy, _disposed, _foreground, _loaded;
+    private CancellationTokenSource? _loadCancellation;
+    private Task? _refreshTask;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync(true);
+        if (!_disposed) _refreshTask = RefreshLoopAsync();
+    }
+
+    private async Task SelectAsync(ChangeEventArgs args)
+    {
+        _selection = args.Value?.ToString() ?? string.Empty;
+        await LoadAsync(true);
+    }
+
+    private async Task LoadAsync(bool force)
+    {
+        if (_disposed || (_busy && !force)) return;
+        _loadCancellation?.Cancel();
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _loadCancellation = operation;
+        _busy = true; _foreground = force;
+        var selection = _selection;
+        StateHasChanged();
+        try
+        {
+            var files = await Logs.GetFilesAsync(operation.Token);
+            var file = files.FirstOrDefault(item => item.Name == selection);
+            if (file is null) { selection = string.Empty; file = files.FirstOrDefault(); }
+            var content = _content;
+            if (force || file != _currentFile)
+                content = file is null ? string.Empty : await Logs.ReadAsync(file.Name, operation.Token);
+            if (operation.IsCancellationRequested || _disposed) return;
+            _files = files;
+            _selection = selection;
+            _content = content;
+            _currentFile = file; _loaded = true;
+            _error = null;
+        }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
+        catch { if (!operation.IsCancellationRequested && !_disposed) _error = L[LocalizationKeys.Error.Load]; }
+        finally
+        {
+            if (ReferenceEquals(_loadCancellation, operation))
+            {
+                _loadCancellation = null;
+                _busy = _foreground = false;
+                if (!_disposed) StateHasChanged();
+            }
+        }
+    }
+
+    private async Task RefreshLoopAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(AutoRefreshIntervalSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_lifetime.Token))
+                if (_autoRefresh) await InvokeAsync(() => LoadAsync(false));
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        await _lifetime.CancelAsync();
+        if (_refreshTask is not null) await _refreshTask;
+        _lifetime.Dispose();
+    }
+}

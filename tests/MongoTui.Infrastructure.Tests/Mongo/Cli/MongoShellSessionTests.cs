@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using FakeItEasy;
+using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
@@ -29,6 +31,39 @@ public sealed class MongoShellSessionTests
 
         result.Documents.Should().ContainSingle();
         result.Documents[0]["output"].AsString.Should().Be("42");
+    }
+
+    [Theory]
+    [InlineData("{ \"$numberInt\": \"0\" }", "0")]
+    [InlineData("{ \"$numberInt\": \"2\" }", "2")]
+    [InlineData("{ \"$numberLong\": \"9223372036854775807\" }", "9223372036854775807")]
+    [InlineData("{ \"$numberDouble\": \"2.5\" }", "2.5")]
+    [InlineData("{ \"$numberDecimal\": \"1234567890.123456789\" }", "1234567890.123456789")]
+    public async Task Should_UnwrapScalar_WhenMongoshReturnsCanonicalNumber(string stdout, string expected)
+    {
+        var session = CreateSession(new ProcessResult(0, stdout, string.Empty));
+
+        var result = await session.EvaluateAsync("db.items.countDocuments()", null, CancellationToken.None);
+
+        result.Documents.Should().ContainSingle().Subject["output"].AsString.Should().Be(expected);
+        result.RawOutput.Should().Be(stdout);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_PreserveBsonTypes_WhenMongoshReturnsDocuments(bool array)
+    {
+        const string json = "{ \"_id\": { \"$oid\": \"507f1f77bcf86cd799439011\" }, \"count\": { \"$numberLong\": \"9007199254740993\" } }";
+        var stdout = array ? $"[{json}]" : json;
+        var session = CreateSession(new ProcessResult(0, stdout, string.Empty));
+
+        var result = await session.EvaluateAsync("db.items.findOne()", null, CancellationToken.None);
+
+        var document = result.Documents.Should().ContainSingle().Subject;
+        document["_id"].AsObjectId.Should().Be(ObjectId.Parse("507f1f77bcf86cd799439011"));
+        document["count"].BsonType.Should().Be(BsonType.Int64);
+        document["count"].AsInt64.Should().Be(9007199254740993L);
     }
 
     [Fact]
@@ -77,7 +112,7 @@ public sealed class MongoShellSessionTests
         var request = captured.Should().ContainSingle().Subject;
         request.FileName.Should().Contain("mongosh");
         request.Arguments.Should().Equal(
-            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--json=relaxed", "--eval", script);
+            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--json=canonical", "--eval", script);
     }
 
     [Theory]
@@ -92,7 +127,7 @@ public sealed class MongoShellSessionTests
         await session.EvaluateAsync(script, database, CancellationToken.None);
 
         captured.Should().ContainSingle().Subject.Arguments.Should().Equal(
-            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--json=relaxed", "--eval", selection, "--eval", script);
+            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--json=canonical", "--eval", selection, "--eval", script);
     }
 
     private static MongoShellSession CreateSession(ProcessResult result, List<ProcessRequest>? captured = null)
@@ -108,6 +143,6 @@ public sealed class MongoShellSessionTests
 
         var tools = new MongoToolsLocator(new MongoToolsOptions());
 
-        return new MongoShellSession(runner, tools, new MongoConnectionTarget("mongodb://127.0.0.1:27017"));
+        return new MongoShellSession(runner, tools, new MongoConnectionTarget("mongodb://127.0.0.1:27017"), NullLogger<MongoShellSession>.Instance);
     }
 }

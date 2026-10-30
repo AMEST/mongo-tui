@@ -1,0 +1,32 @@
+@inject ConnectionService Connections
+@inject ConnectionCatalog Catalog
+@inject QueryWorkspace Workspace
+@inject WebText L
+<Modal Title="@L[LocalizationKeys.Connection.DeleteTitle]" OnClose="CloseAsync">
+    <div class="modal-body">
+        <p>@L.Format(LocalizationKeys.Connection.DeleteHint, Profile.Name)</p>
+        <FormFeedback Error="@_error" />
+        <footer class="modal-actions"><BusyButton Class="button secondary" Pending="_busy" Icon="@IconNames.Close" OnClick="CloseAsync">@L[LocalizationKeys.Common.Cancel]</BusyButton><BusyButton Class="button danger" Busy="_busy" Icon="@IconNames.Trash" OnClick="DeleteAsync">@L[LocalizationKeys.Common.Delete]</BusyButton></footer>
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public ConnectionProfile Profile { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    private string? _error;
+    private bool _busy;
+    private Task CloseAsync() => _busy ? Task.CompletedTask : OnClose.InvokeAsync();
+    private async Task DeleteAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            await Workspace.CloseConnectionAsync(Profile.Id);
+            await Connections.DeleteAsync(Profile.Id, CancellationToken.None);
+            await Catalog.RefreshAsync(CancellationToken.None);
+            await OnClose.InvokeAsync();
+        }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { _busy = false; }
+    }
+}

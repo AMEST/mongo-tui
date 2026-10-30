@@ -12,6 +12,7 @@ public sealed record CollectionName
 
     public string Value { get; }
 
+    /// <summary>Validates an identifier, including system collection names returned by MongoDB.</summary>
     public static CollectionName Create(string value)
     {
         if (string.IsNullOrEmpty(value))
@@ -29,17 +30,21 @@ public sealed record CollectionName
             throw new DomainException("Collection name must not contain the null character.");
         }
 
-        if (value.StartsWith("system.", StringComparison.Ordinal))
-        {
-            throw new DomainException("Collection name must not start with 'system.'.");
-        }
-
         if (Encoding.UTF8.GetByteCount(value) > MaxBytes)
         {
             throw new DomainException($"Collection name '{value}' exceeds {MaxBytes} bytes.");
         }
 
         return new CollectionName(value);
+    }
+
+    /// <summary>Rejects the reserved system prefix when explicitly creating a new collection.</summary>
+    public void ValidateForCreation()
+    {
+        if (Value.StartsWith("system.", StringComparison.Ordinal))
+        {
+            throw new DomainException("Collection name must not start with 'system.'.");
+        }
     }
 
     public override string ToString() => Value;

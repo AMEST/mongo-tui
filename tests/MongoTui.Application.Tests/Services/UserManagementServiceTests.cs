@@ -101,9 +101,33 @@ public sealed class UserManagementServiceTests
     {
         var act = async () => await _sut.DeleteAsync(Target, Scope, "bob", "bob", CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>();
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.DeleteCurrentForbidden);
         A.CallTo(() => _gateway.DeleteUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<string>._, A<CancellationToken>._))
             .MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_RejectEmptyUsernameBeforeGateway_WhenCreatingUser()
+    {
+        var access = Access([], ClusterRole.ClusterMonitor);
+
+        var act = () => _sut.CreateAsync(Target, Scope, " ", "secret", access, CancellationToken.None);
+
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.UsernameRequired);
+        A.CallTo(() => _gateway.CreateUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<string>._,
+            A<string>._, A<IReadOnlyList<MongoRole>>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_RejectEmptyPasswordBeforeGateway_WhenCreatingUser()
+    {
+        var access = Access([], ClusterRole.ClusterMonitor);
+
+        var act = () => _sut.CreateAsync(Target, Scope, "alice", " ", access, CancellationToken.None);
+
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.PasswordRequired);
+        A.CallTo(() => _gateway.CreateUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<string>._,
+            A<string>._, A<IReadOnlyList<MongoRole>>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -113,7 +137,7 @@ public sealed class UserManagementServiceTests
 
         var act = async () => await _sut.CreateAsync(Target, Scope, "bob", "secret", access, CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>();
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.AccessRequired);
     }
 
     private static UserAccessSelection Access(IReadOnlyList<DatabaseAccess> databases, params ClusterRole[] clusterRoles) =>

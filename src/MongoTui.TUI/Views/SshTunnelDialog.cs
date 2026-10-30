@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Globalization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Connections;
@@ -24,14 +25,14 @@ public sealed class SshTunnelDialog : ThemedDialog
     {
         _localizer = localizer;
         _application = application;
-        Title = localizer.Get("Ssh.Title");
+        Title = localizer.Get(LocalizationKeys.Ssh.Title);
         Width = 76;
         Height = 22;
         ComposeFields(options);
 
-        var save = new Button { Text = localizer.Get("Connections.Save"), IsDefault = true };
+        var save = new Button { Text = localizer.Get(LocalizationKeys.Connections.Save), IsDefault = true };
         save.OnAccept(Save);
-        var cancel = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancel = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancel.OnAccept(() => application.RequestStop(this));
         this.AddButtons(save, cancel);
     }
@@ -40,17 +41,17 @@ public sealed class SshTunnelDialog : ThemedDialog
 
     private void ComposeFields(SshTunnelOptions options)
     {
-        _enabled.Text = _localizer.Get("Ssh.Enabled");
+        _enabled.Text = _localizer.Get(LocalizationKeys.Ssh.Enabled);
         _enabled.X = 1;
         _enabled.Y = 1;
         _enabled.Value = options.Enabled ? CheckState.Checked : CheckState.UnChecked;
         Add(_enabled);
-        AddField(_host, "Ssh.Host", options.Host, 3);
-        AddField(_port, "Ssh.Port", options.Port.ToString(CultureInfo.InvariantCulture), 5);
-        AddField(_username, "Ssh.Username", options.Username, 7);
-        AddField(_localPort, "Ssh.LocalPort", options.LocalPort.ToString(CultureInfo.InvariantCulture), 9);
-        AddField(_keyFile, "Ssh.KeyFile", options.PrivateKeyFile, 11);
-        Add(new Label { Text = _localizer.Get("Ssh.Hint"), X = 1, Y = 13, Width = Dim.Fill(), Height = 3 });
+        AddField(_host, LocalizationKeys.Ssh.Host, options.Host, 3);
+        AddField(_port, LocalizationKeys.Ssh.Port, options.Port.ToString(CultureInfo.InvariantCulture), 5);
+        AddField(_username, LocalizationKeys.Ssh.Username, options.Username, 7);
+        AddField(_localPort, LocalizationKeys.Ssh.LocalPort, options.LocalPort.ToString(CultureInfo.InvariantCulture), 9);
+        AddField(_keyFile, LocalizationKeys.Ssh.KeyFile, options.PrivateKeyFile, 11);
+        Add(new Label { Text = _localizer.Get(LocalizationKeys.Ssh.Hint), X = 1, Y = 13, Width = Dim.Fill(), Height = 3 });
         _error.X = 1;
         _error.Y = 16;
         _error.Width = Dim.Fill();
@@ -71,7 +72,7 @@ public sealed class SshTunnelDialog : ThemedDialog
     {
         if (!int.TryParse(_port.Text, out var port) || !int.TryParse(_localPort.Text, out var localPort))
         {
-            _error.Text = _localizer.Get("Ssh.InvalidPorts");
+            _error.Text = _localizer.Get(LocalizationKeys.Ssh.InvalidPorts);
             return;
         }
 
@@ -92,7 +93,7 @@ public sealed class SshTunnelDialog : ThemedDialog
         }
         catch (DomainException)
         {
-            _error.Text = _localizer.Get("Ssh.InvalidOptions");
+            _error.Text = _localizer.Get(LocalizationKeys.Ssh.InvalidOptions);
         }
     }
 

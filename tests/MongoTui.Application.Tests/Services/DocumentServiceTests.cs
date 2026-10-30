@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoDB.Bson;
@@ -20,7 +21,7 @@ public sealed class DocumentServiceTests
     private static readonly CollectionRef Collection =
         new(DatabaseName.Create("app"), CollectionName.Create("users"));
 
-    public DocumentServiceTests() => _sut = new DocumentService(_gateway);
+    public DocumentServiceTests() => _sut = new DocumentService(_gateway, NullLogger<DocumentService>.Instance);
 
     [Fact]
     public void Should_BuildIdFilter_When_IdPresent()
@@ -135,5 +136,44 @@ public sealed class DocumentServiceTests
         var act = async () => await _sut.FindOneAsync(Target, Collection, "oops", CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Theory]
+    [InlineData("{\"$numberLong\":\"42\"}")]
+    [InlineData("{\"$numberDouble\":\"42.0\"}")]
+    public async Task ShouldNot_ReplaceDocument_When_OnlyIdNumericTypeChanged(string id)
+    {
+        var act = () => _sut.ReplaceAsync(Target, Collection, "{\"_id\":42}", "{\"_id\":" + id + "}", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+        A.CallTo(() => _gateway.ReplaceOneAsync(Target, Collection, A<string>._, A<string>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task Should_RejectIdChange_When_NestedNumericTypeChanged()
+    {
+        var act = () => _sut.ReplaceAsync(Target, Collection, "{\"_id\":{\"part\":42}}",
+            "{\"_id\":{\"part\":{\"$numberLong\":\"42\"}}}", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Should_ReloadByIdAndForwardCancellation_When_EditorOpened()
+    {
+        var selected = new BsonDocument { { "_id", new BsonInt64(42) }, { "value", "stale" } };
+        var stored = new BsonDocument { { "_id", new BsonInt64(42) }, { "value", new BsonDouble(42) } };
+        using var cancellation = new CancellationTokenSource();
+        A.CallTo(() => _gateway.FindAsync(Target, Collection, A<string>._, A<QueryExecutionOptions>._, cancellation.Token))
+            .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [stored] });
+
+        var content = await _sut.LoadForEditAsync(Target, Collection, selected, cancellation.Token);
+
+        BsonTextCodec.ParseDocument(content!.Json).ToBson().Should().Equal(stored.ToBson());
+        A.CallTo(() => _gateway.FindAsync(Target, Collection,
+            A<string>.That.Matches(filter => BsonTextCodec.ExactlyEqual(BsonTextCodec.ParseDocument(filter), new BsonDocument("_id", new BsonInt64(42)))),
+            A<QueryExecutionOptions>.That.Matches(options => options.Limit == 1 && options.Skip == 0), cancellation.Token))
+            .MustHaveHappenedOnceExactly();
     }
 }

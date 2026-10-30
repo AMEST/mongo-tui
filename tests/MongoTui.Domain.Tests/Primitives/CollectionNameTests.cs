@@ -33,10 +33,26 @@ public sealed class CollectionNameTests
         act.Should().Throw<DomainException>();
     }
 
-    [Fact]
-    public void ShouldThrow_DomainException_When_StartsWithSystemPrefix()
+    [Theory]
+    [InlineData("system.version")]
+    [InlineData("system.sessions")]
+    [InlineData("system.buckets.measurements")]
+    public void Should_Create_When_ReferencingSystemCollection(string name)
     {
-        var act = () => CollectionName.Create("system.views");
+        var collection = CollectionName.Create(name);
+
+        collection.Value.Should().Be(name);
+    }
+
+    [Theory]
+    [InlineData("system.version")]
+    [InlineData("system.sessions")]
+    [InlineData("system.views")]
+    public void ShouldThrow_DomainException_When_ValidatingSystemNameForCreation(string name)
+    {
+        var collection = CollectionName.Create(name);
+
+        var act = () => collection.ValidateForCreation();
 
         act.Should().Throw<DomainException>();
     }

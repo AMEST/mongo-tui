@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -21,10 +22,10 @@ public sealed class CreateNameDialog : ThemedDialog
         Title = title;
         Width = 64;
         Height = 12;
-        Add(new Label { Text = localizer.Get("Create.Name"), X = 1, Y = 0 }, _name, _error);
-        var submit = new Button { Text = localizer.Get("Create.Submit"), IsDefault = true };
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Create.Name), X = 1, Y = 0 }, _name, _error);
+        var submit = new Button { Text = localizer.Get(LocalizationKeys.Create.Submit), IsDefault = true };
         submit.OnAcceptAsync(CreateAsync);
-        var cancel = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancel = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancel.OnAccept(() => { if (!_creating) _application.RequestStop(this); });
         this.AddButtons(submit, cancel);
     }

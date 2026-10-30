@@ -78,7 +78,7 @@ public sealed class UserManagementService
 
         if (sameUser && sameDatabase)
         {
-            throw new DomainException("Cannot delete the user of the current connection.");
+            throw new UserManagementException(UserManagementError.DeleteCurrentForbidden);
         }
 
         return _gateway.DeleteUserAsync(target, database, username, cancellationToken);
@@ -93,7 +93,7 @@ public sealed class UserManagementService
     {
         if (string.IsNullOrWhiteSpace(username))
         {
-            throw new DomainException("Username must not be empty.");
+            throw new UserManagementException(UserManagementError.UsernameRequired);
         }
     }
 
@@ -101,7 +101,7 @@ public sealed class UserManagementService
     {
         if (string.IsNullOrWhiteSpace(password))
         {
-            throw new DomainException("Password must not be empty.");
+            throw new UserManagementException(UserManagementError.PasswordRequired);
         }
     }
 
@@ -114,7 +114,7 @@ public sealed class UserManagementService
 
         if (access.Databases.Count == 0 && access.ClusterRoles.Count == 0)
         {
-            throw new DomainException("At least one database access or cluster role is required.");
+            throw new UserManagementException(UserManagementError.AccessRequired);
         }
     }
 
@@ -122,7 +122,7 @@ public sealed class UserManagementService
     {
         if (access.ClusterRoles.Contains(ClusterRole.Administrator))
         {
-            return new List<MongoRole> { new("root", "admin") };
+            return new List<MongoRole> { new(MongoRoleNames.Root, MongoSystemNames.AdminDatabase) };
         }
 
         var roles = new List<MongoRole>();
@@ -130,9 +130,9 @@ public sealed class UserManagementService
         {
             var roleName = dbAccess.Level switch
             {
-                DatabaseAccessLevel.Read => "read",
-                DatabaseAccessLevel.ReadWrite => "readWrite",
-                DatabaseAccessLevel.DbOwner => "dbOwner",
+                DatabaseAccessLevel.Read => MongoRoleNames.Read,
+                DatabaseAccessLevel.ReadWrite => MongoRoleNames.ReadWrite,
+                DatabaseAccessLevel.DbOwner => MongoRoleNames.DbOwner,
                 _ => throw new ArgumentOutOfRangeException()
             };
             roles.Add(new MongoRole(roleName, dbAccess.Database.Value));
@@ -142,15 +142,15 @@ public sealed class UserManagementService
         {
             var roleName = cluster switch
             {
-                ClusterRole.ReadAnyDatabase => "readAnyDatabase",
-                ClusterRole.ReadWriteAnyDatabase => "readWriteAnyDatabase",
-                ClusterRole.ClusterAdmin => "clusterAdmin",
-                ClusterRole.ClusterManager => "clusterManager",
-                ClusterRole.ClusterMonitor => "clusterMonitor",
-                ClusterRole.Administrator => "root",
+                ClusterRole.ReadAnyDatabase => MongoRoleNames.ReadAnyDatabase,
+                ClusterRole.ReadWriteAnyDatabase => MongoRoleNames.ReadWriteAnyDatabase,
+                ClusterRole.ClusterAdmin => MongoRoleNames.ClusterAdmin,
+                ClusterRole.ClusterManager => MongoRoleNames.ClusterManager,
+                ClusterRole.ClusterMonitor => MongoRoleNames.ClusterMonitor,
+                ClusterRole.Administrator => MongoRoleNames.Root,
                 _ => throw new ArgumentOutOfRangeException()
             };
-            roles.Add(new MongoRole(roleName, "admin"));
+            roles.Add(new MongoRole(roleName, MongoSystemNames.AdminDatabase));
         }
 
         return roles

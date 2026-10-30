@@ -1,3 +1,5 @@
+using MongoTui.Domain.Connections;
+
 namespace MongoTui.TUI.ViewModels;
 
 /// <summary>Kind of row in the connection tree.</summary>
@@ -12,6 +14,7 @@ public enum TreeRowKind
 public sealed record TreeRow(
     TreeRowKind Kind,
     string Text,
-    ActiveConnection Owner,
+    ConnectionProfile Profile,
+    ActiveConnection? Owner = null,
     string? Database = null,
     string? Collection = null);

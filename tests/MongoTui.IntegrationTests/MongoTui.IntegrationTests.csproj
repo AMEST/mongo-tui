@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\src\MongoTui.Infrastructure\MongoTui.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\MongoTui.Application\MongoTui.Application.csproj" />
     <ProjectReference Include="..\..\src\MongoTui.TUI\MongoTui.TUI.csproj" />
+    <ProjectReference Include="..\..\src\MongoTui.Web\MongoTui.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +19,14 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Testcontainers.MongoDb" />
+    <PackageReference Include="FakeItEasy" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../MongoTui.Application.Tests/Services/BsonDocumentSamples.cs" Link="Support/BsonDocumentSamples.cs" />
+    <Compile Include="../MongoTui.Web.Tests/ComponentTestRenderer.cs" Link="Support/ComponentTestRenderer.cs" />
+    <Compile Include="../MongoTui.Web.Tests/WorkspaceFixture.cs" Link="Support/WorkspaceFixture.cs" />
+    <Compile Include="../MongoTui.Web.Tests/DocumentDialogFixture.cs" Link="Support/DocumentDialogFixture.cs" />
   </ItemGroup>
 
 </Project>

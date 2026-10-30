@@ -1,0 +1,76 @@
+@implements IDisposable
+@inject MongoTui.Application.Abstractions.Ai.IAiAssistant Assistant
+@inject CollectionSchemaService Schema
+@inject TranslateQueryService Translate
+@inject ConnectionCatalog Catalog
+@inject WebText L
+<Modal Title="@L[LocalizationKeys.Ai.Assistant]" OnClose="CloseAsync" Class="wide-modal ai-panel">
+    <div class="modal-body">
+        <p class="muted">@L[LocalizationKeys.Ai.Privacy]</p>
+        <label for="ai-mode">@L[LocalizationKeys.Ai.Mode]</label>
+        <select id="ai-mode" disabled="@_busy" @bind="_mode"><option value="describe">@L[LocalizationKeys.Ai.Describe]</option><option value="translate">@L[LocalizationKeys.Ai.Translate]</option></select>
+        <label for="ai-prompt">@L[LocalizationKeys.Ai.Prompt]</label>
+        <textarea id="ai-prompt" rows="5" disabled="@_busy" @bind="_prompt" @bind:event="oninput" placeholder="@L[LocalizationKeys.Ai.Placeholder]"></textarea>
+        <footer class="modal-actions">
+            <button class="button secondary cancel-slot" disabled="@(!_busy)" aria-hidden="@(!_busy ? "true" : "false")" @onclick="() => _cancel.Cancel()">@L[LocalizationKeys.Query.Stop]</button>
+            <BusyButton Busy="_busy" Disabled="@string.IsNullOrWhiteSpace(_prompt)" Icon="@IconNames.Spark" OnClick="GenerateAsync">@L[LocalizationKeys.Ai.Generate]</BusyButton>
+        </footer>
+        <FormFeedback Error="@_error" />
+        <div class="ai-result-area"><pre class="ai-result mono">@_result</pre></div>
+        <footer class="modal-actions"><span class="muted">@L[LocalizationKeys.Ai.Review]</span><BusyButton Disabled="@(_result is null)" Pending="_busy" Icon="@IconNames.Arrow" IconAfter="true" OnClick="UseAsync">@L[LocalizationKeys.Ai.Use]</BusyButton></footer>
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnUse { get; set; }
+    private string _mode = "describe", _prompt = string.Empty;
+    private string? _result, _error;
+    private bool _busy, _disposed;
+    private CancellationTokenSource _cancel = new();
+    private Task UseAsync() => !_busy && _result is not null ? OnUse.InvokeAsync(_result) : Task.CompletedTask;
+    private async Task GenerateAsync()
+    {
+        if (_busy || _disposed || string.IsNullOrWhiteSpace(_prompt)) return;
+        _cancel.Dispose(); _cancel = new(TimeSpan.FromSeconds(WebOperationTimeouts.LongOperationSeconds));
+        _busy = true; _error = null;
+        try
+        {
+            var result = await RequestAsync(_cancel.Token);
+            if (!_disposed && !_cancel.IsCancellationRequested) _result = result;
+        }
+        catch (OperationCanceledException) { if (!_disposed) _error = L[LocalizationKeys.Query.Cancelled]; }
+        catch (Exception exception)
+        {
+            if (!_disposed) _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.Error.Operation];
+        }
+        finally { if (!_disposed) _busy = false; }
+    }
+    private async Task<string> RequestAsync(CancellationToken cancellationToken)
+    {
+        var mode = _mode;
+        var prompt = _prompt;
+        string result;
+        if (mode == "translate" && Tab.Collection is not null)
+            result = await Translate.TranslateToMongoAsync(prompt, MongoTui.Domain.Ai.QueryAssistantMode.Find, cancellationToken);
+        else if (Tab.Collection is not null)
+        {
+            var schema = await Schema.DescribeAsync(Catalog.Get(Tab.ConnectionId).Target, Tab.Database, Tab.Collection, cancellationToken);
+            result = await Assistant.CompleteAsync(new MongoTui.Domain.Ai.QueryAssistantRequest { Schema = schema, Prompt = prompt }, cancellationToken);
+        }
+        else result = await Assistant.CompletePromptAsync("Write a MongoDB mongosh query. Return only JavaScript.\n" + prompt, cancellationToken);
+        result = StripFence(result);
+        if (Tab.Collection is null) return result;
+        DocumentService.Parse(result);
+        return $"db.getCollection({System.Text.Json.JsonSerializer.Serialize(Tab.Collection)}).find({result}).limit(50).toArray()";
+    }
+    private static string StripFence(string value)
+    {
+        value = value.Trim();
+        if (value.StartsWith("```", StringComparison.Ordinal) && value.EndsWith("```", StringComparison.Ordinal) && value.IndexOf('\n') is var line && line > 0)
+            return value[(line + 1)..^3].Trim();
+        return value;
+    }
+    private async Task CloseAsync() { _cancel.Cancel(); await OnClose.InvokeAsync(); }
+    public void Dispose() { _disposed = true; _cancel.Cancel(); _cancel.Dispose(); }
+}

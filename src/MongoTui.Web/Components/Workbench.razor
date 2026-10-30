@@ -1,0 +1,109 @@
+@page "/"
+@implements IDisposable
+@inject WebText L
+@inject ConnectionCatalog Catalog
+@inject QueryWorkspace Workspace
+@inject IJSRuntime JS
+<SecurityGate>
+    <div class="app-shell">
+        <header class="app-header">
+            <a class="brand" href="/"><span class="brand-mark"><Icon Name="@IconNames.Database" Size="22" /></span>MongoTui<span class="badge">WEB</span></a>
+            <nav class="main-nav" aria-label="@L[LocalizationKeys.App.Navigation]">
+                @foreach (var item in new[] { (MainPage.Workspace, IconNames.Grid, LocalizationKeys.Nav.Workspace), (MainPage.Connections, IconNames.Plug, LocalizationKeys.Nav.Connections), (MainPage.History, IconNames.History, LocalizationKeys.Nav.History), (MainPage.Logs, IconNames.Logs, LocalizationKeys.Nav.Logs), (MainPage.Settings, IconNames.Settings, LocalizationKeys.Nav.Settings) })
+                {
+                    <button class="@(_page == item.Item1 ? "active" : "")" @onclick="() => NavigateAsync(item.Item1)"><Icon Name="@item.Item2" Size="16" /><span>@L[item.Item3]</span></button>
+                }
+            </nav>
+            <div class="header-actions"><button class="icon-button" title="@L[LocalizationKeys.WebAuth.SignOut]" @onclick="SignOutAsync"><Icon Name="@IconNames.Lock" /></button><button class="icon-button" title="@L[LocalizationKeys.App.Theme]" @onclick="ToggleThemeAsync"><Icon Name="@IconNames.Moon" /></button><button class="button primary compact" @onclick="() => EditConnection(null)"><Icon Name="@IconNames.Plus" Size="16" />@L[LocalizationKeys.Connection.Add]</button></div>
+        </header>
+        @if (_error is not null) { <div class="app-error" role="alert"><span>@_error</span><button class="icon-button" title="@L[LocalizationKeys.Common.Close]" @onclick="() => _error = null"><Icon Name="@IconNames.Close" /></button></div> }
+        @if (_page == MainPage.Workspace)
+        {
+            <div class="workbench">
+                <DatabaseTree OnOpen="OpenCollectionAsync" OnNewQuery="NewQueryAsync" OnConnect="ConnectAsync" OnManage='() => NavigateAsync(MainPage.Connections)' OnCreate="CreateCollectionAsync" OnAdd="() => EditConnection(null)" OnEdit="EditConnection" OnDelete="DeleteConnection" OnCreateDatabase="CreateDatabase" OnManageUsers="ManageUsers" />
+                <QueryArea @ref="_queryArea" OnAddConnection="() => EditConnection(null)" />
+            </div>
+        }
+        else if (_page == MainPage.Connections) { <ConnectionList OnEdit="EditConnection" OnConnect="ConnectAsync" /> }
+        else if (_page == MainPage.History) { <HistoryPanel OnOpen="OpenHistoryAsync" /> }
+        else if (_page == MainPage.Logs) { <LogsPanel /> }
+        else { <SettingsPanel OnChanged="StateHasChanged" /> }
+        <footer class="app-footer"><span>@L.Format(LocalizationKeys.App.Connections, Catalog.Active.Count)<span class="separator">/</span>@L.Format(LocalizationKeys.App.Tabs, Workspace.Tabs.Count)</span></footer>
+    </div>
+    <SshChallenge />
+    @if (_showConnection) { <ConnectionForm Profile="_editing" OnSaved="ConnectionSavedAsync" OnClose="() => _showConnection = false" /> }
+    @if (_createCollection is not null) { <CreateCollectionDialog Selection="_createCollection" OnClose="() => _createCollection = null" /> }
+    @if (_createDatabase is not null) { <CreateDatabaseDialog Profile="_createDatabase" OnCreated="DatabaseCreatedAsync" OnClose="() => _createDatabase = null" /> }
+    @if (_deleteConnection is not null) { <DeleteConnectionDialog Profile="_deleteConnection" OnClose="() => _deleteConnection = null" /> }
+    @if (_manageUsers is not null) { <UserManagementDialog @key="_manageUsers" Selection="_manageUsers" OnClose="() => _manageUsers = null" /> }
+</SecurityGate>
+@code {
+    private async Task SignOutAsync() => await JS.InvokeVoidAsync(JavaScriptCalls.SignOut);
+    private enum MainPage { Workspace, Connections, History, Logs, Settings }
+    private MainPage _page = MainPage.Workspace;
+    private string? _error;
+    private bool _showConnection;
+    private ConnectionProfile? _editing;
+    private DatabaseSelection? _createCollection;
+    private DatabaseSelection? _manageUsers;
+    private ConnectionProfile? _createDatabase, _deleteConnection;
+    private QueryArea? _queryArea;
+
+    protected override void OnInitialized() { Workspace.Changed += Refresh; Catalog.Changed += Refresh; }
+    private void Refresh() => _ = InvokeAsync(() =>
+    {
+        if (_manageUsers is not null && !Catalog.Active.Any(connection => connection.Profile.Id == _manageUsers.ConnectionId))
+            _manageUsers = null;
+        StateHasChanged();
+    });
+    public void Dispose() { Workspace.Changed -= Refresh; Catalog.Changed -= Refresh; }
+    private Task ToggleThemeAsync() => JS.InvokeVoidAsync(JavaScriptCalls.ToggleTheme).AsTask();
+    private void EditConnection(ConnectionProfile? profile) { _editing = profile; _showConnection = true; }
+    private async Task ConnectionSavedAsync() { _showConnection = false; await Catalog.RefreshAsync(CancellationToken.None); }
+    private async Task NavigateAsync(MainPage page) { if (_queryArea is not null) await _queryArea.SaveDraftAsync(); _page = page; }
+
+    private async Task ConnectAsync(ConnectionProfile profile) => await SafeAsync(async () =>
+    {
+        await Catalog.ConnectAsync(profile, CancellationToken.None);
+        _page = MainPage.Workspace;
+    });
+
+    private async Task OpenCollectionAsync(CollectionSelection selection) => await SafeAsync(async () =>
+    {
+        if (_queryArea is not null) await _queryArea.SaveDraftAsync();
+        var tab = Workspace.Open(selection.ConnectionId, selection.Database, selection.Collection);
+        await Workspace.ExecuteAsync(tab);
+    });
+
+    private async Task NewQueryAsync(DatabaseSelection selection) => await SafeAsync(async () =>
+    {
+        if (_queryArea is not null) await _queryArea.SaveDraftAsync();
+        Workspace.Open(selection.ConnectionId, selection.Database, null);
+    });
+
+    private Task CreateCollectionAsync(DatabaseSelection selection) { _createCollection = selection; return Task.CompletedTask; }
+    private void CreateDatabase(ConnectionProfile profile) => _createDatabase = profile;
+    private void DeleteConnection(ConnectionProfile profile) => _deleteConnection = profile;
+    private void ManageUsers(DatabaseSelection selection) => _manageUsers = selection;
+    private Task DatabaseCreatedAsync(CollectionSelection selection) => SafeAsync(async () =>
+    {
+        await Catalog.RevealCollectionAsync(selection, CancellationToken.None);
+        await OpenCollectionAsync(selection);
+    });
+
+    private async Task OpenHistoryAsync(QueryHistoryEntry entry) => await SafeAsync(async () =>
+    {
+        var profile = Catalog.Profiles.First(item => item.Id == entry.ConnectionId);
+        await Catalog.ConnectAsync(profile, CancellationToken.None);
+        Workspace.Open(entry.ConnectionId, entry.Database ?? MongoSystemNames.AdminDatabase, entry.Collection, entry.Script);
+        _page = MainPage.Workspace;
+    });
+
+    private async Task SafeAsync(Func<Task> action)
+    {
+        _error = null;
+        try { await action(); }
+        catch (OperationCanceledException) { _error = L[LocalizationKeys.Query.Cancelled]; }
+        catch (Exception exception) { _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.Error.Connection]; }
+    }
+}

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -14,7 +15,7 @@ public sealed class DatabaseDiscoveryTests(MongoFixture fixture) : IClassFixture
     {
         var name = $"empty_{Guid.NewGuid():N}";
         var uri = new MongoUrlBuilder(fixture.ConnectionString) { DatabaseName = name, AuthenticationSource = "admin" };
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
 
         var databases = await gateway.ListDatabasesAsync(new MongoConnectionTarget(uri.ToString()), CancellationToken.None);
 
@@ -44,7 +45,7 @@ public sealed class DatabaseDiscoveryTests(MongoFixture fixture) : IClassFixture
         {
             Username = user, Password = "test-password", AuthenticationSource = source
         };
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
 
         var databases = await gateway.ListDatabasesAsync(new MongoConnectionTarget(uri.ToString()), CancellationToken.None);
 
@@ -59,7 +60,7 @@ public sealed class DatabaseDiscoveryTests(MongoFixture fixture) : IClassFixture
         var database = admin.GetDatabase(name);
         await database.CreateCollectionAsync("temporary");
         await database.DropCollectionAsync("temporary");
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var uri = new MongoUrlBuilder(fixture.ConnectionString) { DatabaseName = name, AuthenticationSource = "admin" };
 
         var databases = await gateway.ListDatabasesAsync(new MongoConnectionTarget(uri.ToString()), CancellationToken.None);

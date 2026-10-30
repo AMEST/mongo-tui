@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
@@ -28,18 +29,18 @@ public sealed class TranslateDialog : ThemedDialog
 
         _source.TrackContents();
 
-        Title = localizer.Get("Translate.Title");
+        Title = localizer.Get(LocalizationKeys.Translate.Title);
         Width = 76;
         Height = 24;
 
-        Add(new Label { Text = localizer.Get("Translate.Field.Source"), X = 1, Y = 1 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Translate.FieldSource), X = 1, Y = 1 });
         _source.X = 1;
         _source.Y = 2;
         _source.Width = Dim.Fill();
         _source.Height = 6;
         Add(_source);
 
-        Add(new Label { Text = localizer.Get("Translate.Field.Target"), X = 1, Y = 9 });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.Translate.FieldTarget), X = 1, Y = 9 });
         _modeList.X = 1;
         _modeList.Y = 10;
         _modeList.Width = Dim.Fill();
@@ -59,9 +60,9 @@ public sealed class TranslateDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var translateButton = new Button { Text = localizer.Get("Translate.Run"), IsDefault = true };
+        var translateButton = new Button { Text = localizer.Get(LocalizationKeys.Translate.Run), IsDefault = true };
         translateButton.OnAcceptAsync(TranslateAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(translateButton, cancelButton);

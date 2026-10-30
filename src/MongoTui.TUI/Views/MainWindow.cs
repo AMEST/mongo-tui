@@ -1,8 +1,10 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using MongoDB.Bson;
-using Serilog;
 using MongoTui.Application.Abstractions.Ai;
+using MongoTui.Application.Abstractions.Diagnostics;
+using Microsoft.Extensions.Logging;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Persistence;
@@ -29,6 +31,7 @@ public sealed partial class MainWindow : Window
 
     private readonly ILocalizer _localizer;
     private readonly ConnectionService _connections;
+    private readonly ILogger<MainWindow> _logger;
     private readonly DocumentService _documents;
     private readonly IndexService _indexes;
     private readonly DatabaseService _databases;
@@ -40,6 +43,7 @@ public sealed partial class MainWindow : Window
     private readonly CollectionSchemaService _schema;
     private readonly TranslateQueryService _translate;
     private readonly SettingsService _settings;
+    private readonly ILoggingSettings _loggingSettings;
     private readonly AiSettingsService _aiSettings;
     private readonly SecurityModeService _security;
     private readonly IMongoGateway _gateway;
@@ -55,6 +59,8 @@ public sealed partial class MainWindow : Window
     private ResultViewMode _resultViewMode = ResultViewMode.Table;
     private string? _language;
     private bool _aiConfigured;
+    private bool _openingDocument;
+    private readonly CancellationTokenSource _documentLifetime = new();
 
     public MainWindow(
         ILocalizer localizer,
@@ -74,11 +80,14 @@ public sealed partial class MainWindow : Window
         AiSettingsService aiSettings,
         SecurityModeService security,
         IMongoGateway gateway,
-        ConnectionTunnelService tunnels)
+        ConnectionTunnelService tunnels,
+        ILogger<MainWindow> logger,
+        ILoggingSettings loggingSettings)
     {
         _localizer = localizer;
         _connections = connections;
         _documents = documents;
+        Disposing += (_, _) => { _documentLifetime.Cancel(); _documentLifetime.Dispose(); };
         _indexes = indexes;
         _databases = databases;
         _users = users;
@@ -89,10 +98,12 @@ public sealed partial class MainWindow : Window
         _schema = schema;
         _translate = translate;
         _settings = settings;
+        _loggingSettings = loggingSettings;
         _aiSettings = aiSettings;
         _security = security;
         _gateway = gateway;
         _tunnels = tunnels;
+        _logger = logger;
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = queryTabs;
         _queryTabs.RunRequested += (_, _) => Safe(RunActiveQueryAsync);
@@ -100,7 +111,7 @@ public sealed partial class MainWindow : Window
         _queryTabs.EditDocumentRequested += (_, _) => EditDocument();
         _queryTabs.DeleteDocumentRequested += (_, _) => DeleteDocument();
 
-        Title = localizer.Get("App.Title");
+        Title = localizer.Get(LocalizationKeys.App.Title);
         X = 0;
         Y = 0;
         Width = Dim.Fill();
@@ -112,7 +123,7 @@ public sealed partial class MainWindow : Window
 
         var treeFrame = new FrameView
         {
-            Title = localizer.Get("Tree.Active"),
+            Title = localizer.Get(LocalizationKeys.Tree.Explorer),
             X = 0,
             Y = 1,
             Width = Dim.Percent(30),
@@ -140,7 +151,7 @@ public sealed partial class MainWindow : Window
             X = 0,
             Y = Pos.AnchorEnd(1),
             Width = Dim.Fill(),
-            Text = localizer.Get("Status.Hint"),
+            Text = localizer.Get(LocalizationKeys.Status.Hint),
         };
         Add(_status);
 
@@ -207,7 +218,7 @@ public sealed partial class MainWindow : Window
 
         if (_shortcuts.TryGetValue(key, out var action))
         {
-            Log.Debug("Shortcut {Key} invoked", key);
+            _logger.LogDebug("Shortcut {Key} invoked", key);
             key.Handled = true;
             action();
         }
@@ -276,7 +287,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            Log.Error("Startup failed ({ExceptionType})", exception.GetType().Name);
+            _logger.LogError("Startup failed ({ExceptionType})", exception.GetType().Name);
             SetStatus(exception.Message);
         }
     }
@@ -291,7 +302,7 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception exception)
         {
-            Log.Error("Command failed ({ExceptionType})", exception.GetType().Name);
+            _logger.LogError("Command failed ({ExceptionType})", exception.GetType().Name);
             SetStatus(exception.Message);
         }
     }
@@ -307,6 +318,7 @@ public sealed partial class MainWindow : Window
         var dialog = new ConnectionManagerDialog(_connections, _localizer, Application);
         await dialog.LoadAsync();
         Application.Run(dialog);
+        await ReloadProfilesAsync();
 
         if (dialog.ConnectedProfile is not null && dialog.ConnectedTarget is not null)
         {
@@ -371,71 +383,73 @@ public sealed partial class MainWindow : Window
 
         return
         [
-            new MenuBarItem(localizer.Get("Menu.File"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.File),
             [
-                Item(localizer.Get("Menu.File.Exit"), Ctrl(KeyCode.Q), () => Application?.RequestStop()),
+                Item(localizer.Get(LocalizationKeys.Menu.FileExit), Ctrl(KeyCode.Q), () => Application?.RequestStop()),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Connection"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Connection),
             [
-                Item(localizer.Get("Menu.Connection.Manage"), Ctrl(KeyCode.O), () => Safe(ShowManagerAsync)),
-                Item(localizer.Get("Menu.Connection.Disconnect"), Key.Empty, () => Safe(DisconnectActiveAsync)),
-                Item(localizer.Get("Menu.Connection.Refresh"), Key.F9, () => Safe(RefreshActiveAsync)),
-                Item(localizer.Get("Menu.Connection.Unlock"), Key.F8, UnlockSecrets,
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionManage), Ctrl(KeyCode.O), () => Safe(ShowManagerAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionDisconnect), Key.Empty, () => Safe(DisconnectActiveAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionRefresh), Key.F9, () => Safe(RefreshActiveAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionUnlock), Key.F8, UnlockSecrets,
                     _security.CurrentMode == SecurityMode.Password),
-                Item(localizer.Get("Menu.Connection.ChangePassword"), Ctrl(KeyCode.P), OpenChangePassword,
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionChangePassword), Ctrl(KeyCode.P), OpenChangePassword,
                     _security.CurrentMode == SecurityMode.Password),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Query"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Query),
             [
-                Item(localizer.Get("Menu.Query.New"), Ctrl(KeyCode.T), NewTab),
-                Item(localizer.Get("Menu.Query.Run"), Key.F5, runQuery),
-                Item(localizer.Get("Menu.Query.Autocomplete"), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
-                Item(localizer.Get("Menu.Query.Close"), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
-                Item(localizer.Get("Menu.Query.Ai"), Key.F6, () => Safe(OpenAiAssistantAsync), _aiConfigured),
-                Item(localizer.Get("Menu.Query.Translate"), Key.F7, OpenTranslate, _aiConfigured),
-                Item(localizer.Get("Menu.Query.History"), Ctrl(KeyCode.H), () => Safe(OpenHistoryAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryNew), Ctrl(KeyCode.T), NewTab),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryRun), Key.F5, runQuery),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryAutocomplete), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryClose), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryAi), Key.F6, () => Safe(OpenAiAssistantAsync), _aiConfigured),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryTranslate), Key.F7, OpenTranslate, _aiConfigured),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryHistory), Ctrl(KeyCode.H), () => Safe(OpenHistoryAsync)),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Document"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Document),
             [
-                Item(localizer.Get("Menu.Document.Insert"), Ctrl(KeyCode.I), InsertDocument),
-                Item(localizer.Get("Menu.Document.Edit"), Ctrl(KeyCode.E), EditDocument),
-                Item(localizer.Get("Menu.Document.Delete"), Ctrl(KeyCode.D), EditDocument),
+                Item(localizer.Get(LocalizationKeys.Menu.DocumentInsert), Ctrl(KeyCode.I), InsertDocument),
+                Item(localizer.Get(LocalizationKeys.Menu.DocumentEdit), Ctrl(KeyCode.E), EditDocument),
+                Item(localizer.Get(LocalizationKeys.Menu.DocumentDelete), Ctrl(KeyCode.D), EditDocument),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Collection"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Collection),
             [
-                Item(localizer.Get("Menu.Collection.Indexes"), Ctrl(KeyCode.K), () => Safe(OpenIndexesAsync)),
-                Item(localizer.Get("Menu.Collection.Export"), Key.F2, OpenExport),
-                Item(localizer.Get("Menu.Collection.Import"), Key.F3, OpenImport),
+                Item(localizer.Get(LocalizationKeys.Menu.CollectionIndexes), Ctrl(KeyCode.K), () => Safe(OpenIndexesAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.CollectionExport), Key.F2, OpenExport),
+                Item(localizer.Get(LocalizationKeys.Menu.CollectionImport), Key.F3, OpenImport),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Settings"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Settings),
             [
                 new MenuItem
                 {
-                    Title = localizer.Get("Menu.Settings.Display"),
+                    Title = localizer.Get(LocalizationKeys.Menu.SettingsDisplay),
                     SubMenu = new Menu(
                     [
-                        Choice(localizer.Get("Result.Table"), _resultViewMode == ResultViewMode.Table, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Table))),
-                        Choice(localizer.Get("Result.Tree"), _resultViewMode == ResultViewMode.Tree, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Tree))),
-                        Choice(localizer.Get("Result.Json"), _resultViewMode == ResultViewMode.Json, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Json))),
-                        Choice(localizer.Get("Result.Raw"), _resultViewMode == ResultViewMode.Raw, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Raw))),
+                        Choice(localizer.Get(LocalizationKeys.Result.Table), _resultViewMode == ResultViewMode.Table, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Table))),
+                        Choice(localizer.Get(LocalizationKeys.Result.Tree), _resultViewMode == ResultViewMode.Tree, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Tree))),
+                        Choice(localizer.Get(LocalizationKeys.Result.Json), _resultViewMode == ResultViewMode.Json, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Json))),
+                        Choice(localizer.Get(LocalizationKeys.Result.Raw), _resultViewMode == ResultViewMode.Raw, () => Safe(() => SetResultViewModeAsync(ResultViewMode.Raw))),
                     ]),
                 },
                 new MenuItem
                 {
-                    Title = localizer.Get("Menu.Settings.Language"),
+                    Title = localizer.Get(LocalizationKeys.Menu.SettingsLanguage),
                     SubMenu = new Menu(
                     [
-                        Choice("English", CurrentLanguage == "en", () => Safe(() => SetLanguageAsync("en"))),
-                        Choice("Русский", CurrentLanguage == "ru", () => Safe(() => SetLanguageAsync("ru"))),
+                        Choice(UiLanguages.EnglishName, CurrentLanguage == UiLanguages.English, () => Safe(() => SetLanguageAsync(UiLanguages.English))),
+                        Choice(UiLanguages.RussianName, CurrentLanguage == UiLanguages.Russian, () => Safe(() => SetLanguageAsync(UiLanguages.Russian))),
                     ]),
                 },
-                Item(localizer.Get("Menu.Settings.Ai"), Key.Empty, () => Safe(OpenAiSettingsAsync)),
-                Item(localizer.Get("Menu.Settings.Security"), Key.Empty, OpenSecuritySettings),
+                Item(localizer.Get(LocalizationKeys.Menu.SettingsQueries), Key.Empty, () => Safe(OpenQuerySettingsAsync)),
+                Item(localizer.Get(LocalizationKeys.Logging.Title), Key.Empty, () => Safe(OpenLoggingSettingsAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.SettingsAi), Key.Empty, () => Safe(OpenAiSettingsAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.SettingsSecurity), Key.Empty, OpenSecuritySettings),
             ]),
-            new MenuBarItem(localizer.Get("Menu.Help"),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Help),
             [
-                Item(localizer.Get("Menu.Help.Shortcuts"), Key.Empty, OpenShortcuts),
-                Item(localizer.Get("Menu.Help.About"), Key.Empty, OpenAbout),
+                Item(localizer.Get(LocalizationKeys.Menu.HelpShortcuts), Key.Empty, OpenShortcuts),
+                Item(localizer.Get(LocalizationKeys.Menu.HelpAbout), Key.Empty, OpenAbout),
             ]),
         ];
     }
@@ -445,19 +459,13 @@ public sealed partial class MainWindow : Window
     private async Task RefreshActiveAsync()
     {
         _queryTabs.InvalidateCompletions();
-        if (_tree.Count == 0)
-        {
-            return;
-        }
+        await ReloadProfilesAsync();
 
         foreach (var connection in _tree.Connections.ToList())
         {
             try
             {
-                var databases = await _gateway.ListDatabasesAsync(connection.Target, CancellationToken.None);
-                _tree.UpdateDatabases(
-                    connection.Profile.Id,
-                    databases.OrderBy(database => database.Name, StringComparer.OrdinalIgnoreCase).ToList());
+                await RefreshConnectionAsync(connection);
             }
             catch (Exception exception)
             {
@@ -470,11 +478,12 @@ public sealed partial class MainWindow : Window
 
     private async Task DisconnectActiveAsync()
     {
-        var connection = SelectedRow()?.Owner ?? _tree.Connections.FirstOrDefault();
+        var selected = SelectedRow();
+        var connection = selected is null ? _tree.Connections.FirstOrDefault() : selected.Owner;
 
         if (connection is null)
         {
-            SetStatus(_localizer.Get("Tree.Empty"));
+            SetStatus(_localizer.Get(LocalizationKeys.Tree.Empty));
             return;
         }
 
@@ -487,22 +496,24 @@ public sealed partial class MainWindow : Window
 
         if (summary is { } result)
         {
-            SetStatus(_localizer.Format("Status.QueryResult", result.DocumentCount, result.Elapsed.TotalMilliseconds));
+            SetStatus(_localizer.Format(LocalizationKeys.Status.QueryResult, result.DocumentCount, result.Elapsed.TotalMilliseconds));
         }
     }
 
     private void RebuildTree(int selectIndex = -1)
     {
+        var selected = SelectedRow();
         _rows.Clear();
         var lines = new List<string>();
 
-        if (_tree.Count == 0)
+        var rows = _tree.BuildRows();
+        if (rows.Count == 0)
         {
-            lines.Add(_localizer.Get("Tree.Empty"));
+            lines.Add(_localizer.Get(LocalizationKeys.Connection.Empty));
         }
         else
         {
-            foreach (var row in _tree.BuildRows())
+            foreach (var row in rows)
             {
                 _rows.Add(row);
                 lines.Add(row.Text);
@@ -510,7 +521,12 @@ public sealed partial class MainWindow : Window
         }
 
         _treeList.SetSource(new ObservableCollection<string>(lines));
-
+        if (selectIndex < 0 && selected is not null)
+        {
+            selectIndex = _rows.FindIndex(row => row.Profile.Id == selected.Profile.Id && row.Kind == selected.Kind
+                && row.Database == selected.Database && row.Collection == selected.Collection);
+            if (selectIndex < 0) selectIndex = _rows.FindIndex(row => row.Profile.Id == selected.Profile.Id);
+        }
         if (selectIndex >= 0 && selectIndex < _rows.Count)
         {
             _treeList.SelectedItem = selectIndex;
@@ -524,17 +540,21 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var id = row.Owner.Profile.Id;
+        var id = row.Profile.Id;
         var index = _treeList.SelectedItem ?? -1;
 
         switch (row.Kind)
         {
             case TreeRowKind.Connection:
-                _tree.ToggleConnection(id);
-                RebuildTree(index);
+                if (row.Owner is null) await ConnectProfileAsync(row.Profile);
+                else
+                {
+                    _tree.ToggleConnection(id);
+                    RebuildTree(index);
+                }
                 break;
             case TreeRowKind.Database:
-                await _tree.ToggleDatabaseAsync(id, row.Owner.Target, row.Database!, CancellationToken.None);
+                await _tree.ToggleDatabaseAsync(id, row.Owner!.Target, row.Database!, CancellationToken.None);
                 RebuildTree(index);
                 break;
             case TreeRowKind.Collection:
@@ -546,13 +566,13 @@ public sealed partial class MainWindow : Window
     private void OpenCollectionTab(TreeRow row)
     {
         var script = BuildCollectionScript(row.Collection!);
-        _queryTabs.AddTab(row.Owner.Profile.Id, row.Owner.Target, row.Database, row.Collection, script);
+        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, row.Collection, script);
         SetStatus($"{row.Database}.{row.Collection}");
     }
 
     private void OpenDatabaseQueryTab(TreeRow row)
     {
-        _queryTabs.AddTab(row.Owner.Profile.Id, row.Owner.Target, row.Database, collection: null, EmptyQueryScript);
+        _queryTabs.AddTab(row.Profile.Id, row.Owner!.Target, row.Database, collection: null, EmptyQueryScript);
         SetStatus(row.Database!);
     }
 
@@ -604,39 +624,35 @@ public sealed partial class MainWindow : Window
 
     private List<(string Title, Func<Task> Handler)> BuildContextActions(TreeRow row)
     {
+        if (row.Kind == TreeRowKind.Connection) return BuildConnectionActions(row);
         var connection = row.Owner;
         var actions = new List<(string Title, Func<Task> Handler)>();
+        if (connection is null) return actions;
 
         switch (row.Kind)
         {
-            case TreeRowKind.Connection:
-                actions.Add((_localizer.Get("Tree.CreateDatabase"), () => CreateDatabaseAsync(connection)));
-                actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshConnectionAsync(connection)));
-                actions.Add((_localizer.Get("Tree.ManageUsersAdmin"), () => OpenUserManagementAsync(connection, "admin")));
-                actions.Add((_localizer.Get("Tree.Disconnect"), () => DisconnectAsync(connection)));
-                break;
             case TreeRowKind.Database:
-                actions.Add((_localizer.Get("Tree.NewQuery"), () =>
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.NewQuery), () =>
                 {
                     OpenDatabaseQueryTab(row);
                     return Task.CompletedTask;
                 }));
-                actions.Add((_localizer.Get("Tree.CreateCollection"), () => CreateCollectionAsync(connection, row.Database!)));
-                actions.Add((_localizer.Get("Tree.Refresh"), () => RefreshDatabaseAsync(connection, row.Database!)));
-                actions.Add((_localizer.Get("Tree.Statistics"), () => ShowDatabaseStatsAsync(connection, row.Database!)));
-                actions.Add((_localizer.Get("Tree.ManageUsers"), () => OpenUserManagementAsync(connection, row.Database!)));
-                actions.Add((_localizer.Get("Tree.DropDatabase"), () => DropDatabaseAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.CreateCollection), () => CreateCollectionAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.Refresh), () => RefreshDatabaseAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.Statistics), () => ShowDatabaseStatsAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.ManageUsers), () => OpenUserManagementAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.DropDatabase), () => DropDatabaseAsync(connection, row.Database!)));
                 break;
             case TreeRowKind.Collection:
-                actions.Add((_localizer.Get("Tree.NewQuery"), () =>
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.NewQuery), () =>
                 {
                     OpenCollectionTab(row);
                     return Task.CompletedTask;
                 }));
-                actions.Add((_localizer.Get("Tree.Statistics"), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
-                actions.Add((_localizer.Get("Tree.Indexes"), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
-                actions.Add((_localizer.Get("Tree.ClearCollection"), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));
-                actions.Add((_localizer.Get("Tree.DropCollection"), () => DropCollectionAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.Statistics), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.Indexes), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.ClearCollection), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));
+                actions.Add((_localizer.Get(LocalizationKeys.Tree.DropCollection), () => DropCollectionAsync(connection, row.Database!, row.Collection!)));
                 break;
         }
 
@@ -650,9 +666,13 @@ public sealed partial class MainWindow : Window
         _tree.UpdateDatabases(
             connection.Profile.Id,
             databases.OrderBy(database => database.Name, StringComparer.OrdinalIgnoreCase).ToList());
+        foreach (var database in databases.Where(database => _tree.IsExpanded(connection.Profile.Id, database.Name)))
+        {
+            await _tree.ReloadCollectionsAsync(connection.Profile.Id, connection.Target, database.Name, CancellationToken.None);
+        }
 
         RebuildTree();
-        SetStatus(_localizer.Format("Status.Connected", connection.Profile.Name, databases.Count));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.Connected, connection.Profile.Name, databases.Count));
     }
 
     private async Task RefreshDatabaseAsync(ActiveConnection connection, string database)
@@ -673,15 +693,15 @@ public sealed partial class MainWindow : Window
 
         var text = string.Join(Environment.NewLine,
         [
-            $"{_localizer.Get("Stats.Name")}: {stats.Name}",
-            $"{_localizer.Get("Stats.Collections")}: {stats.CollectionCount}",
-            $"{_localizer.Get("Stats.Documents")}: {stats.ObjectCount}",
-            $"{_localizer.Get("Stats.DataSize")}: {FormatBytes(stats.DataSizeBytes)}",
-            $"{_localizer.Get("Stats.StorageSize")}: {FormatBytes(stats.StorageSizeBytes)}",
-            $"{_localizer.Get("Stats.Indexes")}: {stats.IndexCount}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Name)}: {stats.Name}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Collections)}: {stats.CollectionCount}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Documents)}: {stats.ObjectCount}",
+            $"{_localizer.Get(LocalizationKeys.Stats.DataSize)}: {FormatBytes(stats.DataSizeBytes)}",
+            $"{_localizer.Get(LocalizationKeys.Stats.StorageSize)}: {FormatBytes(stats.StorageSizeBytes)}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Indexes)}: {stats.IndexCount}",
         ]);
 
-        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get("Stats.DatabaseTitle"), text));
+        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get(LocalizationKeys.Stats.DatabaseTitle), text));
     }
 
     private async Task ShowCollectionStatsAsync(ActiveConnection connection, string database, string collection)
@@ -696,12 +716,12 @@ public sealed partial class MainWindow : Window
 
         var text = string.Join(Environment.NewLine,
         [
-            $"{_localizer.Get("Stats.Name")}: {stats.Name}",
-            $"{_localizer.Get("Stats.Documents")}: {stats.DocumentCount}",
-            $"{_localizer.Get("Stats.Indexes")}: {stats.IndexCount}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Name)}: {stats.Name}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Documents)}: {stats.DocumentCount}",
+            $"{_localizer.Get(LocalizationKeys.Stats.Indexes)}: {stats.IndexCount}",
         ]);
 
-        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get("Stats.CollectionTitle"), text));
+        Application.Run(new ErrorDialog(_localizer, Application, _localizer.Get(LocalizationKeys.Stats.CollectionTitle), text));
     }
 
     private async Task OpenCollectionIndexesAsync(ActiveConnection connection, string database, string collection)
@@ -727,7 +747,7 @@ public sealed partial class MainWindow : Window
         await _databases.DropDatabaseAsync(connection.Target, DatabaseName.Create(database), CancellationToken.None);
         _tree.RemoveDatabase(connection.Profile.Id, database);
         RebuildTree();
-        SetStatus(_localizer.Format("Status.DatabaseDropped", database));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.DatabaseDropped, database));
     }
 
     private async Task DropCollectionAsync(ActiveConnection connection, string database, string collection)
@@ -743,7 +763,7 @@ public sealed partial class MainWindow : Window
         await _databases.DropCollectionAsync(connection.Target, collectionRef, CancellationToken.None);
         _tree.RemoveCollection(connection.Profile.Id, database, collection);
         RebuildTree();
-        SetStatus(_localizer.Format("Status.CollectionDropped", name));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.CollectionDropped, name));
     }
 
     private async Task ClearCollectionAsync(ActiveConnection connection, string database, string collection)
@@ -757,7 +777,7 @@ public sealed partial class MainWindow : Window
 
         var collectionRef = new CollectionRef(DatabaseName.Create(database), CollectionName.Create(collection));
         await _databases.ClearCollectionAsync(connection.Target, collectionRef, CancellationToken.None);
-        SetStatus(_localizer.Format("Status.CollectionCleared", name));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.CollectionCleared, name));
     }
 
     private bool Confirm(string key, string target)
@@ -803,7 +823,7 @@ public sealed partial class MainWindow : Window
 
     private void SetStatus(string? message = null)
     {
-        var active = _localizer.Format("Status.ActiveConnections", _tree.Count);
+        var active = _localizer.Format(LocalizationKeys.Status.ActiveConnections, _tree.Count);
 
         if (!string.IsNullOrWhiteSpace(message))
         {
@@ -811,7 +831,7 @@ public sealed partial class MainWindow : Window
         }
         else if (_tree.Count == 0)
         {
-            _status.Text = $"{active}  ·  {_localizer.Get("Status.Hint")}";
+            _status.Text = $"{active}  ·  {_localizer.Get(LocalizationKeys.Status.Hint)}";
         }
         else
         {
@@ -822,9 +842,9 @@ public sealed partial class MainWindow : Window
     private async Task LoadSettingsAsync()
     {
         var language = await _settings.GetLanguageAsync(CancellationToken.None);
-        _language = language is "en" or "ru" ? language : _localizer.CurrentLanguage;
+        _language = language is UiLanguages.English or UiLanguages.Russian ? language : _localizer.CurrentLanguage;
 
-        if (_language is "en" or "ru")
+        if (_language is UiLanguages.English or UiLanguages.Russian)
         {
             _localizer.SetLanguage(_language);
         }
@@ -841,11 +861,11 @@ public sealed partial class MainWindow : Window
     // Re-applies every localized string that is not refreshed by a dedicated component.
     private void ApplyLocalization()
     {
-        Title = _localizer.Get("App.Title");
+        Title = _localizer.Get(LocalizationKeys.App.Title);
 
         if (_treeFrame is not null)
         {
-            _treeFrame.Title = _localizer.Get("Tree.Active");
+            _treeFrame.Title = _localizer.Get(LocalizationKeys.Tree.Explorer);
         }
 
         _queryTabs.RefreshLocalization();
@@ -860,7 +880,7 @@ public sealed partial class MainWindow : Window
         await _settings.SetDisplayModeAsync(mode.ToString(), CancellationToken.None);
 
         RefreshMenuBar();
-        SetStatus(_localizer.Format("Status.DisplayMode", _localizer.Get(ModeKey(mode))));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.DisplayMode, _localizer.Get(ModeKey(mode))));
     }
 
     private async Task SetLanguageAsync(string language)
@@ -870,7 +890,7 @@ public sealed partial class MainWindow : Window
         await _settings.SetLanguageAsync(language, CancellationToken.None);
 
         ApplyLocalization();
-        SetStatus(_localizer.Format("Status.Language", language == "ru" ? "Русский" : "English"));
+        SetStatus(_localizer.Format(LocalizationKeys.Status.Language, language == UiLanguages.Russian ? UiLanguages.RussianName : UiLanguages.EnglishName));
     }
 
     // The menu bar is rebuilt on a timer so the item currently being activated is not disposed
@@ -894,22 +914,22 @@ public sealed partial class MainWindow : Window
 
     private static string ModeKey(ResultViewMode mode) => mode switch
     {
-        ResultViewMode.Table => "Result.Table",
-        ResultViewMode.Tree => "Result.Tree",
-        ResultViewMode.Json => "Result.Json",
-        _ => "Result.Raw",
+        ResultViewMode.Table => LocalizationKeys.Result.Table,
+        ResultViewMode.Tree => LocalizationKeys.Result.Tree,
+        ResultViewMode.Json => LocalizationKeys.Result.Json,
+        _ => LocalizationKeys.Result.Raw,
     };
 
     private void NewTab()
     {
-        if (SelectedRow() is not { } row)
+        if (SelectedRow() is not { Owner: { } connection } row)
         {
-            SetStatus(_localizer.Get("Tree.Empty"));
+            SetStatus(_localizer.Get(LocalizationKeys.Tree.Empty));
             return;
         }
 
-        _queryTabs.AddTab(row.Owner.Profile.Id, row.Owner.Target, row.Database, row.Collection);
-        SetStatus(row.Owner.Profile.Name);
+        _queryTabs.AddTab(row.Profile.Id, connection.Target, row.Database, row.Collection);
+        SetStatus(row.Profile.Name);
     }
 
     private void InsertDocument()
@@ -920,39 +940,47 @@ public sealed partial class MainWindow : Window
         }
 
         var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection);
-        var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
+        using var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
         Application!.Run(dialog);
 
-        SetStatus(dialog.Saved ? _localizer.Get("Documents.Saved") : null);
+        SetStatus(dialog.Saved ? _localizer.Get(LocalizationKeys.Documents.Saved) : null);
     }
 
-    private void EditDocument()
+    private void EditDocument() => Safe(EditDocumentAsync);
+
+    private async Task EditDocumentAsync()
     {
-        if (ResolveResultContext() is not { } context)
+        if (_openingDocument || ResolveResultContext() is not { } context) return;
+        var document = _queryTabs.SelectedDocument;
+        if (document is null)
         {
+            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoDocument));
             return;
         }
-
-        var documentJson = _queryTabs.SelectedDocumentJson;
-
-        if (documentJson is null)
+        _openingDocument = true;
+        try
         {
-            SetStatus(_localizer.Get("Documents.NoDocument"));
-            return;
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(_documentLifetime.Token);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection, document);
+            var loaded = await viewModel.InitializeAsync(timeout.Token).ConfigureAwait(false);
+            if (_documentLifetime.IsCancellationRequested) return;
+            await Application!.InvokeAsync(() =>
+            {
+                if (_documentLifetime.IsCancellationRequested) return;
+                if (!loaded)
+                {
+                    SetStatus(viewModel.ValidationErrorKey is { } key ? _localizer.Get(key) : viewModel.ValidationError);
+                    return;
+                }
+                using var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
+                Application!.Run(dialog);
+                if (dialog.Deleted) SetStatus(_localizer.Get(LocalizationKeys.Documents.Deleted));
+                else if (dialog.Saved) SetStatus(_localizer.Get(LocalizationKeys.Documents.Saved));
+            }).ConfigureAwait(false);
         }
-
-        var viewModel = new DocumentEditViewModel(_documents, context.Target, context.Collection, documentJson);
-        var dialog = new DocumentEditDialog(_localizer, Application!, viewModel);
-        Application!.Run(dialog);
-
-        if (dialog.Deleted)
-        {
-            SetStatus(_localizer.Get("Documents.Deleted"));
-        }
-        else if (dialog.Saved)
-        {
-            SetStatus(_localizer.Get("Documents.Saved"));
-        }
+        catch (OperationCanceledException) when (_documentLifetime.IsCancellationRequested) { }
+        finally { _openingDocument = false; }
     }
 
     private void DeleteDocument()
@@ -962,18 +990,18 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (_queryTabs.SelectedDocumentJson is not { } documentJson)
+        if (_queryTabs.SelectedDocument is not { } document)
         {
-            SetStatus(_localizer.Get("Documents.NoDocument"));
+            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoDocument));
             return;
         }
 
-        var filter = DocumentService.BuildIdFilter(documentJson);
+        var filter = BsonTextCodec.ForEditing(BsonTextCodec.IdFilter(document));
         var confirm = new ConfirmDialog(
             _localizer,
             Application!,
-            _localizer.Get("Menu.Document.Delete"),
-            _localizer.Format("Documents.DeleteCondition", filter));
+            _localizer.Get(LocalizationKeys.Menu.DocumentDelete),
+            _localizer.Format(LocalizationKeys.Documents.DeleteCondition, filter));
         Application!.Run(confirm);
 
         if (confirm.Confirmed)
@@ -987,7 +1015,7 @@ public sealed partial class MainWindow : Window
         try
         {
             var deleted = await _documents.DeleteAsync(context.Target, context.Collection, filter, CancellationToken.None);
-            SetStatus(_localizer.Get(deleted > 0 ? "Documents.Deleted" : "Documents.NotFound"));
+            SetStatus(_localizer.Get(deleted > 0 ? LocalizationKeys.Documents.Deleted : LocalizationKeys.Documents.NotFound));
         }
         catch (DomainException exception)
         {
@@ -999,7 +1027,7 @@ public sealed partial class MainWindow : Window
     {
         if (_queryTabs.ActiveTab is { IsExecuting: false, ResultCollection: { } collection } tab)
             return (tab.Target, collection);
-        SetStatus(_localizer.Get("Documents.UnsafeResult"));
+        SetStatus(_localizer.Get(LocalizationKeys.Documents.UnsafeResult));
         return null;
     }
 
@@ -1008,7 +1036,7 @@ public sealed partial class MainWindow : Window
         var tab = _queryTabs.ActiveTab;
         if (tab?.Database is null || tab.Collection is null)
         {
-            SetStatus(_localizer.Get("Documents.NoContext"));
+            SetStatus(_localizer.Get(LocalizationKeys.Documents.NoContext));
             return null;
         }
 
@@ -1055,7 +1083,7 @@ public sealed partial class MainWindow : Window
     {
         if (!_aiConfigured)
         {
-            SetStatus(_localizer.Get("Ai.NotConfigured"));
+            SetStatus(_localizer.Get(LocalizationKeys.Ai.NotConfigured));
             return;
         }
 
@@ -1093,7 +1121,7 @@ public sealed partial class MainWindow : Window
     {
         if (!_aiConfigured)
         {
-            SetStatus(_localizer.Get("Ai.NotConfigured"));
+            SetStatus(_localizer.Get(LocalizationKeys.Ai.NotConfigured));
             return;
         }
 
@@ -1110,11 +1138,11 @@ public sealed partial class MainWindow : Window
     {
         if (Application is null || SelectedRow() is not { } row)
         {
-            SetStatus(_localizer.Get("Tree.Empty"));
+            SetStatus(_localizer.Get(LocalizationKeys.Tree.Empty));
             return;
         }
 
-        var connectionId = row.Owner.Profile.Id;
+        var connectionId = row.Profile.Id;
         var dialog = new HistoryDialog(_history, _localizer, Application, connectionId);
         await dialog.LoadAsync();
         Application.Run(dialog);
@@ -1129,7 +1157,7 @@ public sealed partial class MainWindow : Window
 
         if (_security.CurrentMode != SecurityMode.Password)
         {
-            SetStatus(_localizer.Get("Security.Status.Locked"));
+            SetStatus(_localizer.Get(LocalizationKeys.Security.StatusLocked));
             return;
         }
 
@@ -1138,7 +1166,7 @@ public sealed partial class MainWindow : Window
 
         if (dialog.Unlocked)
         {
-            SetStatus(_localizer.Get("MasterPassword.Unlock"));
+            SetStatus(_localizer.Get(LocalizationKeys.MasterPassword.Unlock));
             Safe(RefreshAiAvailabilityAsync);
         }
     }
@@ -1155,7 +1183,7 @@ public sealed partial class MainWindow : Window
 
         if (dialog.Changed)
         {
-            SetStatus(_localizer.Get("ChangePassword.Changed"));
+            SetStatus(_localizer.Get(LocalizationKeys.ChangePassword.Changed));
         }
     }
 
@@ -1215,7 +1243,7 @@ public sealed partial class MainWindow : Window
             : SecurityProblem.KekFileMissing;
         if (!await HandleInvalidSecurityAsync(problem))
         {
-            SetStatus(_localizer.Get("Security.Error.NotReady"));
+            SetStatus(_localizer.Get(LocalizationKeys.Security.ErrorNotReady));
             return false;
         }
 
@@ -1232,14 +1260,14 @@ public sealed partial class MainWindow : Window
         Application.Run(new ErrorDialog(
             _localizer,
             Application,
-            _localizer.Get("Security.Error.Title"),
+            _localizer.Get(LocalizationKeys.Security.ErrorTitle),
             _localizer.Get(ProblemKey(problem))));
 
         var confirm = new ConfirmDialog(
             _localizer,
             Application,
-            _localizer.Get("Security.Settings.ResetTitle"),
-            _localizer.Get("Security.Error.ConfirmReset"));
+            _localizer.Get(LocalizationKeys.Security.SettingsResetTitle),
+            _localizer.Get(LocalizationKeys.Security.ErrorConfirmReset));
         Application.Run(confirm);
 
         if (!confirm.Confirmed)
@@ -1277,7 +1305,7 @@ public sealed partial class MainWindow : Window
 
         if (dialog.Reset)
         {
-            SetStatus(_localizer.Get("Security.Settings.ResetDone"));
+            SetStatus(_localizer.Get(LocalizationKeys.Security.SettingsResetDone));
             if (ShowSecurityModeDialog())
             {
                 Safe(RefreshAiAvailabilityAsync);
@@ -1293,18 +1321,18 @@ public sealed partial class MainWindow : Window
         if (dialog.Changed)
         {
             RefreshMenuBar();
-            SetStatus(_localizer.Get("Security.Settings.Changed"));
+            SetStatus(_localizer.Get(LocalizationKeys.Security.SettingsChanged));
             Safe(RefreshAiAvailabilityAsync);
         }
     }
 
     private static string ProblemKey(SecurityProblem problem) => problem switch
     {
-        SecurityProblem.KeyringUnavailable => "Security.Error.KeyringUnavailable",
-        SecurityProblem.KeyringKeyMissing => "Security.Error.KeyringKeyMissing",
-        SecurityProblem.KekFileMissing => "Security.Error.KekFileMissing",
-        SecurityProblem.PasswordMaterialMissing => "Security.Error.PasswordMaterialMissing",
-        _ => "Security.Error.UnknownKeyMaterial",
+        SecurityProblem.KeyringUnavailable => LocalizationKeys.Security.ErrorKeyringUnavailable,
+        SecurityProblem.KeyringKeyMissing => LocalizationKeys.Security.ErrorKeyringKeyMissing,
+        SecurityProblem.KekFileMissing => LocalizationKeys.Security.ErrorKekFileMissing,
+        SecurityProblem.PasswordMaterialMissing => LocalizationKeys.Security.ErrorPasswordMaterialMissing,
+        _ => LocalizationKeys.Security.ErrorUnknownKeyMaterial,
     };
 
     private async Task OpenAiSettingsAsync()
@@ -1321,7 +1349,7 @@ public sealed partial class MainWindow : Window
         if (dialog.Saved)
         {
             await RefreshAiAvailabilityAsync();
-            SetStatus(_localizer.Get("Ai.Settings.Saved"));
+            SetStatus(_localizer.Get(LocalizationKeys.Ai.SettingsSaved));
         }
     }
 

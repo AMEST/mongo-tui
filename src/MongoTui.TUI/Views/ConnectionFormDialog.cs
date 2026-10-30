@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
@@ -12,10 +13,8 @@ using TuiAttribute = Terminal.Gui.Drawing.Attribute;
 namespace MongoTui.TUI.Views;
 
 /// <summary>Modal dialog that creates or edits a connection profile.</summary>
-public sealed class ConnectionFormDialog : ThemedDialog
+public sealed partial class ConnectionFormDialog : ThemedDialog
 {
-    private const int TestTimeoutSeconds = 10;
-
     private readonly ConnectionFormViewModel _viewModel;
     private readonly IApplication _application;
     private readonly ILocalizer _localizer;
@@ -28,7 +27,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
     private readonly Label _status = new();
     private readonly Button _testButton = new();
     private readonly string[] _authKinds = Enum.GetNames<AuthKind>();
-    private CancellationTokenSource? _testCancellation;
+    private CancellationTokenSource? _operation;
     private bool _closing;
 
     public ConnectionFormDialog(
@@ -43,7 +42,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         Disposing += (_, _) =>
         {
             _closing = true;
-            _testCancellation?.Cancel();
+            _operation?.Cancel();
         };
         _viewModel = new ConnectionFormViewModel(connections, localizer);
 
@@ -56,35 +55,35 @@ public sealed class ConnectionFormDialog : ThemedDialog
             _viewModel.Load(profile, secret);
         }
 
-        Title = localizer.Get("Connections.Title");
+        Title = localizer.Get(LocalizationKeys.Connections.Title);
         Width = 80;
         Height = 24;
 
-        Add(FieldLabel(localizer.Get("Connections.Field.Name"), 1));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldName), 1));
         _nameField.X = 22;
         _nameField.Y = 1;
         _nameField.Width = Dim.Fill();
         Add(_nameField);
 
-        Add(FieldLabel(localizer.Get("Connections.Field.Uri"), 3));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldUri), 3));
         _uriField.X = 22;
         _uriField.Y = 3;
         _uriField.Width = Dim.Fill();
         Add(_uriField);
 
-        Add(FieldLabel(localizer.Get("Connections.Field.Username"), 5));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldUsername), 5));
         _userField.X = 22;
         _userField.Y = 5;
         _userField.Width = Dim.Fill();
         Add(_userField);
 
-        Add(FieldLabel(localizer.Get("Connections.Field.Password"), 7));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldPassword), 7));
         _passwordField.X = 22;
         _passwordField.Y = 7;
         _passwordField.Width = Dim.Fill();
         Add(_passwordField);
 
-        Add(FieldLabel(localizer.Get("Connections.Field.Auth"), 9));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldAuth), 9));
         _authList.X = 22;
         _authList.Y = 9;
         _authList.Width = Dim.Fill();
@@ -92,7 +91,7 @@ public sealed class ConnectionFormDialog : ThemedDialog
         _authList.SetSource(new ObservableCollection<string>(_authKinds));
         Add(_authList);
 
-        Add(FieldLabel(localizer.Get("Connections.Field.AuthDatabase"), 14));
+        Add(FieldLabel(localizer.Get(LocalizationKeys.Connections.FieldAuthDatabase), 14));
         _authDatabaseField.X = 22;
         _authDatabaseField.Y = 14;
         _authDatabaseField.Width = Dim.Fill();
@@ -107,15 +106,15 @@ public sealed class ConnectionFormDialog : ThemedDialog
 
         PopulateFromViewModel();
 
-        var fromUriButton = new Button { Text = localizer.Get("Connections.FromUri") };
+        var fromUriButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.FromUri) };
         fromUriButton.OnAccept(ApplyFromUri);
-        var saveButton = new Button { Text = localizer.Get("Connections.Save"), IsDefault = true };
+        var saveButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Save), IsDefault = true };
         saveButton.OnAcceptAsync(SaveAsync);
-        _testButton.Text = localizer.Get("Connections.Test");
+        _testButton.Text = localizer.Get(LocalizationKeys.Connections.Test);
         _testButton.OnAcceptAsync(TestAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
-        var sshButton = new Button { Text = localizer.Get("Ssh.Settings") };
+        var sshButton = new Button { Text = localizer.Get(LocalizationKeys.Ssh.Settings) };
         sshButton.OnAccept(EditSsh);
 
         this.AddButtons(fromUriButton, sshButton, saveButton, _testButton, cancelButton);
@@ -162,69 +161,13 @@ public sealed class ConnectionFormDialog : ThemedDialog
         _viewModel.AuthKind = Enum.Parse<AuthKind>(_authKinds[index]);
     }
 
-    private async Task SaveAsync()
-    {
-        SyncFromFields();
-
-        if (await _viewModel.SaveAsync(CancellationToken.None))
-        {
-            Saved = true;
-            _application.RequestStop(this);
-        }
-        else
-        {
-            SetStatus(_viewModel.ValidationError ?? string.Empty, ColorName16.BrightRed);
-            PopulateFromViewModel();
-        }
-    }
-
-    private async Task TestAsync()
-    {
-        if (_testCancellation is not null)
-        {
-            return;
-        }
-
-        SyncFromFields();
-        _testButton.Enabled = false;
-        SetStatus(_localizer.Get("Connections.TestRunning"), ColorName16.BrightYellow);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(TestTimeoutSeconds));
-        _testCancellation = cancellation;
-        try
-        {
-            var error = await _viewModel.TestAsync(cancellation.Token);
-            if (!_closing)
-            {
-                PopulateFromViewModel();
-            }
-
-            SetTestStatus(error);
-        }
-        catch (OperationCanceledException)
-        {
-            var message = cancellation.IsCancellationRequested
-                ? _localizer.Format("Connections.TestTimeout", TestTimeoutSeconds)
-                : _localizer.Get("Ssh.Cancelled");
-            SetTestStatus(message);
-        }
-        catch (Exception exception)
-        {
-            SetTestStatus(exception.Message);
-        }
-        finally
-        {
-            _testCancellation = null;
-            if (!_closing) _testButton.Enabled = true;
-        }
-    }
-
     private void SetTestStatus(string? error)
     {
         if (!_closing)
         {
             var message = error is null
-                ? _localizer.Get("Connections.TestOk")
-                : _localizer.Format("Connections.TestError", error);
+                ? _localizer.Get(LocalizationKeys.Connections.TestOk)
+                : _localizer.Format(LocalizationKeys.Connections.TestError, error);
             SetStatus(message, error is null ? ColorName16.BrightGreen : ColorName16.BrightRed);
         }
     }

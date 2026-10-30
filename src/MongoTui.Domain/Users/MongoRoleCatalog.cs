@@ -5,34 +5,34 @@ namespace MongoTui.Domain.Users;
 /// <summary>Maps managed MongoDB role names to the access model used by the UI.</summary>
 public static class MongoRoleCatalog
 {
-    public const string AdminDatabase = "admin";
+    public const string AdminDatabase = MongoSystemNames.AdminDatabase;
 
     public static bool IsManaged(MongoRole role)
     {
         if (role.Database == AdminDatabase && role.Name is
-            "root" or "readAnyDatabase" or "readWriteAnyDatabase" or "clusterAdmin" or "clusterManager" or "clusterMonitor")
+            MongoRoleNames.Root or MongoRoleNames.ReadAnyDatabase or MongoRoleNames.ReadWriteAnyDatabase or MongoRoleNames.ClusterAdmin or MongoRoleNames.ClusterManager or MongoRoleNames.ClusterMonitor)
         {
             return true;
         }
 
-        return role.Name is "read" or "readWrite" or "dbOwner";
+        return role.Name is MongoRoleNames.Read or MongoRoleNames.ReadWrite or MongoRoleNames.DbOwner;
     }
 
     public static bool TryGetClusterRole(MongoRole role, out ClusterRole clusterRole)
     {
         clusterRole = role.Name switch
         {
-            "readAnyDatabase" => ClusterRole.ReadAnyDatabase,
-            "readWriteAnyDatabase" => ClusterRole.ReadWriteAnyDatabase,
-            "clusterAdmin" => ClusterRole.ClusterAdmin,
-            "clusterManager" => ClusterRole.ClusterManager,
-            "clusterMonitor" => ClusterRole.ClusterMonitor,
-            "root" => ClusterRole.Administrator,
+            MongoRoleNames.ReadAnyDatabase => ClusterRole.ReadAnyDatabase,
+            MongoRoleNames.ReadWriteAnyDatabase => ClusterRole.ReadWriteAnyDatabase,
+            MongoRoleNames.ClusterAdmin => ClusterRole.ClusterAdmin,
+            MongoRoleNames.ClusterManager => ClusterRole.ClusterManager,
+            MongoRoleNames.ClusterMonitor => ClusterRole.ClusterMonitor,
+            MongoRoleNames.Root => ClusterRole.Administrator,
             _ => default,
         };
 
         return role.Database == AdminDatabase && role.Name is
-            "root" or "readAnyDatabase" or "readWriteAnyDatabase" or "clusterAdmin" or "clusterManager" or "clusterMonitor";
+            MongoRoleNames.Root or MongoRoleNames.ReadAnyDatabase or MongoRoleNames.ReadWriteAnyDatabase or MongoRoleNames.ClusterAdmin or MongoRoleNames.ClusterManager or MongoRoleNames.ClusterMonitor;
     }
 
     public static bool TryGetDatabaseAccess(MongoRole role, out DatabaseAccess access)
@@ -40,9 +40,9 @@ public static class MongoRoleCatalog
         access = default!;
         var level = role.Name switch
         {
-            "read" => DatabaseAccessLevel.Read,
-            "readWrite" => DatabaseAccessLevel.ReadWrite,
-            "dbOwner" => DatabaseAccessLevel.DbOwner,
+            MongoRoleNames.Read => DatabaseAccessLevel.Read,
+            MongoRoleNames.ReadWrite => DatabaseAccessLevel.ReadWrite,
+            MongoRoleNames.DbOwner => DatabaseAccessLevel.DbOwner,
             _ => (DatabaseAccessLevel?)null,
         };
 

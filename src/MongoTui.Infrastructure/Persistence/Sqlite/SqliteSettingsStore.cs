@@ -13,39 +13,43 @@ public sealed class SqliteSettingsStore : ISettingsStore
 
     public async Task<string?> GetAsync(string key, CancellationToken cancellationToken)
     {
-        await using var session = _database.OpenSession();
+        var session = _database.OpenSession();
+        await using var lifetime = session.ConfigureAwait(false);
         var db = session.Connection;
 
         return await db.Settings
             .Where(setting => setting.Key == key)
             .Select(setting => setting.Value)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task SetAsync(string key, string value, CancellationToken cancellationToken)
     {
-        await using var session = _database.OpenSession();
+        var session = _database.OpenSession();
+        await using var lifetime = session.ConfigureAwait(false);
         var db = session.Connection;
 
-        await db.InsertOrReplaceAsync(new SettingRow { Key = key, Value = value }, token: cancellationToken);
+        await db.InsertOrReplaceAsync(new SettingRow { Key = key, Value = value }, token: cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(string key, CancellationToken cancellationToken)
     {
-        await using var session = _database.OpenSession();
+        var session = _database.OpenSession();
+        await using var lifetime = session.ConfigureAwait(false);
         var db = session.Connection;
 
         await db.Settings
             .Where(setting => setting.Key == key)
-            .DeleteAsync(cancellationToken);
+            .DeleteAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetAllAsync(CancellationToken cancellationToken)
     {
-        await using var session = _database.OpenSession();
+        var session = _database.OpenSession();
+        await using var lifetime = session.ConfigureAwait(false);
         var db = session.Connection;
 
-        var rows = await db.Settings.ToListAsync(cancellationToken);
+        var rows = await db.Settings.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return rows.ToDictionary(row => row.Key, row => row.Value, StringComparer.Ordinal);
     }

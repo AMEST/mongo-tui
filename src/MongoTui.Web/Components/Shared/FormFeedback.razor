@@ -1,0 +1,11 @@
+<div class="feedback-slot @Class">
+    @if (Error is not null) { <p class="error-message" role="alert">@Error</p> }
+    else if (Success is not null) { <p class="success-message" role="status">@Success</p> }
+    else if (Message is not null) { <p class="field-hint" role="status">@Message</p> }
+</div>
+@code {
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public string? Success { get; set; }
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string Class { get; set; } = string.Empty;
+}

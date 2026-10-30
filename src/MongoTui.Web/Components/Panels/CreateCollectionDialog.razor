@@ -1,0 +1,35 @@
+@implements IDisposable
+@inject DatabaseService Databases
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@inject ILogger<CreateCollectionDialog> Logger
+<Modal Title="@L[LocalizationKeys.Collection.Create]" OnClose="OnClose"><form class="modal-body" @onsubmit="CreateAsync" @onsubmit:preventDefault="true"><p class="muted">@Selection.Database</p><label for="collection-name">@L[LocalizationKeys.Collection.Name]</label><input id="collection-name" disabled="@_busy" required @bind="_name" autofocus /><FormFeedback Error="@_error" /><footer class="modal-actions"><button type="button" class="button secondary" @onclick="OnClose">@L[LocalizationKeys.Common.Cancel]</button><BusyButton Type="submit" Busy="_busy" Icon="@IconNames.Plus">@L[LocalizationKeys.Common.Create]</BusyButton></footer></form></Modal>
+@code {
+    [Parameter, EditorRequired] public DatabaseSelection Selection { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    private string _name = string.Empty;
+    private string? _error;
+    private bool _busy, _disposed;
+    private readonly CancellationTokenSource _lifetime = new();
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task CreateAsync()
+    {
+        if (_busy) return;
+        _busy = true; _error = null;
+        try
+        {
+            var connection = Catalog.Get(Selection.ConnectionId);
+            await Databases.CreateCollectionAsync(connection.Target, new CollectionRef(DatabaseName.Create(Selection.Database), CollectionName.Create(_name.Trim())), _lifetime.Token);
+            Logger.LogInformation("Collection created in {Database}", Selection.Database);
+            await Catalog.ExpandAsync(connection, connection.Databases.First(item => item.Name == Selection.Database), _lifetime.Token);
+            if (!_disposed) await OnClose.InvokeAsync();
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch (Exception exception)
+        {
+            Logger.LogWarning("Collection creation failed: {Failure}", ExceptionDiagnostics.Describe(exception));
+            if (!_disposed) _error = L[LocalizationKeys.Error.Save];
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,22 @@
+@implements IDisposable
+@inject WebSshPrompt Prompt
+@inject WebText L
+@if (Prompt.Prompt is not null)
+{
+    <Modal Title="@L[LocalizationKeys.Ssh.Title]" OnClose="Cancel">
+        <form class="modal-body" @onsubmit="Answer" @onsubmit:preventDefault="true">
+            <p>@Prompt.Prompt</p>
+            <label for="ssh-response">@L[LocalizationKeys.Ssh.Response]</label>
+            <input id="ssh-response" type="password" autocomplete="one-time-code" @bind="_answer" autofocus />
+            <footer class="modal-actions"><button class="button secondary" type="button" @onclick="Cancel">@L[LocalizationKeys.Common.Cancel]</button><button class="button primary" type="submit">@L[LocalizationKeys.Common.Continue]</button></footer>
+        </form>
+    </Modal>
+}
+@code {
+    private string _answer = string.Empty;
+    protected override void OnInitialized() => Prompt.Changed += Refresh;
+    private void Refresh() => _ = InvokeAsync(StateHasChanged);
+    private void Answer() { Prompt.Answer(_answer); _answer = string.Empty; }
+    private void Cancel() { Prompt.Answer(null); _answer = string.Empty; }
+    public void Dispose() => Prompt.Changed -= Refresh;
+}

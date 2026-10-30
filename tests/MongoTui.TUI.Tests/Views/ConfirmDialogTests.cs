@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Localization;
@@ -18,7 +19,7 @@ public sealed class ConfirmDialogTests
         var dialog = new ConfirmDialog(localizer, application, "title", "message");
 
         dialog.Buttons.Should().HaveCount(2);
-        dialog.Buttons[0].Text.Should().Be("Common.Yes");
+        dialog.Buttons[0].Text.Should().Be(LocalizationKeys.Common.Yes);
         dialog.DefaultAcceptView.Should().BeSameAs(dialog.Buttons[0]);
         dialog.Buttons[0].IsDefault.Should().BeTrue();
         dialog.Buttons[1].IsDefault.Should().BeFalse();

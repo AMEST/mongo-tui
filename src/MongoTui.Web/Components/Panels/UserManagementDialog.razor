@@ -1,0 +1,99 @@
+@implements IDisposable
+@inject WebUserManagement Users
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@if (_credentials is not null)
+{
+    <UserCredentialsDialog Credentials="_credentials" PasswordChanged="_updated" ReconnectRequired="@(_notice is not null)" OnClose="CredentialsClosedAsync" />
+}
+else if (_draft is not null)
+{
+    <UserFormDialog Selection="Selection" Draft="_draft" KnownDatabases="KnownDatabases" OnSaved="SavedAsync" OnClose="() => _draft = null" />
+}
+else
+{
+    <Modal Title="@L.Format(LocalizationKeys.Users.Title, Selection.Database)" Class="wide-modal users-dialog" OnClose="OnClose">
+        <div class="modal-body">
+            <div class="users-scope"><span class="badge">@L[LocalizationKeys.Users.AuthDatabase]: @Selection.Database</span></div>
+            <p class="field-hint">@L[LocalizationKeys.Users.ScopeHint]</p>
+            <div class="users-toolbar">
+                <BusyButton Class="button primary compact" Pending="_busy" Icon="@IconNames.Plus" IconSize="15" OnClick="() => _draft = new UserDraft()">@L[LocalizationKeys.Users.Create]</BusyButton>
+                <BusyButton Class="button secondary compact" Busy="_refreshing" Pending="@(_busy && !_refreshing)" Icon="@IconNames.Refresh" IconSize="15" OnClick="LoadAsync">@L[LocalizationKeys.Users.Refresh]</BusyButton>
+            </div>
+            <FormFeedback Error="@_error" Message="@_notice" />
+            <div class="users-table-wrap">
+                <table class="users-table">
+                    <thead><tr><th>@L[LocalizationKeys.Users.FieldUsername]</th><th>@L[LocalizationKeys.Users.FieldAccess]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var user in _users)
+                        {
+                            var current = Users.IsCurrentUser(Selection, user);
+                            <tr @key="user.Username">
+                                <td><strong class="mono">@user.Username</strong>@if (current) { <span class="badge subtle">@L[LocalizationKeys.Users.CurrentUser]</span> }</td>
+                                <td><div class="user-roles">@foreach (var role in user.Roles) { <span class="badge subtle mono">@role.Name<span class="muted">@@@role.Database</span></span> }</div></td>
+                                <td><div class="row-actions"><button class="icon-button" title="@L[LocalizationKeys.Users.Edit]" disabled="@_busy" data-pending="@(_busy ? "true" : "false")" @onclick="() => _draft = new UserDraft(user)"><Icon Name="@IconNames.Edit" Size="16" /></button><button class="icon-button danger-text" title="@L[current ? LocalizationKeys.Users.DeleteCurrentForbidden : LocalizationKeys.Users.Delete]" disabled="@(_busy || current)" data-pending="@(_busy && !current ? "true" : "false")" @onclick="() => _deleting = user"><Icon Name="@IconNames.Trash" Size="16" /></button></div></td>
+                            </tr>
+                        }
+                        @if (_users.Count == 0 && _error is null) { <tr><td colspan="3" class="muted users-empty">@L[_loaded ? LocalizationKeys.Users.Empty : LocalizationKeys.Common.Loading]</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+            @if (_deleting is not null)
+            {
+                <div class="inline-confirm" role="alert">
+                    <p>@L.Format(LocalizationKeys.Users.DeleteConfirmMessage, _deleting.Username, _deleting.Database)</p>
+                    <BusyButton Class="button secondary compact" Pending="_busy" Icon="@IconNames.Close" OnClick="() => _deleting = null">@L[LocalizationKeys.Common.Cancel]</BusyButton>
+                    <BusyButton Class="button danger compact" Busy="_busy" Icon="@IconNames.Trash" OnClick="DeleteAsync">@L[LocalizationKeys.Users.Delete]</BusyButton>
+                </div>
+            }
+            <footer class="modal-actions"><button class="button secondary" @onclick="OnClose">@L[LocalizationKeys.Common.Close]</button></footer>
+        </div>
+    </Modal>
+}
+@code {
+    [Parameter, EditorRequired] public DatabaseSelection Selection { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private IReadOnlyList<MongoUser> _users = [];
+    private UserDraft? _draft;
+    private MongoUser? _deleting;
+    private UserCredentials? _credentials;
+    private string? _error, _notice;
+    private bool _busy, _disposed, _updated, _refreshing, _loaded;
+    private IReadOnlyList<string> KnownDatabases => Catalog.Active.FirstOrDefault(connection => connection.Profile.Id == Selection.ConnectionId)
+        ?.Databases.Select(database => database.Name).ToArray() ?? [];
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); _credentials = null; }
+    private Task LoadAsync() => RunAsync(async () =>
+    {
+        var users = await Users.ListAsync(Selection, _lifetime.Token);
+        if (!_disposed) { _users = users; _loaded = true; }
+    }, true);
+    private async Task SavedAsync(UserSaveResult result)
+    {
+        _draft = null;
+        _updated = result.Updated;
+        _notice = result.ReconnectRequired ? L[LocalizationKeys.Users.PasswordChangedCurrent] : null;
+        _credentials = result.Credentials;
+        if (_credentials is null) await LoadAsync();
+    }
+    private async Task CredentialsClosedAsync() { _credentials = null; await LoadAsync(); }
+    private Task DeleteAsync() => RunAsync(async () =>
+    {
+        if (_deleting is null) return;
+        await Users.DeleteAsync(Selection, _deleting, _lifetime.Token);
+        _deleting = null;
+        var users = await Users.ListAsync(Selection, _lifetime.Token);
+        if (!_disposed) { _users = users; _loaded = true; }
+    });
+    private async Task RunAsync(Func<Task> action, bool refreshing = false)
+    {
+        if (_busy || _disposed) return;
+        _busy = true; _refreshing = refreshing; _error = null;
+        try { await action(); }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch (Exception exception) { if (!_disposed) _error = L.UserError(exception); }
+        finally { if (!_disposed) _busy = _refreshing = false; }
+    }
+}

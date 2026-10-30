@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
@@ -40,7 +41,7 @@ public sealed class IndexManagerDialog : ThemedDialog
         _target = target;
         _collection = collection;
 
-        Title = localizer.Get("Indexes.Title");
+        Title = localizer.Get(LocalizationKeys.Indexes.Title);
         Width = 72;
         Height = 22;
 
@@ -55,24 +56,24 @@ public sealed class IndexManagerDialog : ThemedDialog
         _stats.Width = Dim.Fill();
         Add(_stats);
 
-        Add(FieldLabel("Indexes.Field.Keys", 9));
+        Add(FieldLabel(LocalizationKeys.Indexes.FieldKeys, 9));
         _keysField.X = 20;
         _keysField.Y = 9;
         _keysField.Width = Dim.Fill();
         Add(_keysField);
 
-        Add(FieldLabel("Indexes.Field.Name", 11));
+        Add(FieldLabel(LocalizationKeys.Indexes.FieldName, 11));
         _nameField.X = 20;
         _nameField.Y = 11;
         _nameField.Width = Dim.Fill();
         Add(_nameField);
 
-        _uniqueCheck.Text = _localizer.Get("Indexes.Field.Unique");
+        _uniqueCheck.Text = _localizer.Get(LocalizationKeys.Indexes.FieldUnique);
         _uniqueCheck.X = 1;
         _uniqueCheck.Y = 13;
         Add(_uniqueCheck);
 
-        _backgroundCheck.Text = _localizer.Get("Indexes.Field.Background");
+        _backgroundCheck.Text = _localizer.Get(LocalizationKeys.Indexes.FieldBackground);
         _backgroundCheck.X = 1;
         _backgroundCheck.Y = 15;
         Add(_backgroundCheck);
@@ -82,13 +83,13 @@ public sealed class IndexManagerDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var refreshButton = new Button { Text = localizer.Get("Indexes.Refresh") };
+        var refreshButton = new Button { Text = localizer.Get(LocalizationKeys.Indexes.Refresh) };
         refreshButton.OnAcceptAsync(() => GuardedAsync(LoadAsync));
-        var createButton = new Button { Text = localizer.Get("Indexes.Create") };
+        var createButton = new Button { Text = localizer.Get(LocalizationKeys.Indexes.Create) };
         createButton.OnAcceptAsync(() => GuardedAsync(CreateAsync));
-        var dropButton = new Button { Text = localizer.Get("Indexes.Drop") };
+        var dropButton = new Button { Text = localizer.Get(LocalizationKeys.Indexes.Drop) };
         dropButton.OnAcceptAsync(() => GuardedAsync(DropAsync));
-        var closeButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var closeButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         closeButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(refreshButton, createButton, dropButton, closeButton);
@@ -101,8 +102,8 @@ public sealed class IndexManagerDialog : ThemedDialog
 
         var stats = await _indexes.GetStatsAsync(_target, _collection, CancellationToken.None);
         _stats.Text =
-            $"{_localizer.Get("Stats.Documents")}: {stats.DocumentCount}  " +
-            $"{_localizer.Get("Stats.Indexes")}: {stats.IndexCount}";
+            $"{_localizer.Get(LocalizationKeys.Stats.Documents)}: {stats.DocumentCount}  " +
+            $"{_localizer.Get(LocalizationKeys.Stats.Indexes)}: {stats.IndexCount}";
     }
 
     private async Task CreateAsync()

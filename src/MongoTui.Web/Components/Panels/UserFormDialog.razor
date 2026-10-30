@@ -1,0 +1,49 @@
+@implements IDisposable
+@inject WebUserManagement Users
+@inject WebText L
+<Modal Title="@L[Draft.Existing is null ? LocalizationKeys.Users.FormCreateTitle : LocalizationKeys.Users.FormEditTitle]" Class="wide-modal user-form" OnClose="CloseAsync">
+    <form class="modal-body" @onsubmit="SaveAsync" @onsubmit:preventDefault="true">
+        <span class="badge">@L[LocalizationKeys.Users.AuthDatabase]: @Selection.Database</span>
+        <p class="field-hint">@L[LocalizationKeys.Users.ScopeHint]</p>
+        <fieldset disabled="@_busy">
+            <label for="mongo-user-name">@L[LocalizationKeys.Users.FieldUsername]</label>
+            <input id="mongo-user-name" autofocus required readonly="@(Draft.Existing is not null)" autocomplete="off" @bind="Draft.Username" @bind:event="oninput" />
+            <label for="mongo-user-password">@L[LocalizationKeys.Users.FieldPassword]</label>
+            <div class="user-password-field"><input id="mongo-user-password" type="password" required="@(Draft.Existing is null)" autocomplete="new-password" @bind="Draft.Password" @bind:event="oninput" /><button type="button" class="button secondary compact" @onclick="GeneratePassword">@L[LocalizationKeys.Users.FieldGenerate]</button></div>
+            @if (Draft.Existing is not null) { <p class="field-hint">@L[LocalizationKeys.Users.FormPasswordKeepHint]</p> }
+            <UserAccessEditor Draft="Draft" KnownDatabases="KnownDatabases" />
+        </fieldset>
+        <FormFeedback Error="@_error" />
+        <footer class="modal-actions">
+            <button type="button" class="button secondary" @onclick="CloseAsync">@L[LocalizationKeys.Common.Cancel]</button>
+            <BusyButton Type="submit" Busy="_busy" Icon="@IconNames.Check">@L[Draft.Existing is null ? LocalizationKeys.Users.Create : LocalizationKeys.Common.Save]</BusyButton>
+        </footer>
+    </form>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public DatabaseSelection Selection { get; set; } = null!;
+    [Parameter, EditorRequired] public UserDraft Draft { get; set; } = null!;
+    [Parameter] public IReadOnlyList<string> KnownDatabases { get; set; } = [];
+    [Parameter] public EventCallback<UserSaveResult> OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private string? _error;
+    private bool _busy, _disposed;
+    private void GeneratePassword() => Draft.Password = Users.GeneratePassword();
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); Draft.Password = string.Empty; }
+    private Task CloseAsync() => OnClose.InvokeAsync();
+    private async Task SaveAsync()
+    {
+        if (_busy || _disposed) return;
+        _busy = true; _error = null;
+        try
+        {
+            var result = await Users.SaveAsync(Selection, Draft, _lifetime.Token);
+            Draft.Password = string.Empty;
+            if (!_disposed) await OnSaved.InvokeAsync(result);
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch (Exception exception) { if (!_disposed) _error = L.UserError(exception); }
+        finally { if (!_disposed) _busy = false; }
+    }
+}

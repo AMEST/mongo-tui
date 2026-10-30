@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using MongoTui.Application.Abstractions.Localization;
@@ -18,7 +19,7 @@ public sealed class ContextMenuDialog : ThemedDialog
         IReadOnlyList<string> items,
         Point position)
     {
-        Title = localizer.Get("Tree.ContextMenu");
+        Title = localizer.Get(LocalizationKeys.Tree.ContextMenu);
         Width = 36;
         Height = Math.Clamp(items.Count + 3, 5, 18);
         X = position.X;

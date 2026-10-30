@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
@@ -30,7 +32,7 @@ public sealed class ConnectionFormViewModelTests
 
         _secrets = new SecretKeyService(_crypto);
         _service = new ConnectionService(_repository, _secrets, _gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway), NullLogger<ConnectionService>.Instance);
         _sut = new ConnectionFormViewModel(_service, new ResxLocalizer());
         _sut.LoadNew();
     }
@@ -147,7 +149,8 @@ public sealed class ConnectionFormViewModelTests
 
         saved.Should().BeTrue();
         A.CallTo(() => _repository.AddAsync(
-            A<StoredConnection>.That.Matches(value => value.Profile.Ssh == ssh && value.Profile.Tls == tls),
+            A<StoredConnection>.That.Matches(value => value.Profile.Ssh == ssh && value.Profile.Tls == tls
+                && value.Profile.CreatedAt == profile.CreatedAt),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 

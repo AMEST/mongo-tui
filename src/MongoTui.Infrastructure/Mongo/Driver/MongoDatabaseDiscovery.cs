@@ -1,12 +1,13 @@
+using MongoTui.Domain.Primitives;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoTui.Application.Models;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace MongoTui.Infrastructure.Mongo.Driver;
 
 /// <summary>Discovers stored databases and empty database namespaces known to the connection.</summary>
-public sealed class MongoDatabaseDiscovery
+public sealed class MongoDatabaseDiscovery(ILogger<MongoDatabaseDiscovery> logger)
 {
     /// <summary>Includes URI, authentication and privilege namespaces missing from the server's database catalog.</summary>
     public async Task<IReadOnlyList<DatabaseInfo>> ListAsync(
@@ -14,10 +15,10 @@ public sealed class MongoDatabaseDiscovery
         string? defaultDatabase,
         CancellationToken cancellationToken)
     {
-        using var cursor = await client.ListDatabasesAsync(cancellationToken);
-        var documents = await cursor.ToListAsync(cancellationToken);
-        var databases = documents.Select(document => new DatabaseInfo(document["name"].AsString,
-                document.TryGetValue("empty", out var empty) && empty.ToBoolean()))
+        using var cursor = await client.ListDatabasesAsync(cancellationToken).ConfigureAwait(false);
+        var documents = await cursor.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var databases = documents.Select(document => new DatabaseInfo(document[MongoWireNames.Fields.Name].AsString,
+                document.TryGetValue(MongoWireNames.Fields.Empty, out var empty) && empty.ToBoolean()))
             .ToDictionary(database => database.Name, StringComparer.Ordinal);
         IncludeEmpty(databases, defaultDatabase);
         if (client.Settings.Credential is null) return databases.Values.ToList();
@@ -25,14 +26,14 @@ public sealed class MongoDatabaseDiscovery
 
         try
         {
-            var status = await client.GetDatabase("admin").RunCommandAsync<BsonDocument>(
-                new BsonDocument { { "connectionStatus", 1 }, { "showPrivileges", true } },
-                cancellationToken: cancellationToken);
+            var status = await client.GetDatabase(MongoSystemNames.AdminDatabase).RunCommandAsync<BsonDocument>(
+                new BsonDocument { { MongoWireNames.Commands.ConnectionStatus, 1 }, { MongoWireNames.Fields.ShowPrivileges, true } },
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             foreach (var name in AuthorizedDatabaseNames(status)) IncludeEmpty(databases, name);
         }
         catch (MongoCommandException exception)
         {
-            Log.Warning("Could not discover authorized database namespaces (MongoDB error {Code})", exception.Code);
+            logger.LogWarning("Could not discover authorized database namespaces (MongoDB error {Code})", exception.Code);
         }
 
         return databases.Values.ToList();
@@ -40,10 +41,10 @@ public sealed class MongoDatabaseDiscovery
 
     private static IEnumerable<string> AuthorizedDatabaseNames(BsonDocument status)
     {
-        var auth = status.GetValue("authInfo", new BsonDocument()).AsBsonDocument;
-        var privileges = auth.GetValue("authenticatedUserPrivileges", new BsonArray()).AsBsonArray;
-        return privileges.Select(privilege => privilege["resource"].AsBsonDocument
-            .GetValue("db", string.Empty).AsString);
+        var auth = status.GetValue(MongoWireNames.Fields.AuthInfo, new BsonDocument()).AsBsonDocument;
+        var privileges = auth.GetValue(MongoWireNames.Fields.AuthenticatedUserPrivileges, new BsonArray()).AsBsonArray;
+        return privileges.Select(privilege => privilege[MongoWireNames.Fields.Resource].AsBsonDocument
+            .GetValue(MongoWireNames.Fields.Database, string.Empty).AsString);
     }
 
     private static void IncludeEmpty(IDictionary<string, DatabaseInfo> databases, string? name)

@@ -1,20 +1,15 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using Microsoft.Extensions.Logging;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Infrastructure.Mongo.Cli;
 using MongoTui.Infrastructure.Options;
-using Serilog;
-using Serilog.Core;
-using Serilog.Events;
+using MongoTui.Testing;
 
 namespace MongoTui.Infrastructure.Tests.Mongo.Cli;
 
-[CollectionDefinition("Logging", DisableParallelization = true)]
-public sealed class LoggingCollection;
-
-[Collection("Logging")]
 public sealed class MongoShellLoggingTests
 {
     [Theory]
@@ -23,35 +18,18 @@ public sealed class MongoShellLoggingTests
     public async Task ShouldNot_LogSensitiveOutput_When_ShellReturnsDiagnostics(bool fails)
     {
         const string sensitive = "sensitive-document-password";
-        var sink = new CaptureSink();
-        using var logger = new LoggerConfiguration().MinimumLevel.Debug().WriteTo.Sink(sink).CreateLogger();
-        var previous = Log.Logger;
-        Log.Logger = logger;
+        var sink = new LoggingTestSink();
+        using var loggers = sink.CreateFactory();
         var runner = A.Fake<IProcessRunner>();
         A.CallTo(() => runner.RunAsync(A<ProcessRequest>._, A<CancellationToken>._))
             .Returns(new ProcessResult(fails ? 1 : 0, fails ? $"{{\"message\":\"{sensitive}\"}}" : "[]", sensitive));
-        var session = new MongoShellSession(runner, new MongoToolsLocator(new MongoToolsOptions()),
-            new MongoConnectionTarget($"mongodb://user:{sensitive}@localhost"));
-        try
-        {
-            await EvaluateAsync(session, sensitive);
+        await using var session = new MongoShellSession(runner, new MongoToolsLocator(new MongoToolsOptions()),
+            new MongoConnectionTarget($"mongodb://user:{sensitive}@localhost"), loggers.CreateLogger<MongoShellSession>());
 
-            sink.Messages.Should().NotBeEmpty();
-            string.Join('\n', sink.Messages).Should().NotContain(sensitive).And.NotContain("mongodb://");
-        }
-        finally { Log.Logger = previous; }
-    }
-
-    private static async Task EvaluateAsync(MongoShellSession session, string script)
-    {
-        try { await session.EvaluateAsync(script, "app", CancellationToken.None); }
+        try { await session.EvaluateAsync(sensitive, "app", CancellationToken.None); }
         catch (QueryExecutionException) { }
-    }
 
-    private sealed class CaptureSink : ILogEventSink
-    {
-        public List<string> Messages { get; } = [];
-
-        public void Emit(LogEvent logEvent) => Messages.Add(logEvent.RenderMessage() + logEvent.Exception);
+        sink.Entries.Should().NotBeEmpty().And.OnlyContain(entry => entry.Category == typeof(MongoShellSession).FullName);
+        sink.Text.Should().NotContain(sensitive).And.NotContain("mongodb://");
     }
 }

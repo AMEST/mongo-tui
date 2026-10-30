@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Reflection;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -34,10 +35,13 @@ public sealed class CreateCollectionFlowTests : IDisposable
     public CreateCollectionFlowTests()
     {
         var gateway = A.Fake<IMongoGateway>();
+        var created = false;
+        A.CallTo(() => gateway.ListDatabasesAsync(Target, A<CancellationToken>._))
+            .ReturnsLazily(() => (IReadOnlyList<DatabaseInfo>)(created ? [new("admin", false), new("draft", true)] : [new("admin", false)]));
         A.CallTo(() => gateway.ListCollectionsAsync(Target, DatabaseName.Create("draft"), A<CancellationToken>._))
             .Returns(Task.FromResult<IReadOnlyList<string>>(["c1"]));
         A.CallTo(() => gateway.CreateCollectionAsync(Target, A<CollectionRef>._, A<CancellationToken>._))
-            .Returns(Task.CompletedTask);
+            .Invokes(() => created = true).Returns(Task.CompletedTask);
 
         var services = new ServiceCollection();
         services.AddSingleton(gateway);
@@ -52,6 +56,8 @@ public sealed class CreateCollectionFlowTests : IDisposable
         services.AddSingleton(A.Fake<ISshTunnelFactory>());
         services.AddSingleton(A.Fake<ITwoFactorPrompt>());
         services.AddSingleton(A.Fake<IMongoShellSessionFactory>());
+        services.AddLogging();
+        services.AddSingleton(A.Fake<MongoTui.Application.Abstractions.Diagnostics.ILoggingSettings>());
         services.AddApplication();
         services.AddTui();
         _provider = services.BuildServiceProvider();
@@ -81,17 +87,16 @@ public sealed class CreateCollectionFlowTests : IDisposable
         tree.AddOrReplace(connection);
         RebuildTree();
 
-        AcceptNextDialog("draft");
+        AcceptNextDatabaseDialog("draft", "c1");
         await InvokeAsync(_window, "CreateDatabaseAsync", connection);
         Rows().Should().Contain(row => row.Kind == TreeRowKind.Database && row.Database == "draft");
 
-        AcceptNextDialog("c1");
-        await InvokeAsync(_window, "CreateCollectionAsync", connection, "draft");
+        ((QueryTabsView)Field(_window, "_queryTabs")).ActiveTab!.Collection.Should().Be("c1");
 
         Rows().Should().Contain(row =>
             row.Kind == TreeRowKind.Collection && row.Database == "draft" && row.Collection == "c1");
         Rows().Should().NotContain(row => row.Kind == TreeRowKind.Database
-            && row.Text.Contains(_localizer.Get("Database.Empty")));
+            && row.Text.Contains(_localizer.Get(LocalizationKeys.Database.Empty)));
     }
 
     private List<TreeRow> Rows() => (List<TreeRow>)Field(_window, "_rows");
@@ -102,18 +107,16 @@ public sealed class CreateCollectionFlowTests : IDisposable
     private static Task InvokeAsync(object target, string name, params object[] args) =>
         (Task)target.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(target, args)!;
 
-    private void AcceptNextDialog(string name)
+    private void AcceptNextDatabaseDialog(string database, string collection)
     {
         _app.AddTimeout(TimeSpan.FromMilliseconds(20), () =>
         {
-            if (_app.TopRunnableView is CreateNameDialog dialog)
-            {
-                dialog.SubViews.OfType<TextField>().Single().Text = name;
-                dialog.Buttons[0].InvokeCommand(Command.Accept);
-                return false;
-            }
-
-            return true;
+            if (_app.TopRunnableView is not CreateDatabaseDialog dialog) return true;
+            var fields = dialog.SubViews.OfType<TextField>().ToArray();
+            fields[0].Text = database;
+            fields[1].Text = collection;
+            dialog.Buttons[0].InvokeCommand(Command.Accept);
+            return false;
         });
     }
 

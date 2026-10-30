@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
+using MongoTui.Application.Localization;
 using System.Drawing;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -29,8 +32,9 @@ public sealed class ConnectionFormDialogTests
 
     public ConnectionFormDialogTests()
     {
+        A.CallTo(() => _application.MainThreadId).ReturnsLazily(() => Environment.CurrentManagedThreadId);
         _connections = new ConnectionService(_repository, new SecretKeyService(A.Fake<ICryptoService>()), _gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway), NullLogger<ConnectionService>.Instance);
     }
 
     [Theory]
@@ -66,7 +70,7 @@ public sealed class ConnectionFormDialogTests
                 .Throws(new ConnectionFailedException("Connection refused."));
         }
         using var dialog = CreateDialog();
-        var actionButton = Button(dialog, test ? "Connections.Test" : "Connections.Save");
+        var actionButton = Button(dialog, test ? LocalizationKeys.Connections.Test : LocalizationKeys.Connections.Save);
         actionButton.InvokeCommand(Command.Accept);
         dialog.BeginInit();
         dialog.EndInit();
@@ -96,7 +100,7 @@ public sealed class ConnectionFormDialogTests
         _localizer.SetLanguage(language);
         using var dialog = CreateDialog();
 
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
 
         Status(dialog).Text.Should().Be(expected);
         Status(dialog).GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightGreen);
@@ -114,7 +118,7 @@ public sealed class ConnectionFormDialogTests
             .Throws(new ConnectionFailedException("Connection refused."));
         using var dialog = CreateDialog();
 
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
 
         Status(dialog).Text.Should().Be(expected);
         Status(dialog).GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
@@ -129,7 +133,7 @@ public sealed class ConnectionFormDialogTests
             .ThrowsAsync(new TimeoutException("Server selection timed out."));
         using var dialog = CreateDialog();
 
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
 
         Status(dialog).Text.Should().Be("Connection test: Error — Server selection timed out.");
         Status(dialog).GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
@@ -142,28 +146,28 @@ public sealed class ConnectionFormDialogTests
         A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .Throws(new ConnectionFailedException("Connection refused."));
         using var dialog = CreateDialog();
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
         A.CallTo(() => _gateway.ListDatabasesAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .Returns(Array.Empty<DatabaseInfo>());
 
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
 
-        Status(dialog).Text.Should().Be(_localizer.Get("Connections.TestOk"));
+        Status(dialog).Text.Should().Be(_localizer.Get(LocalizationKeys.Connections.TestOk));
         Status(dialog).GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightGreen);
     }
 
     [Theory]
-    [InlineData("Connections.Save")]
-    [InlineData("Connections.FromUri")]
+    [InlineData(LocalizationKeys.Connections.Save)]
+    [InlineData(LocalizationKeys.Connections.FromUri)]
     public void Should_ChangeStatusToRed_WhenValidationFailsAfterSuccessfulTest(string action)
     {
         using var dialog = CreateDialog();
-        Button(dialog, "Connections.Test").InvokeCommand(Command.Accept);
+        Button(dialog, LocalizationKeys.Connections.Test).InvokeCommand(Command.Accept);
         dialog.SubViews.OfType<TextField>().ElementAt(1).Text = "invalid";
 
         Button(dialog, action).InvokeCommand(Command.Accept);
 
-        Status(dialog).Text.Should().NotBeNullOrWhiteSpace().And.NotBe(_localizer.Get("Connections.TestOk"));
+        Status(dialog).Text.Should().NotBeNullOrWhiteSpace().And.NotBe(_localizer.Get(LocalizationKeys.Connections.TestOk));
         Status(dialog).GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
     }
 
@@ -176,7 +180,7 @@ public sealed class ConnectionFormDialogTests
     }
 
     private Button SaveButton(ConnectionFormDialog dialog) =>
-        Button(dialog, "Connections.Save");
+        Button(dialog, LocalizationKeys.Connections.Save);
 
     private Button Button(ConnectionFormDialog dialog, string key) =>
         dialog.Buttons.Single(button => button.Text == _localizer.Get(key));

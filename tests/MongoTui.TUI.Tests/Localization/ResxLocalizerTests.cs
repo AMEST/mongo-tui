@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using AwesomeAssertions;
 using MongoTui.TUI.Localization;
 
@@ -12,8 +13,8 @@ public sealed class ResxLocalizerTests
     {
         _sut.SetLanguage("en");
 
-        _sut.Get("App.Title").Should().Be("MongoTui");
-        _sut.Get("Menu.File").Should().Be("File");
+        _sut.Get(LocalizationKeys.App.Title).Should().Be("MongoTui");
+        _sut.Get(LocalizationKeys.Menu.File).Should().Be("File");
     }
 
     [Fact]
@@ -21,7 +22,7 @@ public sealed class ResxLocalizerTests
     {
         _sut.SetLanguage("ru");
 
-        _sut.Get("Menu.File").Should().Be("Файл");
+        _sut.Get(LocalizationKeys.Menu.File).Should().Be("Файл");
         _sut.CurrentLanguage.Should().Be("ru");
     }
 
@@ -30,7 +31,7 @@ public sealed class ResxLocalizerTests
     {
         _sut.SetLanguage("en");
 
-        var text = _sut.Format("Connections.ConfirmDelete", "local");
+        var text = _sut.Format(LocalizationKeys.Connections.ConfirmDelete, "local");
 
         text.Should().Be("Delete connection \"local\"?");
     }

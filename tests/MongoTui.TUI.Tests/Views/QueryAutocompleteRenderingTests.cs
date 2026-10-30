@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Drawing;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -40,7 +41,7 @@ public sealed class QueryAutocompleteRenderingTests
         editor.SetFocus();
         app.LayoutAndDraw();
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
-        status.Should().Be("Autocomplete.Hint");
+        status.Should().Be(LocalizationKeys.Autocomplete.Hint);
         app.LayoutAndDraw();
         var screen = app.Driver!.Contents!;
         var first = FindText(screen, "field00");
@@ -80,7 +81,7 @@ public sealed class QueryAutocompleteRenderingTests
         var fields = new BsonDocument(Enumerable.Range(0, 12).Select(index => new BsonElement($"field{index:D2}", index)));
         A.CallTo(() => gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, "{}", A<QueryExecutionOptions>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [fields] });
-        var query = new QueryService(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
+        var query = QueryTestServices.Create(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
         var tabs = new QueryTabsView(query, A.Fake<ILocalizer>(), new AutocompleteService(gateway))
         {
             Width = 70,

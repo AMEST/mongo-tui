@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoDB.Bson;
@@ -14,7 +15,7 @@ public sealed class MongoDatabaseDiscoveryTests
     private readonly IMongoClient _client = A.Fake<IMongoClient>();
     private readonly IMongoDatabase _admin = A.Fake<IMongoDatabase>();
     private readonly IAsyncCursor<BsonDocument> _cursor = A.Fake<IAsyncCursor<BsonDocument>>();
-    private readonly MongoDatabaseDiscovery _sut = new();
+    private readonly MongoDatabaseDiscovery _sut = new(NullLogger<MongoDatabaseDiscovery>.Instance);
 
     public MongoDatabaseDiscoveryTests()
     {

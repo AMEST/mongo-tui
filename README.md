@@ -61,6 +61,25 @@ chmod +x ./mongo-tui
 
 Run `mongo-tui.exe`.
 
+## Web interface
+
+```sh
+mongo-tui web --open
+```
+
+The default address is `http://127.0.0.1:8765`; use `--port 9000` to change it.
+Running `mongo-tui` without arguments still starts the terminal interface.
+Sign in with your master password. For first setup or keyring/local-key-file modes, use the
+one-time link printed in the terminal; `--open` opens that link automatically.
+Web resources are embedded; no `wwwroot` folder is required beside the executable.
+
+Connections and settings are shared with TUI. Features include database and collection browsing,
+JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, application logs,
+JSON import/export and AI assistance. [Details](docs/web-interface.md).
+
+The query timeout is shared by TUI and web. Configure it under **Settings → Queries**
+(default: 30 seconds; `0` disables the timeout). Changes apply to subsequent queries.
+
 ## Getting started
 
 1. Launch MongoTui and choose how to protect saved secrets: a master password (recommended), the OS keyring on macOS/Windows, or a local key file. You can change the mode later in **Settings → Security…**.
@@ -136,6 +155,8 @@ names with their BSON types, so it can draft queries against the real schema.
 Connections, settings and history are stored in `~/.mongotui/mongotui.db`
 (`%USERPROFILE%\.mongotui\mongotui.db` on Windows). Logs are in the `logs` subdirectory.   
 Connection passwords and the AI API key are encrypted with a key protected by the selected security mode. In **No master password** mode the key is stored in `~/.mongotui/kek.key` with user-only permissions; anyone who can read that file can decrypt the secrets.
+
+Choose the logging level in Settings → Logging in TUI or Web. The preference is stored in the local database and applied without restarting; see [logging configuration](docs/logging.md).
 
 ## Development
 

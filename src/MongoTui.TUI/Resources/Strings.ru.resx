@@ -369,4 +369,57 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>Пароль пользователя текущего подключения изменён. Переподключитесь, чтобы использовать новый пароль.</value></data>
   <data name="Users.Access.Level" xml:space="preserve"><value>Доступ</value></data>
   <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} ролей</value></data>
+  <data name="Query.Settings.Title" xml:space="preserve"><value>Запросы</value></data>
+  <data name="Query.Timeout" xml:space="preserve"><value>Таймаут запроса (с)</value></data>
+  <data name="Query.TimeoutHint" xml:space="preserve"><value>0 — без ограничения. Настройка общая для TUI и веба.</value></data>
+  <data name="Query.TimeoutInvalid" xml:space="preserve"><value>Введите целое число от 0 до {0}.</value></data>
+  <data name="Query.TimedOut" xml:space="preserve"><value>Превышено время выполнения запроса ({0} с).</value></data>
+  <data name="Query.Settings.Saved" xml:space="preserve"><value>Настройки запросов сохранены</value></data>
+  <data name="Query.Settings.SaveError" xml:space="preserve"><value>Не удалось сохранить настройки запросов.</value></data>
+  <data name="Query.Settings.LoadError" xml:space="preserve"><value>Не удалось загрузить настройки запросов.</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Загрузка…</value></data>
+  <data name="Common.Working" xml:space="preserve"><value>Выполнение…</value></data>
+  <data name="Menu.Settings.Queries" xml:space="preserve"><value>Запросы…</value></data>
+  <data name="Connection.Remove" xml:space="preserve"><value>Удалить из сохранённых…</value></data>
+  <data name="Create.DatabaseName" xml:space="preserve"><value>Название базы</value></data>
+  <data name="Create.FirstCollection" xml:space="preserve"><value>Первая коллекция</value></data>
+  <data name="Create.DatabaseHint" xml:space="preserve"><value>База будет создана вместе с первой пустой коллекцией.</value></data>
+  <data name="Tree.ConnectionActions" xml:space="preserve"><value>Действия для {0}</value></data>
+  <data name="Cli.Usage" xml:space="preserve"><value>Использование: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="Connection.Connect" xml:space="preserve"><value>Подключиться</value></data>
+  <data name="Connection.DeleteHint" xml:space="preserve"><value>Удалить «{0}» из сохранённых подключений? Его вкладки запросов закроются. База MongoDB сохранится.</value></data>
+  <data name="Connection.DeleteTitle" xml:space="preserve"><value>Удалить подключение?</value></data>
+  <data name="Connection.Edit" xml:space="preserve"><value>Изменить подключение</value></data>
+  <data name="Connection.Empty" xml:space="preserve"><value>Нет сохранённых подключений</value></data>
+  <data name="Tree.Explorer" xml:space="preserve"><value>Обозреватель</value></data>
+  <data name="Documents.UnsafeJson" xml:space="preserve"><value>Редактирование недоступно: преобразование этого документа в JSON изменит его BSON-данные. Используйте точечное обновление или инструменты для BSON.</value></data>
+  <data name="Documents.Working" xml:space="preserve"><value>Выполнение…</value></data>
+  <data name="Documents.OperationFailed" xml:space="preserve"><value>Операция не выполнена. Загрузите документ заново и повторите попытку.</value></data>
+  <data name="Logging.Title" xml:space="preserve"><value>Логирование</value></data>
+  <data name="Logging.Level" xml:space="preserve"><value>Уровень логирования</value></data>
+  <data name="Logging.Hint" xml:space="preserve"><value>Общая настройка TUI и Web. Изменения действуют без перезапуска.</value></data>
+  <data name="Logging.Override" xml:space="preserve"><value>При запуске задан уровень {0}. Сохранённый выбор начнёт действовать после запуска без переопределения.</value></data>
+  <data name="Logging.Saved" xml:space="preserve"><value>Уровень логирования сохранён</value></data>
+  <data name="Logging.SaveError" xml:space="preserve"><value>Не удалось сохранить уровень логирования. Действующий уровень не изменён.</value></data>
+  <data name="Logging.LoadError" xml:space="preserve"><value>Не удалось загрузить настройки логирования.</value></data>
+  <data name="Users.AdministratorName" xml:space="preserve"><value>Администратор</value></data>
+  <data name="Users.Error.Cancelled" xml:space="preserve"><value>Операция отменена.</value></data>
+  <data name="Users.Error.Timeout" xml:space="preserve"><value>Истекло время ожидания операции. Обновите список перед повторной попыткой.</value></data>
+  <data name="Users.Error.ConnectionClosed" xml:space="preserve"><value>Подключение закрыто. Подключитесь снова для управления пользователями.</value></data>
+  <data name="Error.Load" xml:space="preserve"><value>Не удалось загрузить данные. Попробуйте обновить.</value></data>
+  <data name="Error.Save" xml:space="preserve"><value>Не удалось сохранить изменения. Проверьте данные и права подключения.</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="Common.Copy" xml:space="preserve"><value>Копировать</value></data>
+  <data name="WebAuth.SignIn" xml:space="preserve"><value>Вход</value></data>
+  <data name="WebAuth.LaunchRequired" xml:space="preserve"><value>Откройте одноразовую ссылку из терминала, в котором запущен Web. Чтобы получить новую ссылку, перезапустите Web.</value></data>
+  <data name="WebAuth.InvalidPassword" xml:space="preserve"><value>Неверный мастер-пароль.</value></data>
+  <data name="WebAuth.InvalidLaunch" xml:space="preserve"><value>Ссылка для входа устарела или уже использована. Перезапустите Web, чтобы получить новую.</value></data>
+  <data name="WebAuth.Unavailable" xml:space="preserve"><value>Не удалось войти. Проверьте доступность хранилища и повторите попытку.</value></data>
+  <data name="WebAuth.RateLimited" xml:space="preserve"><value>Слишком много попыток входа. Повторите через минуту.</value></data>
+  <data name="WebAuth.SessionExpired" xml:space="preserve"><value>Сессия завершена. Войдите снова.</value></data>
+  <data name="WebAuth.SignOut" xml:space="preserve"><value>Выйти</value></data>
+  <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
+  <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
 </root>

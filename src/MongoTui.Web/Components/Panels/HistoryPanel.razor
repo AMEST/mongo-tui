@@ -1,0 +1,59 @@
+@implements IDisposable
+@inject MongoTui.Application.Abstractions.Persistence.IQueryHistoryRepository History
+@inject ConnectionCatalog Catalog
+@inject WebText L
+<main class="page-content">
+    <header class="page-heading">
+        <div class="history-heading"><h1>@L[LocalizationKeys.Nav.History]</h1><BusyIcon Busy="_busy" /></div>
+        <select aria-label="@L[LocalizationKeys.Nav.Connections]" value="@_connection" disabled="@(Catalog.Profiles.Count == 0)" @onchange="SelectAsync">
+            @if (Catalog.Profiles.Count == 0) { <option value="">@L[LocalizationKeys.Connection.Empty]</option> }
+            @foreach (var profile in Catalog.Profiles) { <option @key="profile.Id" value="@profile.Id">@profile.Name</option> }
+        </select>
+    </header>
+    <section class="panel history-panel">
+        <div class="panel-heading">
+            <strong>@L[LocalizationKeys.History.Recent]</strong>
+            @if (_error is not null) { <span class="history-error" role="alert" title="@_error">@_error</span> }
+            <span class="badge">@_entries.Count</span>
+        </div>
+        @foreach (var entry in _entries) { <button @key="entry.Id" class="history-row" @onclick="() => OnOpen.InvokeAsync(entry)"><span class="history-status @(entry.Success ? "success" : "failed")"><Icon Name="@(entry.Success ? IconNames.Check : IconNames.Close)" Size="15" /></span><div><code>@entry.Script</code><span class="history-meta">@entry.Database @if (entry.Collection is not null) { <span>/ @entry.Collection</span> }<span>· @entry.RanAt.ToLocalTime().ToString("g")</span></span></div><span class="muted">@(entry.ElapsedMs ?? 0) ms</span><Icon Name="@IconNames.Arrow" Size="16" /></button> }@if (_entries.Count == 0) { <div class="empty-section"><Icon Name="@IconNames.History" Size="32" /><h3>@L[LocalizationKeys.History.Empty]</h3><p>@L[LocalizationKeys.History.EmptyHint]</p></div> }
+    </section>
+</main>
+@code {
+    [Parameter] public EventCallback<QueryHistoryEntry> OnOpen { get; set; }
+    private IReadOnlyList<QueryHistoryEntry> _entries = [];
+    private string _connection = string.Empty;
+    private string? _error;
+    private readonly CancellationTokenSource _lifetime = new();
+    private CancellationTokenSource? _loadCancellation;
+    private bool _busy, _disposed;
+    protected override async Task OnInitializedAsync()
+    {
+        await Catalog.RefreshAsync(_lifetime.Token);
+        if (_disposed) return;
+        _connection = Catalog.Active.FirstOrDefault()?.Profile.Id.ToString() ?? Catalog.Profiles.FirstOrDefault()?.Id.ToString() ?? "";
+        await LoadAsync();
+    }
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task SelectAsync(ChangeEventArgs args) { _connection = args.Value?.ToString() ?? ""; await LoadAsync(); }
+    private async Task LoadAsync()
+    {
+        if (_disposed) return;
+        _loadCancellation?.Cancel();
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _loadCancellation = operation;
+        _busy = true;
+        var connection = _connection;
+        try
+        {
+            var entries = connection.Length == 0 ? [] : await History.GetRecentAsync(ConnectionId.Parse(connection), 100, operation.Token);
+            if (!operation.IsCancellationRequested && !_disposed) { _entries = entries; _error = null; }
+        }
+        catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
+        catch { if (!operation.IsCancellationRequested && !_disposed) _error = L[LocalizationKeys.Error.Load]; }
+        finally
+        {
+            if (ReferenceEquals(_loadCancellation, operation)) { _loadCancellation = null; _busy = false; }
+        }
+    }
+}

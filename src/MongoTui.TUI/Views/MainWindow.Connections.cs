@@ -1,7 +1,9 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
 using MongoTui.TUI.ViewModels;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using MongoTui.Application.Diagnostics;
 
 namespace MongoTui.TUI.Views;
 
@@ -9,37 +11,40 @@ public sealed partial class MainWindow
 {
     private async Task ConnectAsync(ConnectionProfile profile, MongoConnectionTarget target)
     {
-        TunnelConnection? connection = null;
-        var connected = false;
         Exception? failure = null;
         try
         {
-            connection = await PrepareConnectionAsync(profile, target);
-            var databases = await _gateway.ListDatabasesAsync(connection.Target, CancellationToken.None);
-            await AddConnectedAsync(profile, connection, databases);
-            connected = true;
+            await OpenConnectionAsync(profile, target);
         }
         catch (OperationCanceledException)
         {
-            SetStatus(_localizer.Get("Ssh.Cancelled"));
+            _logger.LogInformation("Connection opening cancelled");
+            SetStatus(_localizer.Get(LocalizationKeys.Ssh.Cancelled));
         }
         catch (Exception exception)
         {
-            Log.Warning("Connection failed ({ExceptionType})", exception.GetType().Name);
+            _logger.LogWarning("Connection {ConnectionId} opening failed: {Failure}", profile.Id.Value, ExceptionDiagnostics.Describe(exception));
             SetStatus(exception.Message);
             failure = exception;
         }
-        finally
-        {
-            if (!connected && connection is not null)
-            {
-                await connection.DisposeAsync();
-            }
-        }
-
         if (failure is not null && Application is { } application)
         {
-            application.Run(new ErrorDialog(_localizer, application, _localizer.Get("Common.Error"), failure.Message));
+            application.Run(new ErrorDialog(_localizer, application, _localizer.Get(LocalizationKeys.Common.Error), failure.Message));
+        }
+    }
+
+    private async Task OpenConnectionAsync(ConnectionProfile profile, MongoConnectionTarget target)
+    {
+        var connection = await PrepareConnectionAsync(profile, target);
+        try
+        {
+            var databases = await _gateway.ListDatabasesAsync(connection.Target, CancellationToken.None);
+            await AddConnectedAsync(profile, connection, databases);
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
         }
     }
 
@@ -68,8 +73,8 @@ public sealed partial class MainWindow
         _tree.AddOrReplace(new ActiveConnection(profile, connection.Target,
             databases.OrderBy(database => database.Name, StringComparer.OrdinalIgnoreCase).ToList(), connection.Tunnel));
         RebuildTree();
-        Log.Information("Connected to {Profile}", profile.Name);
-        SetStatus(_localizer.Format("Status.Connected", profile.Name, databases.Count));
+        _logger.LogInformation("Connection {ConnectionId} opened", profile.Id.Value);
+        SetStatus(_localizer.Format(LocalizationKeys.Status.Connected, profile.Name, databases.Count));
     }
 
     private async Task DisconnectAsync(ActiveConnection connection)
@@ -88,7 +93,7 @@ public sealed partial class MainWindow
         }
 
         RebuildTree();
-        Log.Information("Disconnected from {Profile}", connection.Profile.Name);
-        SetStatus(_localizer.Format("Status.Disconnected", connection.Profile.Name));
+        _logger.LogInformation("Connection {ConnectionId} closed", connection.Profile.Id.Value);
+        SetStatus(_localizer.Format(LocalizationKeys.Status.Disconnected, connection.Profile.Name));
     }
 }

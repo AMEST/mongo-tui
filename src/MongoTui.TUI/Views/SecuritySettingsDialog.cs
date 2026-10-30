@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
@@ -32,7 +33,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
         _localizer = localizer;
         _modes = security.AvailableModes;
 
-        Title = localizer.Get("Security.Settings.Title");
+        Title = localizer.Get(LocalizationKeys.Security.SettingsTitle);
         Width = 76;
         Height = 22;
 
@@ -58,7 +59,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
         _currentLabel.Width = Dim.Fill();
         Add(_currentLabel);
 
-        Add(new Label { Text = _localizer.Get("Security.Settings.New"), X = 1, Y = 3 });
+        Add(new Label { Text = _localizer.Get(LocalizationKeys.Security.SettingsNew), X = 1, Y = 3 });
         _modeList.X = 1;
         _modeList.Y = 4;
         _modeList.Width = Dim.Fill();
@@ -78,7 +79,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
     private void BuildPasswordSection()
     {
-        _passwordLabel.Text = _localizer.Get("Security.Settings.Password");
+        _passwordLabel.Text = _localizer.Get(LocalizationKeys.Security.SettingsPassword);
         _passwordLabel.X = 1;
         _passwordLabel.Y = 11;
         Add(_passwordLabel);
@@ -87,7 +88,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
         _passwordField.Width = Dim.Fill();
         Add(_passwordField);
 
-        _confirmLabel.Text = _localizer.Get("Security.Settings.PasswordConfirm");
+        _confirmLabel.Text = _localizer.Get(LocalizationKeys.Security.SettingsPasswordConfirm);
         _confirmLabel.X = 1;
         _confirmLabel.Y = 13;
         Add(_confirmLabel);
@@ -118,11 +119,11 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
     private void BuildActions()
     {
-        var saveButton = new Button { Text = _localizer.Get("Security.Settings.Apply"), IsDefault = true };
+        var saveButton = new Button { Text = _localizer.Get(LocalizationKeys.Security.SettingsApply), IsDefault = true };
         saveButton.OnAcceptAsync(ApplyAsync);
-        var resetButton = new Button { Text = _localizer.Get("Security.Settings.Reset") };
+        var resetButton = new Button { Text = _localizer.Get(LocalizationKeys.Security.SettingsReset) };
         resetButton.OnAccept(ConfirmReset);
-        var cancelButton = new Button { Text = _localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = _localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(saveButton, resetButton, cancelButton);
@@ -137,15 +138,15 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
         var mode = SelectedMode;
         var password = mode == SecurityMode.Password;
-        _currentLabel.Text = _localizer.Format("Security.Settings.Current", ModeName(current));
+        _currentLabel.Text = _localizer.Format(LocalizationKeys.Security.SettingsCurrent, ModeName(current));
         _passwordLabel.Visible = password;
         _passwordField.Visible = password;
         _confirmLabel.Visible = password;
         _confirmField.Visible = password;
         _hint.Visible = password && current == SecurityMode.Password;
-        _hint.Text = _localizer.Get("Security.Settings.PasswordHint");
+        _hint.Text = _localizer.Get(LocalizationKeys.Security.SettingsPasswordHint);
         _description.Text = _localizer.Get(DescriptionKey(mode));
-        _warning.Text = mode == SecurityMode.None ? _localizer.Get("Security.Mode.None.Warning") : string.Empty;
+        _warning.Text = mode == SecurityMode.None ? _localizer.Get(LocalizationKeys.Security.ModeNoneWarning) : string.Empty;
         _warning.Visible = mode == SecurityMode.None;
         _error.Text = string.Empty;
     }
@@ -172,7 +173,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
         if (current == SecurityMode.Password
             && mode != SecurityMode.Password
-            && !Confirm("Security.Settings.SwitchTitle", "Security.Settings.SwitchConfirm"))
+            && !Confirm(LocalizationKeys.Security.SettingsSwitchTitle, LocalizationKeys.Security.SettingsSwitchConfirm))
         {
             return;
         }
@@ -196,13 +197,13 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
         if (password.Length == 0)
         {
-            _error.Text = _localizer.Get("Security.Mode.Error.PasswordEmpty");
+            _error.Text = _localizer.Get(LocalizationKeys.Security.ModeErrorPasswordEmpty);
             return false;
         }
 
         if (password != (_confirmField.Text ?? string.Empty))
         {
-            _error.Text = _localizer.Get("Security.Mode.Error.PasswordMismatch");
+            _error.Text = _localizer.Get(LocalizationKeys.Security.ModeErrorPasswordMismatch);
             return false;
         }
 
@@ -234,7 +235,7 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
     private void ConfirmReset()
     {
-        if (!Confirm("Security.Settings.ResetTitle", "Security.Settings.ResetQuestion"))
+        if (!Confirm(LocalizationKeys.Security.SettingsResetTitle, LocalizationKeys.Security.SettingsResetQuestion))
         {
             return;
         }
@@ -277,15 +278,15 @@ public sealed class SecuritySettingsDialog : ThemedDialog
 
     private string ModeName(SecurityMode mode) => _localizer.Get(mode switch
     {
-        SecurityMode.Password => "Security.Mode.Password",
-        SecurityMode.Keyring => "Security.Mode.Keyring",
-        _ => "Security.Mode.None",
+        SecurityMode.Password => LocalizationKeys.Security.ModePassword,
+        SecurityMode.Keyring => LocalizationKeys.Security.ModeKeyring,
+        _ => LocalizationKeys.Security.ModeNone,
     });
 
     private static string DescriptionKey(SecurityMode mode) => mode switch
     {
-        SecurityMode.Password => "Security.Mode.Password.Description",
-        SecurityMode.Keyring => "Security.Mode.Keyring.Description",
-        _ => "Security.Mode.None.Description",
+        SecurityMode.Password => LocalizationKeys.Security.ModePasswordDescription,
+        SecurityMode.Keyring => LocalizationKeys.Security.ModeKeyringDescription,
+        _ => LocalizationKeys.Security.ModeNoneDescription,
     };
 }

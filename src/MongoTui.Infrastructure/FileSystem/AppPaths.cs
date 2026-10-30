@@ -4,9 +4,12 @@ namespace MongoTui.Infrastructure.FileSystem;
 public static class AppPaths
 {
     private const string FolderName = ".mongotui";
+    public const string DataDirectoryEnvironmentVariable = "MONGOTUI_DATA_DIR";
 
-    public static string RootDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), FolderName);
+    private static string RootDirectory =>
+        Environment.GetEnvironmentVariable(DataDirectoryEnvironmentVariable) is { Length: > 0 } directory
+            ? Path.GetFullPath(directory)
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), FolderName);
 
     public static string LogsDirectory => Path.Combine(RootDirectory, "logs");
 

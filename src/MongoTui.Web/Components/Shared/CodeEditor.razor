@@ -1,0 +1,47 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject WebText L
+<div class="code-editor" @ref="_element" aria-label="@L[LocalizationKeys.Query.Editor]"><textarea class="editor-fallback mono" @bind="_fallback" spellcheck="false" aria-label="@L[LocalizationKeys.Query.Editor]"></textarea></div>
+@code {
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Language { get; set; } = JavaScriptCalls.Editor.JavaScript;
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback OnRun { get; set; }
+    [Parameter] public Func<string, Task<string[]>>? Complete { get; set; }
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<CodeEditor>? _reference;
+    private string _fallback = string.Empty;
+    protected override void OnInitialized() => _fallback = Value;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>(JavaScriptCalls.Editor.Import, JavaScriptCalls.Editor.ModulePath);
+            _reference = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync(JavaScriptCalls.Editor.Create, _element, Value, Language, L[Language == JavaScriptCalls.Editor.Json ? LocalizationKeys.Document.Title : LocalizationKeys.Query.Editor], _reference);
+        }
+        catch (JSException) { _module = null; }
+    }
+
+    public async Task<string> GetValueAsync() => _module is null ? _fallback : await _module.InvokeAsync<string>(JavaScriptCalls.Editor.GetValue, _element);
+    [JSInvokable] public Task ChangedAsync(string value) => ValueChanged.InvokeAsync(value);
+    [JSInvokable] public Task RunAsync() => OnRun.InvokeAsync();
+    [JSInvokable] public Task<string[]> CompleteAsync(string prefix) => Complete?.Invoke(prefix) ?? Task.FromResult(Array.Empty<string>());
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync(JavaScriptCalls.Editor.Destroy, _element);
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { }
+        _reference?.Dispose();
+    }
+}

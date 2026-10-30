@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="Cli.Usage" xml:space="preserve"><value>Использование: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="App.Navigation" xml:space="preserve"><value>Основная навигация</value></data>
+  <data name="App.Theme" xml:space="preserve"><value>Тема</value></data>
+  <data name="App.Connections" xml:space="preserve"><value>Подключений: {0}</value></data>
+  <data name="App.Tabs" xml:space="preserve"><value>Вкладок: {0}</value></data>
+  <data name="Reconnect.Title" xml:space="preserve"><value>Нет связи с сервером</value></data>
+  <data name="Reconnect.Retrying" xml:space="preserve"><value>Повторное подключение…</value></data>
+  <data name="Reconnect.Failed" xml:space="preserve"><value>Сервер недоступен. Проверьте, что mongo-tui запущен, и обновите страницу.</value></data>
+  <data name="Reconnect.Rejected" xml:space="preserve"><value>Сеанс завершён. Обновите страницу, чтобы продолжить.</value></data>
+  <data name="Reconnect.Reload" xml:space="preserve"><value>Обновить страницу</value></data>
+  <data name="Nav.workspace" xml:space="preserve"><value>Рабочая область</value></data>
+  <data name="Nav.connections" xml:space="preserve"><value>Подключения</value></data>
+  <data name="Nav.history" xml:space="preserve"><value>История</value></data>
+  <data name="Nav.settings" xml:space="preserve"><value>Настройки</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Отмена</value></data>
+  <data name="Common.Continue" xml:space="preserve"><value>Продолжить</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Загрузка…</value></data>
+  <data name="Common.Working" xml:space="preserve"><value>Выполняется…</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Common.Saved" xml:space="preserve"><value>Изменения сохранены</value></data>
+  <data name="Common.Create" xml:space="preserve"><value>Создать</value></data>
+  <data name="Common.Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Изменить</value></data>
+  <data name="Common.Copy" xml:space="preserve"><value>Копировать</value></data>
+  <data name="Common.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Common.Previous" xml:space="preserve"><value>Назад</value></data>
+  <data name="Common.Next" xml:space="preserve"><value>Далее</value></data>
+  <data name="Common.Optional" xml:space="preserve"><value>Необязательно</value></data>
+  <data name="Security.Setup" xml:space="preserve"><value>Настройка безопасности</value></data>
+  <data name="Security.Unlock" xml:space="preserve"><value>Разблокировка</value></data>
+  <data name="Security.Intro" xml:space="preserve"><value>Выберите способ защиты сохранённых паролей.</value></data>
+  <data name="Security.Mode" xml:space="preserve"><value>Способ защиты</value></data>
+  <data name="Security.Password" xml:space="preserve"><value>Мастер-пароль</value></data>
+  <data name="Security.Keyring" xml:space="preserve"><value>Системное хранилище</value></data>
+  <data name="Security.None" xml:space="preserve"><value>Локальный файл ключа</value></data>
+  <data name="Security.Confirm" xml:space="preserve"><value>Повторите пароль</value></data>
+  <data name="Security.Continue" xml:space="preserve"><value>Открыть рабочую область</value></data>
+  <data name="Security.FileHint" xml:space="preserve"><value>Ключ хранится в файле вашего пользователя. Тот, кто прочитает файл, сможет расшифровать сохранённые секреты.</value></data>
+  <data name="Security.Invalid" xml:space="preserve"><value>Проверьте источник ключа в настройках безопасности терминального приложения.</value></data>
+  <data name="Security.Error" xml:space="preserve"><value>Не удалось разблокировать или обновить ключ. Проверьте пароль и доступ к источнику ключа.</value></data>
+  <data name="Security.Mismatch" xml:space="preserve"><value>Введите пароль и убедитесь, что оба поля совпадают.</value></data>
+  <data name="Security.Title" xml:space="preserve"><value>Безопасность</value></data>
+  <data name="Security.NewPassword" xml:space="preserve"><value>Новый мастер-пароль</value></data>
+  <data name="Connection.Add" xml:space="preserve"><value>Добавить подключение</value></data>
+  <data name="Connection.Edit" xml:space="preserve"><value>Изменить подключение</value></data>
+  <data name="Connection.Manage" xml:space="preserve"><value>Управление подключениями</value></data>
+  <data name="Connection.Saved" xml:space="preserve"><value>Сохранённые подключения</value></data>
+  <data name="Connection.Connected" xml:space="preserve"><value>Подключено</value></data>
+  <data name="Connection.Connect" xml:space="preserve"><value>Подключиться</value></data>
+  <data name="Connection.Disconnect" xml:space="preserve"><value>Отключиться</value></data>
+  <data name="Connection.Direct" xml:space="preserve"><value>Прямое подключение</value></data>
+  <data name="Connection.Empty" xml:space="preserve"><value>Нет сохранённых подключений</value></data>
+  <data name="Connection.EmptyHint" xml:space="preserve"><value>Добавьте подключение, указав URI MongoDB.</value></data>
+  <data name="Connection.StorageHint" xml:space="preserve"><value>Эти настройки также применяются к паролям подключений и API-ключам в терминальном приложении.</value></data>
+  <data name="Connection.DeleteTitle" xml:space="preserve"><value>Удалить подключение?</value></data>
+  <data name="Connection.DeleteHint" xml:space="preserve"><value>Удалить «{0}» из сохранённых подключений? Его вкладки запросов закроются. База MongoDB сохранится.</value></data>
+  <data name="Connection.Name" xml:space="preserve"><value>Название</value></data>
+  <data name="Connection.NamePlaceholder" xml:space="preserve"><value>Локальная разработка</value></data>
+  <data name="Connection.Uri" xml:space="preserve"><value>URI подключения</value></data>
+  <data name="Connection.UriHint" xml:space="preserve"><value>Используйте mongodb:// или mongodb+srv://. Параметры аутентификации и TLS можно задать в URI.</value></data>
+  <data name="Connection.Password" xml:space="preserve"><value>Пароль</value></data>
+  <data name="Connection.KeepPassword" xml:space="preserve"><value>Оставьте пустым, чтобы сохранить текущий секрет</value></data>
+  <data name="Connection.Save" xml:space="preserve"><value>Сохранить подключение</value></data>
+  <data name="Connections.Test" xml:space="preserve"><value>Проверить</value></data>
+  <data name="Connections.TestRunning" xml:space="preserve"><value>Проверка подключения…</value></data>
+  <data name="Connections.TestOk" xml:space="preserve"><value>Подключение установлено</value></data>
+  <data name="Connections.TestError" xml:space="preserve"><value>Ошибка подключения: {0}</value></data>
+  <data name="Ssh.Title" xml:space="preserve"><value>Аутентификация SSH</value></data>
+  <data name="Ssh.Response" xml:space="preserve"><value>Пароль или код подтверждения</value></data>
+  <data name="Ssh.Settings" xml:space="preserve"><value>SSH-туннель</value></data>
+  <data name="Ssh.Enable" xml:space="preserve"><value>Подключаться через SSH / SOCKS</value></data>
+  <data name="Ssh.Host" xml:space="preserve"><value>SSH-хост</value></data>
+  <data name="Ssh.Port" xml:space="preserve"><value>Порт</value></data>
+  <data name="Ssh.User" xml:space="preserve"><value>Имя пользователя SSH</value></data>
+  <data name="Ssh.Key" xml:space="preserve"><value>Путь к приватному ключу</value></data>
+  <data name="Ssh.KeyHint" xml:space="preserve"><value>Оставьте пустым для ssh-agent или конфигурации SSH. Запросы аутентификации появятся в браузере.</value></data>
+  <data name="Tree.Explorer" xml:space="preserve"><value>Обозреватель</value></data>
+  <data name="Tree.Search" xml:space="preserve"><value>База или коллекция…</value></data>
+  <data name="Tree.NoConnection" xml:space="preserve"><value>Нет активных подключений</value></data>
+  <data name="Tree.NoCollections" xml:space="preserve"><value>Нет коллекций</value></data>
+  <data name="Workspace.SelectCollection" xml:space="preserve"><value>Выберите коллекцию</value></data>
+  <data name="Workspace.SelectHint" xml:space="preserve"><value>Откройте коллекцию слева или создайте запрос для базы.</value></data>
+  <data name="Workspace.Connect" xml:space="preserve"><value>Нет активных подключений</value></data>
+  <data name="Workspace.ConnectHint" xml:space="preserve"><value>Выберите сохранённое подключение или добавьте новое.</value></data>
+  <data name="Query.New" xml:space="preserve"><value>Новый запрос</value></data>
+  <data name="Query.Tabs" xml:space="preserve"><value>Вкладки запросов</value></data>
+  <data name="Query.Editor" xml:space="preserve"><value>Редактор запросов</value></data>
+  <data name="Query.Browse" xml:space="preserve"><value>Документы</value></data>
+  <data name="Query.Script" xml:space="preserve"><value>Запрос</value></data>
+  <data name="Query.Run" xml:space="preserve"><value>Выполнить</value></data>
+  <data name="Query.Apply" xml:space="preserve"><value>Применить</value></data>
+  <data name="Query.Stop" xml:space="preserve"><value>Остановить</value></data>
+  <data name="Query.Filter" xml:space="preserve"><value>Фильтр</value></data>
+  <data name="Query.PageSize" xml:space="preserve"><value>50 документов / страница</value></data>
+  <data name="Query.Results" xml:space="preserve"><value>Результаты</value></data>
+  <data name="Query.Page" xml:space="preserve"><value>Страница {0}</value></data>
+  <data name="Query.Driver" xml:space="preserve"><value>Просмотр коллекции</value></data>
+  <data name="Query.Shell" xml:space="preserve"><value>mongosh</value></data>
+  <data name="Query.Cancelled" xml:space="preserve"><value>Операция отменена.</value></data>
+  <data name="Query.ExportResults" xml:space="preserve"><value>Скачать результаты в JSON</value></data>
+  <data name="Query.Ready" xml:space="preserve"><value>Запрос не выполнен</value></data>
+  <data name="Query.ReadyHint" xml:space="preserve"><value>Выполните запрос, чтобы получить результаты.</value></data>
+  <data name="Query.Empty" xml:space="preserve"><value>Документы не найдены</value></data>
+  <data name="Query.EmptyHint" xml:space="preserve"><value>Измените фильтр или запрос.</value></data>
+  <data name="View.table" xml:space="preserve"><value>Таблица</value></data>
+  <data name="View.tree" xml:space="preserve"><value>Дерево</value></data>
+  <data name="View.json" xml:space="preserve"><value>JSON</value></data>
+  <data name="Document.Title" xml:space="preserve"><value>Документ</value></data>
+  <data name="Document.Add" xml:space="preserve"><value>Добавить документ</value></data>
+  <data name="Document.Open" xml:space="preserve"><value>Открыть документ</value></data>
+  <data name="Document.Editable" xml:space="preserve"><value>Редактирование</value></data>
+  <data name="Document.ReadOnly" xml:space="preserve"><value>Просмотр</value></data>
+  <data name="Document.DeleteHint" xml:space="preserve"><value>Безвозвратно удалить этот документ из MongoDB?</value></data>
+  <data name="Document.ConfirmDelete" xml:space="preserve"><value>Подтвердить удаление</value></data>
+  <data name="Document.NotFound" xml:space="preserve"><value>Документ больше не существует. Обновите результаты.</value></data>
+  <data name="Collection.Create" xml:space="preserve"><value>Создать коллекцию</value></data>
+  <data name="Collection.Name" xml:space="preserve"><value>Название коллекции</value></data>
+  <data name="Collection.Details" xml:space="preserve"><value>О коллекции</value></data>
+  <data name="Collection.Documents" xml:space="preserve"><value>Документы</value></data>
+  <data name="Collection.Indexes" xml:space="preserve"><value>Индексы</value></data>
+  <data name="Index.Create" xml:space="preserve"><value>Создать индекс</value></data>
+  <data name="Index.Keys" xml:space="preserve"><value>Ключи индекса (JSON)</value></data>
+  <data name="Index.Unique" xml:space="preserve"><value>Уникальный индекс</value></data>
+  <data name="Index.DeleteHint" xml:space="preserve"><value>Удалить индекс «{0}»?</value></data>
+  <data name="History.Select" xml:space="preserve"><value>Выберите подключение</value></data>
+  <data name="History.Recent" xml:space="preserve"><value>Недавние запросы</value></data>
+  <data name="History.Empty" xml:space="preserve"><value>Нет запросов</value></data>
+  <data name="History.EmptyHint" xml:space="preserve"><value>Здесь отображаются запросы, выполненные в редакторе.</value></data>
+  <data name="Settings.Appearance" xml:space="preserve"><value>Внешний вид</value></data>
+  <data name="Settings.Language" xml:space="preserve"><value>Язык</value></data>
+  <data name="Settings.LanguageHint" xml:space="preserve"><value>Общий с терминальным приложением.</value></data>
+  <data name="Settings.ThemeHint" xml:space="preserve"><value>Выберите тему или используйте системную.</value></data>
+  <data name="Settings.Light" xml:space="preserve"><value>Светлая</value></data>
+  <data name="Settings.Dark" xml:space="preserve"><value>Тёмная</value></data>
+  <data name="Settings.Auto" xml:space="preserve"><value>Системная</value></data>
+  <data name="Settings.Change" xml:space="preserve"><value>Изменить</value></data>
+  <data name="Ai.Assistant" xml:space="preserve"><value>ИИ-помощник</value></data>
+  <data name="Ai.Settings" xml:space="preserve"><value>ИИ-помощник</value></data>
+  <data name="Ai.SettingsHint" xml:space="preserve"><value>OpenAI-совместимый API.</value></data>
+  <data name="Ai.Url" xml:space="preserve"><value>Базовый URL API</value></data>
+  <data name="Ai.Model" xml:space="preserve"><value>Модель</value></data>
+  <data name="Ai.Key" xml:space="preserve"><value>API-ключ</value></data>
+  <data name="Ai.Privacy" xml:space="preserve"><value>Запрос и схема коллекции (имена и типы полей) отправляются настроенному ИИ-сервису. Значения документов не передаются.</value></data>
+  <data name="Ai.Mode" xml:space="preserve"><value>Задача</value></data>
+  <data name="Ai.Describe" xml:space="preserve"><value>Составить запрос по описанию</value></data>
+  <data name="Ai.Translate" xml:space="preserve"><value>Перевести запрос в MongoDB</value></data>
+  <data name="Ai.Prompt" xml:space="preserve"><value>Запрос или описание</value></data>
+  <data name="Ai.Placeholder" xml:space="preserve"><value>Найти документы, созданные за последние семь дней…</value></data>
+  <data name="Ai.Generate" xml:space="preserve"><value>Составить</value></data>
+  <data name="Ai.Review" xml:space="preserve"><value>Запрос откроется в редакторе без выполнения.</value></data>
+  <data name="Ai.Use" xml:space="preserve"><value>Открыть во вкладке</value></data>
+  <data name="Transfer.Title" xml:space="preserve"><value>Импорт и экспорт</value></data>
+  <data name="Transfer.Import" xml:space="preserve"><value>Импортировать</value></data>
+  <data name="Transfer.Export" xml:space="preserve"><value>Экспорт</value></data>
+  <data name="Transfer.Download" xml:space="preserve"><value>Скачать JSON</value></data>
+  <data name="Transfer.ImportHint" xml:space="preserve"><value>Вставка документов из JSON-массива или JSON Lines (до 32 МБ). Существующие документы не заменяются. Перенос через SSH / SOCKS не поддерживается.</value></data>
+  <data name="Transfer.Array" xml:space="preserve"><value>Файл содержит JSON-массив</value></data>
+  <data name="Transfer.Limit" xml:space="preserve"><value>Максимум документов (1–10 000)</value></data>
+  <data name="Transfer.ExportHint" xml:space="preserve"><value>Canonical Extended JSON Lines, до 32 МБ. Типы BSON сохраняются. Перенос через SSH / SOCKS не поддерживается.</value></data>
+  <data name="Transfer.Imported" xml:space="preserve"><value>Импорт завершён.</value></data>
+  <data name="Error.TabLimit" xml:space="preserve"><value>Закройте одну из вкладок перед открытием новой (максимум 12).</value></data>
+  <data name="Error.ScriptSize" xml:space="preserve"><value>Запрос слишком большой (максимум 256 КБ).</value></data>
+  <data name="Error.Query" xml:space="preserve"><value>Не удалось выполнить запрос. Проверьте подключение и синтаксис.</value></data>
+  <data name="Error.Connection" xml:space="preserve"><value>Не удалось подключиться или загрузить базы. Проверьте адрес, учётные данные и доступ к сети.</value></data>
+  <data name="Error.Save" xml:space="preserve"><value>Не удалось сохранить изменения. Проверьте данные и права подключения.</value></data>
+  <data name="Error.Load" xml:space="preserve"><value>Не удалось загрузить данные. Попробуйте обновить.</value></data>
+  <data name="Error.Url" xml:space="preserve"><value>Введите URL с http или https.</value></data>
+  <data name="Error.Operation" xml:space="preserve"><value>Не удалось завершить операцию. Проверьте подключение и права.</value></data>
+  <data name="Error.Transfer" xml:space="preserve"><value>Перенос не выполнен. Проверьте формат JSON, размер файла и наличие MongoDB Database Tools.</value></data>
+  <data name="Query.Settings.Title" xml:space="preserve"><value>Запросы</value></data>
+  <data name="Query.Timeout" xml:space="preserve"><value>Таймаут запроса (с)</value></data>
+  <data name="Query.TimeoutHint" xml:space="preserve"><value>0 — без ограничения. Настройка общая для TUI и веба.</value></data>
+  <data name="Query.TimeoutInvalid" xml:space="preserve"><value>Введите целое число от 0 до {0}.</value></data>
+  <data name="Query.TimedOut" xml:space="preserve"><value>Превышено время выполнения запроса ({0} с).</value></data>
+  <data name="Query.Settings.Saved" xml:space="preserve"><value>Настройки запросов сохранены</value></data>
+  <data name="Query.Settings.SaveError" xml:space="preserve"><value>Не удалось сохранить настройки запросов.</value></data>
+  <data name="Nav.logs" xml:space="preserve"><value>Логи</value></data>
+  <data name="Logs.AutoRefresh" xml:space="preserve"><value>Автообновление</value></data>
+  <data name="Logs.Contents" xml:space="preserve"><value>Содержимое журнала</value></data>
+  <data name="Logs.Empty" xml:space="preserve"><value>Записей пока нет</value></data>
+  <data name="Logs.File" xml:space="preserve"><value>Файл журнала</value></data>
+  <data name="Logs.Latest" xml:space="preserve"><value>Последний файл</value></data>
+  <data name="Tree.CreateDatabase" xml:space="preserve"><value>Создать базу данных...</value></data>
+  <data name="Tree.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Create.DatabaseTitle" xml:space="preserve"><value>Создание базы данных</value></data>
+  <data name="Create.DatabaseName" xml:space="preserve"><value>Название базы</value></data>
+  <data name="Create.FirstCollection" xml:space="preserve"><value>Первая коллекция</value></data>
+  <data name="Create.DatabaseHint" xml:space="preserve"><value>База будет создана вместе с первой пустой коллекцией.</value></data>
+  <data name="Connection.Remove" xml:space="preserve"><value>Удалить из сохранённых…</value></data>
+  <data name="Tree.ConnectionActions" xml:space="preserve"><value>Действия для {0}</value></data>
+  <data name="Tree.ManageUsers" xml:space="preserve"><value>Управление пользователями...</value></data>
+  <data name="Tree.ManageUsersAdmin" xml:space="preserve"><value>Управление пользователями (admin)...</value></data>
+  <data name="Users.Title" xml:space="preserve"><value>Пользователи — {0}</value></data>
+  <data name="Users.Empty" xml:space="preserve"><value>Пользователи не найдены.</value></data>
+  <data name="Users.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Users.Create" xml:space="preserve"><value>Создать</value></data>
+  <data name="Users.Edit" xml:space="preserve"><value>Изменить</value></data>
+  <data name="Users.Delete" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Users.DeleteConfirmTitle" xml:space="preserve"><value>Удалить пользователя</value></data>
+  <data name="Users.DeleteConfirmMessage" xml:space="preserve"><value>Удалить пользователя '{0}' из базы '{1}'?</value></data>
+  <data name="Users.DeleteCurrentForbidden" xml:space="preserve"><value>Нельзя удалить пользователя текущего подключения.</value></data>
+  <data name="Users.LoadFailed" xml:space="preserve"><value>Не удалось загрузить пользователей.</value></data>
+  <data name="Users.SaveFailed" xml:space="preserve"><value>Не удалось сохранить пользователя.</value></data>
+  <data name="Users.Saving" xml:space="preserve"><value>Сохранение пользователя…</value></data>
+  <data name="Users.Form.CreateTitle" xml:space="preserve"><value>Создать пользователя</value></data>
+  <data name="Users.Form.EditTitle" xml:space="preserve"><value>Изменить пользователя</value></data>
+  <data name="Users.Field.Username" xml:space="preserve"><value>Имя пользователя</value></data>
+  <data name="Users.Field.Password" xml:space="preserve"><value>Пароль</value></data>
+  <data name="Users.Field.Generate" xml:space="preserve"><value>Сгенерировать</value></data>
+  <data name="Users.Form.PasswordKeepHint" xml:space="preserve"><value>При пустых полях пароль не будет изменён</value></data>
+  <data name="Users.Field.Access" xml:space="preserve"><value>Доступ к базам</value></data>
+  <data name="Users.Field.AdditionalRoles" xml:space="preserve"><value>Дополнительные роли</value></data>
+  <data name="Users.Access.Add" xml:space="preserve"><value>Добавить доступ...</value></data>
+  <data name="Users.Access.Remove" xml:space="preserve"><value>Удалить</value></data>
+  <data name="Users.Access.Database" xml:space="preserve"><value>База данных</value></data>
+  <data name="Users.Access.Read" xml:space="preserve"><value>Чтение (read)</value></data>
+  <data name="Users.Access.ReadWrite" xml:space="preserve"><value>Чтение и запись (readWrite)</value></data>
+  <data name="Users.Access.DbOwner" xml:space="preserve"><value>Владелец базы (dbOwner)</value></data>
+  <data name="Users.Access.Required" xml:space="preserve"><value>Требуется хотя бы один доступ или роль.</value></data>
+  <data name="Users.Access.DatabaseInvalid" xml:space="preserve"><value>Неверное имя базы данных.</value></data>
+  <data name="Users.ClusterRoles" xml:space="preserve"><value>Кластерные роли</value></data>
+  <data name="Users.ClusterRoles.ReadAnyDatabase" xml:space="preserve"><value>readAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ReadWriteAnyDatabase" xml:space="preserve"><value>readWriteAnyDatabase</value></data>
+  <data name="Users.ClusterRoles.ClusterAdmin" xml:space="preserve"><value>clusterAdmin</value></data>
+  <data name="Users.ClusterRoles.ClusterManager" xml:space="preserve"><value>clusterManager</value></data>
+  <data name="Users.ClusterRoles.ClusterMonitor" xml:space="preserve"><value>clusterMonitor</value></data>
+  <data name="Users.ClusterRoles.Administrator" xml:space="preserve"><value>Administrator (root)</value></data>
+  <data name="Users.ClusterRoles.AdministratorWarning" xml:space="preserve"><value>Administrator даёт полный доступ.</value></data>
+  <data name="Users.Created.Title" xml:space="preserve"><value>Пользователь создан</value></data>
+  <data name="Users.PasswordChanged.Title" xml:space="preserve"><value>Пароль изменён</value></data>
+  <data name="Users.Credentials.CopyPassword" xml:space="preserve"><value>Копировать пароль</value></data>
+  <data name="Users.Credentials.PasswordCopied" xml:space="preserve"><value>Пароль скопирован.</value></data>
+  <data name="Users.Credentials.PasswordCopyFailed" xml:space="preserve"><value>Не удалось скопировать пароль.</value></data>
+  <data name="Users.Created.PasswordShownOnce" xml:space="preserve"><value>Пароль и строка подключения показаны только один раз. Сохраните их.</value></data>
+  <data name="Users.Created.CopyConnectionString" xml:space="preserve"><value>Скопировать строку подключения</value></data>
+  <data name="Users.Created.Copied" xml:space="preserve"><value>Строка подключения скопирована.</value></data>
+  <data name="Users.Created.SshWarning" xml:space="preserve"><value>Строка подключения построена из сохранённого URI профиля и может не включать настройки SSH-туннеля.</value></data>
+  <data name="Users.Error.Unauthorized" xml:space="preserve"><value>Недостаточно прав для управления пользователями</value></data>
+  <data name="Users.Error.AlreadyExists" xml:space="preserve"><value>Пользователь уже существует</value></data>
+  <data name="Users.Error.NotFound" xml:space="preserve"><value>Пользователь не найден</value></data>
+  <data name="Users.Error.RoleGrantFailed" xml:space="preserve"><value>Не удалось назначить роль</value></data>
+  <data name="Users.Error.CommandFailed" xml:space="preserve"><value>Ошибка выполнения команды MongoDB</value></data>
+  <data name="Users.UsernameRequired" xml:space="preserve"><value>Имя пользователя не должно быть пустым.</value></data>
+  <data name="Users.PasswordRequired" xml:space="preserve"><value>Пароль не должен быть пустым.</value></data>
+  <data name="Users.Created.CopyFailed" xml:space="preserve"><value>Не удалось скопировать строку подключения.</value></data>
+  <data name="Users.PasswordChangedCurrent" xml:space="preserve"><value>Пароль пользователя текущего подключения изменён. Переподключитесь, чтобы использовать новый пароль.</value></data>
+  <data name="Users.Access.Level" xml:space="preserve"><value>Доступ</value></data>
+  <data name="Users.MoreRoles" xml:space="preserve"><value>+{0} ролей</value></data>
+  <data name="Users.AuthDatabase" xml:space="preserve"><value>База аутентификации</value></data>
+  <data name="Users.ScopeHint" xml:space="preserve"><value>Пользователи входят через эту базу. Их роли могут давать доступ к другим базам.</value></data>
+  <data name="Users.CurrentUser" xml:space="preserve"><value>Текущий пользователь</value></data>
+  <data name="Users.AdditionalRolesHint" xml:space="preserve"><value>Эти дополнительные роли сохраняются при изменении пользователя.</value></data>
+  <data name="Users.Access.Empty" xml:space="preserve"><value>Доступ к базам пока не выбран.</value></data>
+  <data name="Users.Credentials.ConnectionString" xml:space="preserve"><value>Строка подключения</value></data>
+  <data name="Users.Error.Cancelled" xml:space="preserve"><value>Операция отменена.</value></data>
+  <data name="Users.Error.ConnectionClosed" xml:space="preserve"><value>Подключение закрыто. Подключитесь снова для управления пользователями.</value></data>
+  <data name="Users.Error.Timeout" xml:space="preserve"><value>Истекло время ожидания операции. Обновите список перед повторной попыткой.</value></data>
+  <data name="Users.ClusterRoles.ClusterAdminWarning" xml:space="preserve"><value>clusterAdmin даёт широкие права на управление кластером.</value></data>
+  <data name="Common.CopyFailed" xml:space="preserve"><value>Не удалось скопировать в буфер обмена.</value></data>
+  <data name="Documents.UnsafeJson" xml:space="preserve"><value>Редактирование недоступно: преобразование этого документа в JSON изменит его BSON-данные. Используйте точечное обновление или инструменты для BSON.</value></data>
+  <data name="Documents.IdChanged" xml:space="preserve"><value>Нельзя изменять _id документа и его BSON-тип.</value></data>
+  <data name="Logging.Title" xml:space="preserve"><value>Логирование</value></data>
+  <data name="Logging.Level" xml:space="preserve"><value>Уровень логирования</value></data>
+  <data name="Logging.Hint" xml:space="preserve"><value>Общая настройка TUI и Web. Изменения действуют без перезапуска.</value></data>
+  <data name="Logging.Override" xml:space="preserve"><value>При запуске задан уровень {0}. Сохранённый выбор начнёт действовать после запуска без переопределения.</value></data>
+  <data name="Logging.Saved" xml:space="preserve"><value>Уровень логирования сохранён</value></data>
+  <data name="Logging.SaveError" xml:space="preserve"><value>Не удалось сохранить уровень логирования. Действующий уровень не изменён.</value></data>
+  <data name="Logging.LoadError" xml:space="preserve"><value>Не удалось загрузить настройки логирования.</value></data>
+  <data name="Index.UniqueBadge" xml:space="preserve"><value>уникальный</value></data>
+  <data name="Documents.NotFound" xml:space="preserve"><value>По фильтру ничего не найдено.</value></data>
+  <data name="WebAuth.SignIn" xml:space="preserve"><value>Вход</value></data>
+  <data name="WebAuth.LaunchRequired" xml:space="preserve"><value>Откройте одноразовую ссылку из терминала, в котором запущен Web. Чтобы получить новую ссылку, перезапустите Web.</value></data>
+  <data name="WebAuth.InvalidPassword" xml:space="preserve"><value>Неверный мастер-пароль.</value></data>
+  <data name="WebAuth.InvalidLaunch" xml:space="preserve"><value>Ссылка для входа устарела или уже использована. Перезапустите Web, чтобы получить новую.</value></data>
+  <data name="WebAuth.Unavailable" xml:space="preserve"><value>Не удалось войти. Проверьте доступность хранилища и повторите попытку.</value></data>
+  <data name="WebAuth.RateLimited" xml:space="preserve"><value>Слишком много попыток входа. Повторите через минуту.</value></data>
+  <data name="WebAuth.SessionExpired" xml:space="preserve"><value>Сессия завершена. Войдите снова.</value></data>
+  <data name="WebAuth.SignOut" xml:space="preserve"><value>Выйти</value></data>
+  <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
+  <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
+</root>

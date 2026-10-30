@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Localization;
@@ -29,7 +30,7 @@ public sealed class QueryMethodAutocompleteTests
 
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
 
-        status.Should().Be("Autocomplete.Hint");
+        status.Should().Be(LocalizationKeys.Autocomplete.Hint);
         tabs.ActiveEditorView!.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("getSiblingDB", "getCollection");
         Fake.GetCalls(_gateway).Should().BeEmpty();
     }
@@ -147,7 +148,7 @@ public sealed class QueryMethodAutocompleteTests
 
     private QueryTabsView CreateTabs(string script, int? column = null)
     {
-        var service = new QueryService(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
+        var service = QueryTestServices.Create(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
         var tabs = new QueryTabsView(service, A.Fake<ILocalizer>(), new AutocompleteService(_gateway));
         tabs.AddTab(ConnectionId.New(), new MongoConnectionTarget("mongodb://localhost:27017"), script: script);
         tabs.EndInit();

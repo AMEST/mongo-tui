@@ -1,0 +1,149 @@
+@inject SettingsService Settings
+@inject AiSettingsService Ai
+@inject SecurityModeService Security
+@inject WebText L
+@inject IJSRuntime JS
+<main class="page-content settings-page">
+    <div class="settings-content">
+        <header class="page-heading"><h1>@L[LocalizationKeys.Nav.Settings]</h1></header>
+        <div class="settings-sections">
+            <section class="panel settings-card" aria-labelledby="appearance-title">
+                <header class="panel-heading"><Icon Name="@IconNames.Settings" /><h2 id="appearance-title">@L[LocalizationKeys.Settings.Appearance]</h2></header>
+                <div class="settings-field">
+                    <div class="settings-description">
+                        <label for="settings-language">@L[LocalizationKeys.Settings.Language]</label>
+                        <p id="settings-language-hint">@L[LocalizationKeys.Settings.LanguageHint]</p>
+                    </div>
+                    <div class="settings-control compact-control">
+                        <select id="settings-language" aria-describedby="settings-language-hint" value="@L.Language" @onchange="LanguageAsync">
+                            <option value="@UiLanguages.English">@UiLanguages.EnglishName</option><option value="@UiLanguages.Russian">@UiLanguages.RussianName</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-field">
+                    <div class="settings-description">
+                        <h3 id="settings-theme">@L[LocalizationKeys.App.Theme]</h3>
+                        <p>@L[LocalizationKeys.Settings.ThemeHint]</p>
+                    </div>
+                    <div class="settings-control segmented" role="group" aria-labelledby="settings-theme">
+                        <button type="button" @onclick='() => ThemeAsync(ThemeNames.Light)'>@L[LocalizationKeys.Settings.Light]</button>
+                        <button type="button" @onclick='() => ThemeAsync(ThemeNames.Dark)'>@L[LocalizationKeys.Settings.Dark]</button>
+                        <button type="button" @onclick='() => ThemeAsync(ThemeNames.Auto)'>@L[LocalizationKeys.Settings.Auto]</button>
+                    </div>
+                </div>
+            </section>
+            <section class="panel settings-card" aria-labelledby="query-settings-title">
+                <header class="panel-heading"><Icon Name="@IconNames.Code" /><h2 id="query-settings-title">@L[LocalizationKeys.Query.SettingsTitle]</h2></header>
+                <form @onsubmit="SaveQuerySettingsAsync" @onsubmit:preventDefault="true">
+                    <div class="settings-field">
+                        <div class="settings-description">
+                            <label for="query-timeout">@L[LocalizationKeys.Query.Timeout]</label>
+                            <p id="query-timeout-hint">@L[LocalizationKeys.Query.TimeoutHint]</p>
+                        </div>
+                        <div class="settings-control compact-control">
+                            <input id="query-timeout" disabled="@_queryBusy" type="number" min="0" max="@SettingsService.MaximumQueryTimeoutSeconds" step="1" required aria-describedby="query-timeout-hint" @bind="_queryTimeoutSeconds" />
+                        </div>
+                    </div>
+                    <footer class="settings-actions">
+                        <FormFeedback Class="inline-feedback" Error="@_queryError" Success="@(_querySaved ? L[LocalizationKeys.Query.SettingsSaved] : null)" />
+                        <BusyButton Type="submit" Busy="_queryBusy" Icon="@IconNames.Check">@L[LocalizationKeys.Common.Save]</BusyButton>
+                    </footer>
+                </form>
+            </section>
+            <LoggingSettingsPanel @key="L.Language" />
+            <section class="panel settings-card" aria-labelledby="security-settings-title">
+                <header class="panel-heading"><Icon Name="@IconNames.Lock" /><h2 id="security-settings-title">@L[LocalizationKeys.Security.Title]</h2></header>
+                <div class="settings-field">
+                    <div class="settings-description">
+                        <h3>@L.SecurityModeName(Security.CurrentMode)</h3>
+                        <p>@L[LocalizationKeys.Connection.StorageHint]</p>
+                    </div>
+                    <button class="button secondary settings-control" type="button" @onclick="() => _securityOpen = true">@L[LocalizationKeys.Settings.Change]</button>
+                </div>
+            </section>
+            <section class="panel settings-card" aria-labelledby="ai-settings-title">
+                <header class="panel-heading"><Icon Name="@IconNames.Spark" /><h2 id="ai-settings-title">@L[LocalizationKeys.Ai.Settings]</h2></header>
+                <form @onsubmit="SaveAiAsync" @onsubmit:preventDefault="true">
+                    <div class="settings-field">
+                        <div class="settings-description">
+                            <label for="ai-url">@L[LocalizationKeys.Ai.Url]</label>
+                            <p id="ai-url-hint">@L[LocalizationKeys.Ai.SettingsHint]</p>
+                        </div>
+                        <div class="settings-control">
+                            <input id="ai-url" disabled="@_aiBusy" type="url" @bind="_url" aria-describedby="ai-url-hint" placeholder="http://localhost:8000/v1" />
+                        </div>
+                    </div>
+                    <div class="settings-field">
+                        <div class="settings-description"><label for="ai-model">@L[LocalizationKeys.Ai.Model]</label></div>
+                        <div class="settings-control"><input id="ai-model" disabled="@_aiBusy" @bind="_model" /></div>
+                    </div>
+                    <div class="settings-field">
+                        <div class="settings-description"><label for="ai-key">@L[LocalizationKeys.Ai.Key]</label></div>
+                        <div class="settings-control"><input id="ai-key" disabled="@_aiBusy" type="password" autocomplete="new-password" @bind="_key" placeholder="@L[LocalizationKeys.Connection.KeepPassword]" /></div>
+                    </div>
+                    <footer class="settings-actions">
+                        <FormFeedback Class="inline-feedback" Error="@_aiError" Success="@_message" />
+                        <BusyButton Type="submit" Busy="_aiBusy" Icon="@IconNames.Check">@L[LocalizationKeys.Common.Save]</BusyButton>
+                    </footer>
+                </form>
+            </section>
+        </div>
+    </div>
+</main>
+@if (_securityOpen) { <SecuritySettingsDialog OnClose="() => _securityOpen = false" /> }
+@code {
+    [Parameter] public EventCallback OnChanged { get; set; }
+    private string _url = string.Empty, _model = string.Empty, _key = string.Empty;
+    private string? _message;
+    private bool _securityOpen, _queryBusy, _aiBusy;
+    private string? _aiError;
+    private int _queryTimeoutSeconds = SettingsService.DefaultQueryTimeoutSeconds;
+    private bool _querySaved;
+    private string? _queryError;
+    protected override async Task OnInitializedAsync()
+    {
+        var configuration = await Ai.GetAsync(CancellationToken.None);
+        _url = configuration.BaseUrl; _model = configuration.Model;
+        _queryTimeoutSeconds = await Settings.GetQueryTimeoutSecondsAsync(CancellationToken.None);
+    }
+    private async Task LanguageAsync(ChangeEventArgs args)
+    {
+        L.SetLanguage(args.Value?.ToString());
+        await Settings.SetLanguageAsync(L.Language, CancellationToken.None);
+        await JS.InvokeVoidAsync(JavaScriptCalls.SetLanguage, L.Language);
+        await OnChanged.InvokeAsync();
+    }
+    private Task ThemeAsync(string theme) => JS.InvokeVoidAsync(JavaScriptCalls.SetTheme, theme).AsTask();
+    private async Task SaveQuerySettingsAsync()
+    {
+        if (_queryBusy) return;
+        _querySaved = false; _queryError = null;
+        if (_queryTimeoutSeconds is < 0 or > SettingsService.MaximumQueryTimeoutSeconds)
+        {
+            _queryError = L.Format(LocalizationKeys.Query.TimeoutInvalid, SettingsService.MaximumQueryTimeoutSeconds);
+            return;
+        }
+        _queryBusy = true;
+        try
+        {
+            await Settings.SetQueryTimeoutSecondsAsync(_queryTimeoutSeconds, CancellationToken.None);
+            _querySaved = true;
+        }
+        catch { _queryError = L[LocalizationKeys.Query.SettingsSaveError]; }
+        finally { _queryBusy = false; }
+    }
+    private async Task SaveAiAsync()
+    {
+        if (_aiBusy) return;
+        _aiBusy = true; _aiError = _message = null;
+        try
+        {
+            if (_url.Length > 0 && (!Uri.TryCreate(_url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")))
+            { _aiError = L[LocalizationKeys.Error.Url]; return; }
+            await Ai.SaveAsync(_url, _model, _key.Length == 0 ? null : _key, CancellationToken.None);
+            _key = string.Empty; _message = L[LocalizationKeys.Common.Saved];
+        }
+        catch { _aiError = L[LocalizationKeys.Error.Save]; }
+        finally { _aiBusy = false; }
+    }
+}

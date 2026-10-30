@@ -1,0 +1,30 @@
+@inject SecurityModeService Security
+@inject WebText L
+@inject WebCircuitSession Session
+@inject IJSRuntime JS
+<Modal Title="@L[LocalizationKeys.Security.Title]" OnClose="OnClose"><form class="modal-body" @onsubmit="SaveAsync" @onsubmit:preventDefault="true"><label for="security-mode">@L[LocalizationKeys.Security.Mode]</label><select id="security-mode" @bind="_mode" disabled="@_busy">@foreach (var mode in Security.AvailableModes) { <option value="@mode">@L.SecurityModeName(mode)</option> }</select>@if (_mode == SecurityMode.Password) { <label for="new-master">@L[LocalizationKeys.Security.NewPassword]</label><input id="new-master" type="password" disabled="@_busy" autocomplete="new-password" @bind="_password" /><label for="confirm-master">@L[LocalizationKeys.Security.Confirm]</label><input id="confirm-master" type="password" disabled="@_busy" autocomplete="new-password" @bind="_confirm" /> }@if (_mode == SecurityMode.None) { <p class="field-hint">@L[LocalizationKeys.Security.FileHint]</p> }<FormFeedback Error="@_error" /><footer class="modal-actions"><button type="button" class="button secondary" @onclick="OnClose">@L[LocalizationKeys.Common.Cancel]</button><BusyButton Type="submit" Busy="_busy" Icon="@IconNames.Lock">@L[LocalizationKeys.Common.Save]</BusyButton></footer></form></Modal>
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+    private SecurityMode _mode;
+    private string _password = string.Empty, _confirm = string.Empty;
+    private string? _error;
+    private bool _busy;
+    protected override void OnInitialized() => _mode = Security.CurrentMode ?? SecurityMode.Password;
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        if (_mode == SecurityMode.Password && (_password.Length == 0 || _password != _confirm)) { _error = L[LocalizationKeys.Security.Mismatch]; return; }
+        _busy = true;
+        try
+        {
+            await Session.BeginSecurityChangeAsync(CancellationToken.None);
+            if (_mode == Security.CurrentMode && _mode == SecurityMode.Password) await Security.ChangePasswordAsync(_password, CancellationToken.None);
+            else if (_mode != Security.CurrentMode) await Security.SwitchModeAsync(_mode, _password, CancellationToken.None);
+            var token = await Session.RenewAfterSecurityChangeAsync(CancellationToken.None);
+            await JS.InvokeVoidAsync(JavaScriptCalls.ReplaceSession, token);
+            await OnClose.InvokeAsync();
+        }
+        catch { _error = L[LocalizationKeys.Security.Error]; }
+        finally { await Session.EndSecurityChangeAsync(); _busy = false; _password = _confirm = string.Empty; }
+    }
+}

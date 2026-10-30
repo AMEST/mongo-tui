@@ -42,7 +42,7 @@ public sealed class PasswordKekSource : IKekSource
     public bool IsAvailable => true;
 
     public async Task<bool> HasMaterialAsync(CancellationToken cancellationToken) =>
-        await _settings.GetAsync(SaltSettingKey, cancellationToken) is not null;
+        await _settings.GetAsync(SaltSettingKey, cancellationToken).ConfigureAwait(false) is not null;
 
     public Task<byte[]?> TryGetKekAsync(CancellationToken cancellationToken) =>
         Task.FromResult<byte[]?>(null);
@@ -54,10 +54,10 @@ public sealed class PasswordKekSource : IKekSource
             throw new DomainException("Master password must not be empty.");
         }
 
-        var salt = await GetOrCreateSaltAsync(cancellationToken);
+        var salt = await GetOrCreateSaltAsync(cancellationToken).ConfigureAwait(false);
         var kek = DeriveKey(password, salt);
 
-        await VerifyOrCreateCheckAsync(kek, cancellationToken);
+        await VerifyOrCreateCheckAsync(kek, cancellationToken).ConfigureAwait(false);
 
         return kek;
     }
@@ -70,10 +70,10 @@ public sealed class PasswordKekSource : IKekSource
         }
 
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        await _settings.SetAsync(SaltSettingKey, Convert.ToBase64String(salt), cancellationToken);
+        await _settings.SetAsync(SaltSettingKey, Convert.ToBase64String(salt), cancellationToken).ConfigureAwait(false);
 
         var kek = DeriveKey(password, salt);
-        await StoreCheckAsync(kek, cancellationToken);
+        await StoreCheckAsync(kek, cancellationToken).ConfigureAwait(false);
 
         return kek;
     }
@@ -85,24 +85,24 @@ public sealed class PasswordKekSource : IKekSource
 
     private async Task<byte[]> GetOrCreateSaltAsync(CancellationToken cancellationToken)
     {
-        var stored = await _settings.GetAsync(SaltSettingKey, cancellationToken);
+        var stored = await _settings.GetAsync(SaltSettingKey, cancellationToken).ConfigureAwait(false);
         if (stored is not null)
         {
             return Convert.FromBase64String(stored);
         }
 
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        await _settings.SetAsync(SaltSettingKey, Convert.ToBase64String(salt), cancellationToken);
+        await _settings.SetAsync(SaltSettingKey, Convert.ToBase64String(salt), cancellationToken).ConfigureAwait(false);
 
         return salt;
     }
 
     private async Task VerifyOrCreateCheckAsync(byte[] kek, CancellationToken cancellationToken)
     {
-        var stored = await _settings.GetAsync(CheckSettingKey, cancellationToken);
+        var stored = await _settings.GetAsync(CheckSettingKey, cancellationToken).ConfigureAwait(false);
         if (stored is null)
         {
-            await StoreCheckAsync(kek, cancellationToken);
+            await StoreCheckAsync(kek, cancellationToken).ConfigureAwait(false);
             return;
         }
 
@@ -134,7 +134,7 @@ public sealed class PasswordKekSource : IKekSource
         nonce.CopyTo(blob.AsSpan(1));
         ciphertext.CopyTo(blob.AsSpan(1 + nonce.Length));
 
-        await _settings.SetAsync(CheckSettingKey, Convert.ToBase64String(blob), cancellationToken);
+        await _settings.SetAsync(CheckSettingKey, Convert.ToBase64String(blob), cancellationToken).ConfigureAwait(false);
     }
 
     private byte[] DeriveKey(string password, byte[] salt)

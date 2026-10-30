@@ -16,7 +16,7 @@ public sealed class DefaultProcessRunner : IProcessRunner
 
         try
         {
-            await process.WaitForExitAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -24,7 +24,7 @@ public sealed class DefaultProcessRunner : IProcessRunner
             throw;
         }
 
-        return new ProcessResult(process.ExitCode, await standardOutput, await standardError);
+        return new ProcessResult(process.ExitCode, await standardOutput.ConfigureAwait(false), await standardError.ConfigureAwait(false));
     }
 
     private static System.Diagnostics.ProcessStartInfo BuildStartInfo(ProcessRequest request)

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="@UiLanguages.English" data-theme="@ThemeNames.Light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/" />
+    <title>MongoTui</title>
+    <link rel="icon" href="_content/MongoTui.Web/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="_content/MongoTui.Web/app.css" />
+    <script src="_content/MongoTui.Web/theme.js"></script>
+    <script src="_content/MongoTui.Web/explorer.js"></script>
+    <script src="_content/MongoTui.Web/modal.js"></script>
+</head>
+<body>
+    <Routes @rendermode="new InteractiveServerRenderMode(prerender: false)" />
+    <ReconnectModal />
+    <script src="_content/MongoTui.Web/reconnect.js"></script>
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    <script src="_content/MongoTui.Web/auth.js"></script>
+</body>
+</html>

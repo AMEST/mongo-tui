@@ -13,6 +13,9 @@ All notable changes to this project are documented in this file.
   generate passwords, preserve unmanaged roles on edit, and copy the password or a ready-to-use
   connection string after creating a user or changing a password.
   Passwords and connection strings are shown once and are never persisted or logged.
+- **Web user management** — the same database and cluster permissions, user editing,
+  password generation and one-time credentials are available in the web explorer, with
+  localized errors, current-user protection, request cancellation and operation diagnostics.
 
 ### Docs
 

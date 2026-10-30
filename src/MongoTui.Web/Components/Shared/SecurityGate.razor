@@ -1,0 +1,119 @@
+@inject SecurityModeService Security
+@inject SettingsService Settings
+@inject WebText L
+@inject IJSRuntime JS
+@inject WebCircuitSession Session
+@if (_ready)
+{
+    @ChildContent
+}
+else
+{
+    <main class="welcome-screen">
+        <div class="welcome-brand"><span class="brand-mark"><Icon Name="@IconNames.Database" Size="25" /></span>MongoTui<span class="badge">WEB</span></div>
+        <section class="welcome-card">
+            <span class="welcome-symbol"><Icon Name="@IconNames.Lock" Size="28" /></span>
+            <h1>@L[_firstRun ? LocalizationKeys.Security.Setup : LocalizationKeys.Security.Unlock]</h1>
+            @if (_firstRun) { <p class="muted">@L[LocalizationKeys.Security.Intro]</p> }
+            @if (_loading) { <div class="loading-line">@L[LocalizationKeys.Common.Loading]</div> }
+            else
+            {
+                <form @onsubmit="UnlockAsync" @onsubmit:preventDefault="true">
+                    @if (_firstRun)
+                    {
+                        <label for="setup-security-mode">@L[LocalizationKeys.Security.Mode]</label>
+                        <select id="setup-security-mode" disabled="@_busy" @bind="_mode">
+                            @foreach (var mode in Security.AvailableModes) { <option value="@mode">@L.SecurityModeName(mode)</option> }
+                        </select>
+                    }
+                    @if ((_firstRun ? _mode : Security.CurrentMode) == SecurityMode.Password)
+                    {
+                        <label for="master-password">@L[LocalizationKeys.Security.Password]</label>
+                        <input id="master-password" disabled="@_busy" type="password" autocomplete="@(_firstRun ? "new-password" : "current-password")" @bind="_password" autofocus />
+                        @if (_firstRun)
+                        {
+                            <label for="confirm-password">@L[LocalizationKeys.Security.Confirm]</label>
+                            <input id="confirm-password" disabled="@_busy" type="password" autocomplete="new-password" @bind="_confirmation" />
+                        }
+                    }
+                    @if (_firstRun && _mode == SecurityMode.None) { <p class="field-hint">@L[LocalizationKeys.Security.FileHint]</p> }
+                    <FormFeedback Error="@_error" />
+                    <BusyButton Class="button primary full-width" Type="submit" Busy="_busy" Icon="@IconNames.Arrow" IconAfter="true">@L[LocalizationKeys.Security.Continue]</BusyButton>
+                </form>
+            }
+        </section>
+        <div class="welcome-footer"><button class="text-button" @onclick="ToggleLanguageAsync">@(L.Language == UiLanguages.English ? UiLanguages.RussianName : UiLanguages.EnglishName)</button></div>
+    </main>
+}
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private bool _ready, _firstRun, _busy;
+    private bool _loading = true;
+    private SecurityMode _mode = SecurityMode.Password;
+    private string _password = string.Empty, _confirmation = string.Empty;
+    private string? _error;
+    private string? _pageLanguage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            L.SetLanguage(await Settings.GetLanguageAsync(CancellationToken.None));
+            await RefreshSecurityAsync();
+        }
+        catch { _error = L[LocalizationKeys.Security.Error]; }
+        finally { _loading = false; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pageLanguage == L.Language) return;
+        try
+        {
+            await JS.InvokeVoidAsync(JavaScriptCalls.SetLanguage, L.Language);
+            _pageLanguage = L.Language;
+        }
+        catch (JSDisconnectedException) { }
+    }
+
+    private async Task UnlockAsync()
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            if (_firstRun && _mode == SecurityMode.Password && _password != _confirmation)
+            { _error = L[LocalizationKeys.Security.Mismatch]; return; }
+            await Session.BeginSecurityChangeAsync(CancellationToken.None);
+            if (_firstRun) await Security.InitializeAsync(_mode, _password, CancellationToken.None);
+            else if (Security.CurrentMode == SecurityMode.Password) await Security.UnlockWithPasswordAsync(_password, CancellationToken.None);
+            else await Security.TryAutoUnlockAsync(CancellationToken.None);
+            _ready = Security.IsUnlocked;
+            if (_ready) await Session.CompleteInitializationAsync(CancellationToken.None);
+            if (!_ready) _error = L[LocalizationKeys.Security.Error];
+        }
+        catch
+        {
+            _error = L[LocalizationKeys.Security.Error];
+            try { await RefreshSecurityAsync(); }
+            catch { }
+        }
+        finally { await Session.EndSecurityChangeAsync(); _password = _confirmation = string.Empty; _busy = false; }
+    }
+
+    private async Task RefreshSecurityAsync()
+    {
+        var detection = await Security.DetectAsync(CancellationToken.None);
+        _firstRun = detection.State == SecurityState.FirstRun;
+        _ready = !_firstRun && detection.State != SecurityState.Invalid
+            && await Security.TryAutoUnlockAsync(CancellationToken.None) == AutoUnlockResult.Unlocked;
+        if (detection.State == SecurityState.Invalid) _error = L[LocalizationKeys.Security.Invalid];
+    }
+
+    private async Task ToggleLanguageAsync()
+    {
+        L.SetLanguage(L.Language == UiLanguages.English ? UiLanguages.Russian : UiLanguages.English);
+        await Settings.SetLanguageAsync(L.Language, CancellationToken.None);
+    }
+}

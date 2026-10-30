@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using System.Text;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -31,7 +33,7 @@ public sealed class SecurityModeServiceTests
         _secrets = new SecretKeyService(_crypto);
         var gateway = A.Fake<IMongoGateway>();
         var connections = new ConnectionService(_repository, _secrets, gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         var ai = new AiSettingsService(_settings, _secrets);
 
         A.CallTo(() => _settings.GetAsync(A<string>._, A<CancellationToken>._))
@@ -82,6 +84,23 @@ public sealed class SecurityModeServiceTests
         detection.State.Should().Be(SecurityState.FirstRun);
         detection.Mode.Should().BeNull();
         _sut.CurrentMode.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_PreserveExistingUnlock_WhenAnotherClientProvidesWrongPassword(bool unlocked)
+    {
+        _values[SecurityModeService.ModeSettingKey] = "password";
+        if (unlocked) _secrets.SetKek(new byte[32]);
+        A.CallTo(() => _password.UnlockAsync("wrong", A<CancellationToken>._))
+            .ThrowsAsync(new DomainException("Invalid master password."));
+
+        var act = () => _sut.UnlockWithPasswordAsync("wrong", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+        _secrets.IsUnlocked.Should().Be(unlocked);
+        A.CallTo(() => _password.UnlockAsync("wrong", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]

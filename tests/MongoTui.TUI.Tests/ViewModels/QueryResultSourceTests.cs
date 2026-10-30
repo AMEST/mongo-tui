@@ -22,7 +22,8 @@ public sealed class QueryResultSourceTests
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_session);
         A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(Result());
-        _tab = new QueryTabViewModel(new QueryService(factory, A.Fake<IQueryHistoryRepository>()),
+        _tab = new QueryTabViewModel(QueryTestServices.Create(factory, A.Fake<IQueryHistoryRepository>()),
+            new MongoTui.TUI.Localization.ResxLocalizer(),
             ConnectionId.New(), new MongoConnectionTarget("mongodb://localhost"), "Query", "app", "users");
     }
 

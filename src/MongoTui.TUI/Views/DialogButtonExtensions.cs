@@ -59,7 +59,7 @@ internal static class DialogButtonExtensions
 
             try
             {
-                await action();
+                await action().ConfigureAwait(false);
             }
             catch (Exception exception)
             {

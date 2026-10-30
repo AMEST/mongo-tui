@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoDB.Bson;
@@ -61,7 +62,7 @@ public sealed class QueryAutocompleteTests
 
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
 
-        status.Should().Be("Autocomplete.Hint");
+        status.Should().Be(LocalizationKeys.Autocomplete.Hint);
         tabs.ActiveEditorView!.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("app");
     }
 
@@ -74,7 +75,7 @@ public sealed class QueryAutocompleteTests
 
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
 
-        status.Should().Be("Autocomplete.Hint");
+        status.Should().Be(LocalizationKeys.Autocomplete.Hint);
         tabs.ActiveEditorView!.Autocomplete.Suggestions.Select(item => item.Title).Should().Equal("admin", "app");
         A.CallTo(() => _gateway.ListDatabasesAsync(_target, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _gateway.ListCollectionsAsync(_target, A<DatabaseName>._, A<CancellationToken>._)).MustNotHaveHappened();
@@ -123,7 +124,7 @@ public sealed class QueryAutocompleteTests
 
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
 
-        status.Should().Be("Autocomplete.Hint");
+        status.Should().Be(LocalizationKeys.Autocomplete.Hint);
         A.CallTo(() => _gateway.FindAsync(_target,
             new CollectionRef(DatabaseName.Create("app"), CollectionName.Create(collection)),
             "{}", A<QueryExecutionOptions>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -150,7 +151,7 @@ public sealed class QueryAutocompleteTests
 
         var status = await tabs.CompleteActiveAsync(CancellationToken.None);
 
-        status.Should().Be("Autocomplete.Failed");
+        status.Should().Be(LocalizationKeys.Autocomplete.Failed);
         tabs.ActiveEditorView!.Autocomplete.Suggestions.Should().BeEmpty();
     }
 
@@ -287,7 +288,7 @@ public sealed class QueryAutocompleteTests
                 Kind = QueryResultKind.Documents,
                 Documents = [BsonDocument.Parse("{name: 'a', profile: {name: 'b'}}")],
             });
-        var service = new QueryService(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
+        var service = QueryTestServices.Create(A.Fake<IMongoShellSessionFactory>(), A.Fake<IQueryHistoryRepository>());
         var tabs = new QueryTabsView(service, A.Fake<ILocalizer>(), new AutocompleteService(_gateway));
         tabs.AddTab(ConnectionId.New(), _target, database, "orders", script);
         tabs.EndInit();

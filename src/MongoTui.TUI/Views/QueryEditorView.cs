@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Drawing;
 using System.Globalization;
 using MongoTui.Application.Services;
@@ -44,7 +45,7 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
         var cursor = CursorOffset();
         var context = QueryCompletionContext.Parse(text, cursor, _model.Database);
         if (!HasFocus || SelectedLength > 0 || context is null)
-            return "Autocomplete.NoContext";
+            return LocalizationKeys.Autocomplete.NoContext;
 
         using var request = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _request = request;
@@ -64,13 +65,13 @@ internal sealed class QueryEditorView : TextView, ISuggestionGenerator
             Autocomplete.ProcessKey(Autocomplete.Reopen);
             RefreshAutocompletePopup();
             SetNeedsDraw();
-            return Autocomplete.Suggestions.Count == 0 ? "Autocomplete.NoMatches" : "Autocomplete.Hint";
+            return Autocomplete.Suggestions.Count == 0 ? LocalizationKeys.Autocomplete.NoMatches : LocalizationKeys.Autocomplete.Hint;
         }
         catch (OperationCanceledException) when (request.IsCancellationRequested) { return null; }
         catch (Exception exception)
         {
             Log.Warning("Autocomplete failed with {ErrorType}", exception.GetType().Name);
-            return "Autocomplete.Failed";
+            return LocalizationKeys.Autocomplete.Failed;
         }
         finally { if (ReferenceEquals(_request, request)) _request = null; }
     }

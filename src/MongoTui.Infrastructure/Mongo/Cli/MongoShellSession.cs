@@ -1,7 +1,7 @@
 using System.Text.Json;
-using Serilog;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
+using MongoTui.Application.Services;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Models;
@@ -12,32 +12,36 @@ namespace MongoTui.Infrastructure.Mongo.Cli;
 
 /// <summary>
 /// Evaluates scripts with <c>mongosh</c> in one-shot <c>--eval</c> mode, asking it to render the
-/// result as Extended JSON (<c>--json=relaxed</c>). The script is passed verbatim so shell
+/// result as canonical Extended JSON. The script is passed verbatim so shell
 /// semantics (e.g. cursor methods like <c>limit</c>) are preserved; unlike the interactive REPL,
 /// this mode does not pollute stdout with prompts or shell-formatted values.
 /// </summary>
 public sealed class MongoShellSession : IMongoShellSession
 {
+    private const string ScalarValueField = "value";
+    private const string ScalarOutputField = "output";
     private readonly IProcessRunner _runner;
     private readonly MongoToolsLocator _tools;
     private readonly MongoConnectionTarget _target;
+    private readonly ILogger<MongoShellSession> _logger;
 
-    public MongoShellSession(IProcessRunner runner, MongoToolsLocator tools, MongoConnectionTarget target)
+    public MongoShellSession(IProcessRunner runner, MongoToolsLocator tools, MongoConnectionTarget target, ILogger<MongoShellSession> logger)
     {
         _runner = runner;
         _tools = tools;
         _target = target;
+        _logger = logger;
     }
 
     public bool IsRunning => true;
 
     public async Task<QueryResult> EvaluateAsync(string script, string? database, CancellationToken cancellationToken)
     {
-        Log.Debug("mongosh: evaluating script ({ScriptLength} chars)", script.Length);
+        _logger.LogDebug("mongosh: evaluating script ({ScriptLength} chars)", script.Length);
 
-        var result = await _runner.RunAsync(CreateRequest(script, database), cancellationToken);
+        var result = await _runner.RunAsync(CreateRequest(script, database), cancellationToken).ConfigureAwait(false);
 
-        Log.Debug(
+        _logger.LogDebug(
             "mongosh: exit={ExitCode}, stdout={StdoutChars} chars, stderr={StderrChars} chars",
             result.ExitCode,
             result.StandardOutput.Length,
@@ -50,7 +54,7 @@ public sealed class MongoShellSession : IMongoShellSession
 
         if (!string.IsNullOrWhiteSpace(result.StandardError))
         {
-            Log.Warning("mongosh wrote {StderrChars} stderr characters", result.StandardError.Length);
+            _logger.LogWarning("mongosh wrote {StderrChars} stderr characters", result.StandardError.Length);
         }
 
         return ParseResult(result.StandardOutput);
@@ -60,7 +64,8 @@ public sealed class MongoShellSession : IMongoShellSession
 
     private ProcessRequest CreateRequest(string script, string? database)
     {
-        var arguments = new List<string> { _target.ConnectionString, "--quiet", "--norc", "--json=relaxed" };
+        // Preserve the types still available to the shell. Editors reload through the driver.
+        var arguments = new List<string> { _target.ConnectionString, "--quiet", "--norc", "--json=canonical" };
         if (database is not null)
             arguments.AddRange(["--eval", $"db = db.getSiblingDB({JsonSerializer.Serialize(database)})"]);
         arguments.AddRange(["--eval", script]);
@@ -130,16 +135,18 @@ public sealed class MongoShellSession : IMongoShellSession
 
         if (text.StartsWith('['))
         {
-            return BsonSerializer.Deserialize<BsonArray>(text)
-                .Select(value => value.AsBsonDocument)
+            return BsonTextCodec.ParseValue(text).AsBsonArray
+                .Select(value => value as BsonDocument ?? new BsonDocument(ScalarValueField, value))
                 .ToList();
         }
 
         if (text.StartsWith('{'))
         {
-            return [BsonDocument.Parse(text)];
+            // Canonical Extended JSON also wraps scalars, e.g. {"$numberInt":"2"}.
+            var value = BsonTextCodec.ParseValue(text);
+            return [value as BsonDocument ?? new BsonDocument(ScalarOutputField, value.ToString() ?? string.Empty)];
         }
 
-        return [new BsonDocument("output", text)];
+        return [new BsonDocument(ScalarOutputField, text)];
     }
 }

@@ -1,0 +1,36 @@
+@implements IAsyncDisposable
+@inject WebText L
+@inject IJSRuntime JS
+<div class="modal-backdrop" @onclick="OnClose">
+    <section @ref="_element" class="modal @Class" role="dialog" aria-modal="true" aria-label="@Title" tabindex="-1" @onclick:stopPropagation="true" @onkeydown="OnKey">
+        <header class="modal-header"><div><h2>@Title</h2></div><button class="icon-button" title="@L[LocalizationKeys.Common.Close]" @onclick="OnClose"><Icon Name="@IconNames.Close" /></button></header>
+        @ChildContent
+    </section>
+</div>
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Class { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private ElementReference _element;
+    private int _registration;
+    private bool _disposed;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            _registration = await JS.InvokeAsync<int>(JavaScriptCalls.OpenModal, _element);
+            if (_disposed && _registration != 0) await JS.InvokeVoidAsync(JavaScriptCalls.CloseModal, _registration);
+        }
+        catch (JSDisconnectedException) { }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        _disposed = true;
+        if (_registration == 0) return;
+        try { await JS.InvokeVoidAsync(JavaScriptCalls.CloseModal, _registration); }
+        catch (Exception exception) when (exception is JSDisconnectedException or JSException) { }
+    }
+    private Task OnKey(KeyboardEventArgs args) => args.Key == "Escape" ? OnClose.InvokeAsync() : Task.CompletedTask;
+}

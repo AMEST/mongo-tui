@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -14,35 +15,35 @@ public sealed class ShortcutsDialog : ThemedDialog
 
     private static readonly (string Key, string Shortcut)[] Entries =
     [
-        ("Shortcuts.Run", "F5 / Ctrl+R"),
-        ("Shortcuts.NewTab", "Ctrl+T"),
-        ("Shortcuts.CloseTab", "Ctrl+W"),
-        ("Shortcuts.Connections", "Ctrl+O"),
-        ("Shortcuts.Refresh", "F9"),
-        ("Shortcuts.Autocomplete", "Ctrl+Space"),
-        ("Shortcuts.History", "Ctrl+H"),
-        ("Shortcuts.Ai", "F6"),
-        ("Shortcuts.Translate", "F7"),
-        ("Shortcuts.Export", "F2"),
-        ("Shortcuts.Import", "F3"),
-        ("Shortcuts.Indexes", "Ctrl+K"),
-        ("Shortcuts.Insert", "Ctrl+I"),
-        ("Shortcuts.Edit", "Ctrl+E"),
-        ("Shortcuts.Delete", "Ctrl+D"),
-        ("Shortcuts.MoveFocus", "Tab / Shift+Tab"),
-        ("Shortcuts.MenuBar", "F10"),
-        ("Shortcuts.InsertTab", "Ctrl+Tab"),
-        ("Shortcuts.Copy", "Ctrl+C"),
-        ("Shortcuts.Paste", "Ctrl+V / Cmd+V"),
-        ("Shortcuts.Cut", "Ctrl+X"),
-        ("Shortcuts.Unlock", "F8"),
-        ("Shortcuts.ChangePassword", "Ctrl+P"),
-        ("Shortcuts.Quit", "Ctrl+Q"),
+        (LocalizationKeys.Shortcuts.Run, "F5 / Ctrl+R"),
+        (LocalizationKeys.Shortcuts.NewTab, "Ctrl+T"),
+        (LocalizationKeys.Shortcuts.CloseTab, "Ctrl+W"),
+        (LocalizationKeys.Shortcuts.Connections, "Ctrl+O"),
+        (LocalizationKeys.Shortcuts.Refresh, "F9"),
+        (LocalizationKeys.Shortcuts.Autocomplete, "Ctrl+Space"),
+        (LocalizationKeys.Shortcuts.History, "Ctrl+H"),
+        (LocalizationKeys.Shortcuts.Ai, "F6"),
+        (LocalizationKeys.Shortcuts.Translate, "F7"),
+        (LocalizationKeys.Shortcuts.Export, "F2"),
+        (LocalizationKeys.Shortcuts.Import, "F3"),
+        (LocalizationKeys.Shortcuts.Indexes, "Ctrl+K"),
+        (LocalizationKeys.Shortcuts.Insert, "Ctrl+I"),
+        (LocalizationKeys.Shortcuts.Edit, "Ctrl+E"),
+        (LocalizationKeys.Shortcuts.Delete, "Ctrl+D"),
+        (LocalizationKeys.Shortcuts.MoveFocus, "Tab / Shift+Tab"),
+        (LocalizationKeys.Shortcuts.MenuBar, "F10"),
+        (LocalizationKeys.Shortcuts.InsertTab, "Ctrl+Tab"),
+        (LocalizationKeys.Shortcuts.Copy, "Ctrl+C"),
+        (LocalizationKeys.Shortcuts.Paste, "Ctrl+V / Cmd+V"),
+        (LocalizationKeys.Shortcuts.Cut, "Ctrl+X"),
+        (LocalizationKeys.Shortcuts.Unlock, "F8"),
+        (LocalizationKeys.Shortcuts.ChangePassword, "Ctrl+P"),
+        (LocalizationKeys.Shortcuts.Quit, "Ctrl+Q"),
     ];
 
     public ShortcutsDialog(ILocalizer localizer, IApplication application)
     {
-        Title = localizer.Get("Shortcuts.Title");
+        Title = localizer.Get(LocalizationKeys.Shortcuts.Title);
         Width = 80;
         Height = Dim.Percent(90);
 
@@ -59,7 +60,7 @@ public sealed class ShortcutsDialog : ThemedDialog
         };
         Add(text);
 
-        var okButton = new Button { Text = localizer.Get("Common.Ok"), IsDefault = true };
+        var okButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         okButton.OnAccept(() => application.RequestStop(this));
         this.AddButtons(okButton);
     }
@@ -76,7 +77,7 @@ public sealed class ShortcutsDialog : ThemedDialog
             lines.Add(right.Length == 0 ? left : left.PadRight(ColumnWidth) + right);
         }
 
-        lines.Add(localizer.Get("Shortcuts.MacNote"));
+        lines.Add(localizer.Get(LocalizationKeys.Shortcuts.MacNote));
 
         return string.Join('\n', lines);
     }

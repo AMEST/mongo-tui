@@ -5,11 +5,12 @@ namespace MongoTui.Domain.Connections;
 /// <summary>Settings for an automatically started OpenSSH SOCKS5 proxy.</summary>
 public sealed record SshTunnelOptions
 {
+    public const int DefaultPort = 22;
     public bool Enabled { get; init; }
 
     public string? Host { get; init; }
 
-    public int Port { get; init; } = 22;
+    public int Port { get; init; } = DefaultPort;
 
     public string? Username { get; init; }
 
@@ -31,7 +32,7 @@ public sealed record SshTunnelOptions
             throw new DomainException("SSH host must be a hostname or an SSH config alias.");
         }
 
-        if (Port is < 1 or > 65535 || LocalPort is < 0 or > 65535)
+        if (Port is < 1 or > ushort.MaxValue || LocalPort is < 0 or > ushort.MaxValue)
         {
             throw new DomainException("SSH port must be 1–65535; local SOCKS port must be 0–65535.");
         }

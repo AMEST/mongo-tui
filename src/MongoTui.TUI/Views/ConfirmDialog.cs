@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -16,14 +17,14 @@ public sealed class ConfirmDialog : ThemedDialog
 
         Add(new Label { Text = message, X = 1, Y = 1, Width = Dim.Fill() });
 
-        var yesButton = new Button { Text = localizer.Get("Common.Yes"), IsDefault = true };
+        var yesButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Yes), IsDefault = true };
         yesButton.OnAccept(() =>
         {
             Confirmed = true;
             application.RequestStop(this);
         });
 
-        var noButton = new Button { Text = localizer.Get("Common.No") };
+        var noButton = new Button { Text = localizer.Get(LocalizationKeys.Common.No) };
         noButton.OnAccept(() => application.RequestStop(this));
 
         this.AddButtons(yesButton, noButton);

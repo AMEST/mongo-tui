@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Models;
@@ -39,35 +40,35 @@ public sealed class ExportWizardDialog : ThemedDialog
         _target = target;
         _collection = collection;
 
-        Title = localizer.Get("Export.Title");
+        Title = localizer.Get(LocalizationKeys.Export.Title);
         Width = 72;
         Height = 18;
 
-        Add(FieldLabel("Export.Field.Output", 1));
+        Add(FieldLabel(LocalizationKeys.Export.FieldOutput, 1));
         _outputField.X = 22;
         _outputField.Y = 1;
         _outputField.Width = Dim.Fill();
         Add(_outputField);
 
-        Add(FieldLabel("Export.Field.Filter", 3));
+        Add(FieldLabel(LocalizationKeys.Export.FieldFilter, 3));
         _filterField.X = 22;
         _filterField.Y = 3;
         _filterField.Width = Dim.Fill();
         Add(_filterField);
 
-        Add(FieldLabel("Export.Field.Limit", 5));
+        Add(FieldLabel(LocalizationKeys.Export.FieldLimit, 5));
         _limitField.X = 22;
         _limitField.Y = 5;
         _limitField.Width = 12;
         Add(_limitField);
 
-        Add(FieldLabel("Transfer.Field.Format", 7));
+        Add(FieldLabel(LocalizationKeys.Transfer.FieldFormat, 7));
         _formatList.X = 22;
         _formatList.Y = 7;
         _formatList.Width = Dim.Fill();
         _formatList.Height = 5;
         _formatList.SetSource(new ObservableCollection<string>(_formats));
-        _formatList.SelectedItem = Array.IndexOf(_formats, ExportFormat.Json.ToString());
+        _formatList.SelectedItem = Array.IndexOf(_formats, ExportFormat.CanonicalJson.ToString());
         Add(_formatList);
 
         _error.X = 1;
@@ -75,9 +76,9 @@ public sealed class ExportWizardDialog : ThemedDialog
         _error.Width = Dim.Fill();
         Add(_error);
 
-        var runButton = new Button { Text = localizer.Get("Transfer.Run"), IsDefault = true };
+        var runButton = new Button { Text = localizer.Get(LocalizationKeys.Transfer.Run), IsDefault = true };
         runButton.OnAcceptAsync(RunAsync);
-        var cancelButton = new Button { Text = localizer.Get("Connections.Cancel") };
+        var cancelButton = new Button { Text = localizer.Get(LocalizationKeys.Connections.Cancel) };
         cancelButton.OnAccept(() => _application.RequestStop(this));
 
         this.AddButtons(runButton, cancelButton);
@@ -110,7 +111,7 @@ public sealed class ExportWizardDialog : ThemedDialog
         catch (DomainException exception)
         {
             _error.Text = exception is ProxyTransferNotSupportedException
-                ? _localizer.Get("Transfer.ProxyNotSupported")
+                ? _localizer.Get(LocalizationKeys.Transfer.ProxyNotSupported)
                 : exception.Message;
         }
     }

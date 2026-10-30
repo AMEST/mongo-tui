@@ -1,3 +1,4 @@
+using MongoTui.Application.Localization;
 using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
@@ -25,7 +26,7 @@ internal sealed class QueryTabPane
 
         _editorFrame = new FrameView
         {
-            Title = localizer.Get("Query.Pane"),
+            Title = localizer.Get(LocalizationKeys.Query.Pane),
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
@@ -40,7 +41,7 @@ internal sealed class QueryTabPane
 
         _resultFrame = new FrameView
         {
-            Title = localizer.Get("Query.Result"),
+            Title = localizer.Get(LocalizationKeys.Query.Result),
             X = 0,
             Y = Pos.Bottom(_editorFrame),
             Width = Dim.Fill(),
@@ -68,20 +69,20 @@ internal sealed class QueryTabPane
     public void FocusResult() => _result.SetFocus();
 
     // In table mode documents start below the header (column names + separator).
-    public string? SelectedDocumentJson()
+    public BsonDocument? SelectedDocument()
     {
         if (Model.Result.DocumentIndexAtRow(_result.DocumentRow) is not { } index)
         {
             return null;
         }
 
-        return Model.Result.Documents[index].ToJson();
+        return Model.Result.Documents[index];
     }
 
     public void RefreshLocalization(ILocalizer localizer)
     {
-        _editorFrame.Title = localizer.Get("Query.Pane");
-        _resultFrame.Title = localizer.Get("Query.Result");
+        _editorFrame.Title = localizer.Get(LocalizationKeys.Query.Pane);
+        _resultFrame.Title = localizer.Get(LocalizationKeys.Query.Result);
     }
 
     private void BuildContextMenus(ILocalizer localizer)
@@ -104,7 +105,7 @@ internal sealed class QueryTabPane
         }
 
         root.Add(new Line());
-        root.Add(new MenuItem(localizer.Get("Menu.Query.Run"), string.Empty, _owner.RaiseRunRequested));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.QueryRun), string.Empty, _owner.RaiseRunRequested));
     }
 
     private void BuildResultContextMenu(ILocalizer localizer)
@@ -115,20 +116,20 @@ internal sealed class QueryTabPane
         }
 
         root.Add(new Line());
-        root.Add(new MenuItem(localizer.Get("Result.CopyAll"), string.Empty, CopyAll));
-        root.Add(new MenuItem(localizer.Get("Result.CopyDocument"), string.Empty, CopySelectedDocument));
-        root.Add(new MenuItem(localizer.Get("Result.Export"), string.Empty, _owner.RaiseExportRequested));
-        root.Add(new MenuItem(localizer.Get("Menu.Document.Edit"), string.Empty, _owner.RaiseEditDocumentRequested));
-        root.Add(new MenuItem(localizer.Get("Menu.Document.Delete"), string.Empty, _owner.RaiseDeleteDocumentRequested));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.CopyAll), string.Empty, CopyAll));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.CopyDocument), string.Empty, CopySelectedDocument));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.Export), string.Empty, _owner.RaiseExportRequested));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.DocumentEdit), string.Empty, _owner.RaiseEditDocumentRequested));
+        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.DocumentDelete), string.Empty, _owner.RaiseDeleteDocumentRequested));
     }
 
     private void CopyAll() => _result.App?.Clipboard?.SetClipboardData(_result.Text ?? string.Empty);
 
     private void CopySelectedDocument()
     {
-        if (SelectedDocumentJson() is { } json)
+        if (SelectedDocument() is { } document)
         {
-            _result.App?.Clipboard?.SetClipboardData(json);
+            _result.App?.Clipboard?.SetClipboardData(BsonTextCodec.Format(document));
         }
     }
 }

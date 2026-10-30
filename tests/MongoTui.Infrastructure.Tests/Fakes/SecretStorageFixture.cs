@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using FakeItEasy;
 using Microsoft.Data.Sqlite;
 using MongoTui.Application.Abstractions.Mongo;
@@ -39,7 +41,7 @@ internal sealed class SecretStorageFixture : IAsyncDisposable
         Secrets = CreateSecrets();
         var gateway = A.Fake<IMongoGateway>();
         Connections = new ConnectionService(Repository, Secrets, gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         Ai = new AiSettingsService(Settings, Secrets);
         PasswordSource = new PasswordKekSource(Settings, _crypto, FastParameters);
         Security = CreateSecurity(Secrets);
@@ -63,7 +65,7 @@ internal sealed class SecretStorageFixture : IAsyncDisposable
     {
         var gateway = A.Fake<IMongoGateway>();
         var connections = new ConnectionService(Repository, secrets, gateway,
-            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         var ai = new AiSettingsService(Settings, secrets);
         var source = new PasswordKekSource(Settings, _crypto, FastParameters);
         IKekSource[] sources = [source, .. additionalSources];

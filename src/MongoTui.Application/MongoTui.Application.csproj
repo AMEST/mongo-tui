@@ -11,12 +11,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="MongoTui.Application.Tests" />
     <InternalsVisibleTo Include="MongoTui.Infrastructure.Tests" />
     <InternalsVisibleTo Include="MongoTui.TUI.Tests" />
+    <InternalsVisibleTo Include="MongoTui.Web.Tests" />
     <InternalsVisibleTo Include="MongoTui.IntegrationTests" />
   </ItemGroup>
 

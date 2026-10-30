@@ -1,0 +1,97 @@
+@inject ConnectionCatalog Catalog
+@inject QueryWorkspace Workspace
+@inject WebText L
+@inject IJSRuntime JS
+<div class="connection-tree-node" data-connection="@Profile.Id">
+    <div class="connection-tree-title" @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true">
+        <button class="connection-toggle" aria-disabled="@(_busy ? "true" : "false")" data-pending="@(_busy ? "true" : "false")" aria-busy="@(_busy ? "true" : "false")" aria-label="@Profile.Name" aria-expanded="@(Connection?.Expanded == true ? "true" : "false")" @onclick="ActivateAsync">
+            <span class="chevron @(Connection?.Expanded == true ? "expanded" : "")"><BusyIcon Name="@(Connection is null ? IconNames.Plug : IconNames.Chevron)" Size="12" Busy="_busy" /></span>
+            <span class="status-dot @(Connection is null ? "disconnected" : "")" title="@L[Connection is null ? LocalizationKeys.Connection.Connect : LocalizationKeys.Connection.Connected]"></span>
+            <strong>@Profile.Name</strong>
+            @if (Connection is { } active)
+            {
+                <span class="connection-state" aria-busy="@(_busy ? "true" : "false")">
+                    <span class="badge subtle">@active.Databases.Count</span>
+                </span>
+            }
+        </button>
+        <button @ref="_trigger" class="icon-button small connection-actions" title="@L.Format(LocalizationKeys.Tree.ConnectionActions, Profile.Name)" aria-label="@L.Format(LocalizationKeys.Tree.ConnectionActions, Profile.Name)" aria-haspopup="menu" aria-expanded="@(_menuOpen ? "true" : "false")" aria-disabled="@(_busy ? "true" : "false")" data-pending="@(_busy ? "true" : "false")" @onclick="ToggleMenu"><Icon Name="@IconNames.More" Size="16" /></button>
+    </div>
+    @if (Connection is { Expanded: true } connection)
+    {
+        @foreach (var database in connection.Databases.Where(MatchesDatabase))
+        {
+            <DatabaseTreeNode @key="database.Name" Connection="connection" Database="database" Search="@Search" Disabled="_busy"
+                              OnOpen="OnOpen" OnNewQuery="OnNewQuery" OnCreateCollection="OnCreateCollection" OnManageUsers="OnManageUsers" />
+        }
+    }
+    @if (_error is not null) { <p class="error-message tree-error" role="alert">@_error</p> }
+</div>
+@if (_menuOpen)
+{
+    <div class="context-menu-backdrop" @onclick="CloseMenuAsync" @oncontextmenu="CloseMenuAsync" @oncontextmenu:preventDefault="true"></div>
+    <div @ref="_menu" class="connection-context-menu" role="menu" aria-label="@L.Format(LocalizationKeys.Tree.ConnectionActions, Profile.Name)" @onkeydown="OnMenuKeyAsync">
+        @if (Connection is { } menuConnection)
+        {
+            <button role="menuitem" @onclick="() => RunAsync(() => Workspace.CloseConnectionAsync(Profile.Id))"><Icon Name="@IconNames.Plug" Size="15" />@L[LocalizationKeys.Connection.Disconnect]</button>
+            <button role="menuitem" @onclick="() => RunAsync(() => OnCreateDatabase.InvokeAsync(Profile))"><Icon Name="@IconNames.Plus" Size="15" />@L[LocalizationKeys.Tree.CreateDatabase]</button>
+            <button role="menuitem" @onclick="() => RunAsync(() => Catalog.RefreshDatabasesAsync(menuConnection, CancellationToken.None))"><Icon Name="@IconNames.Refresh" Size="15" />@L[LocalizationKeys.Tree.Refresh]</button>
+            <button role="menuitem" @onclick="() => RunAsync(() => OnManageUsers.InvokeAsync(new DatabaseSelection(Profile.Id, MongoRoleCatalog.AdminDatabase)))"><Icon Name="@IconNames.Users" Size="15" />@L[LocalizationKeys.Tree.ManageUsersAdmin]</button>
+        }
+        else
+        {
+            <button role="menuitem" @onclick="() => RunAsync(() => OnConnect.InvokeAsync(Profile))"><Icon Name="@IconNames.Plug" Size="15" />@L[LocalizationKeys.Connection.Connect]</button>
+        }
+        <div class="menu-separator"></div>
+        <button role="menuitem" @onclick="() => RunAsync(() => OnEdit.InvokeAsync(Profile))"><Icon Name="@IconNames.Edit" Size="15" />@L[LocalizationKeys.Connection.Edit]</button>
+        <button role="menuitem" class="danger-text" @onclick="() => RunAsync(() => OnDelete.InvokeAsync(Profile))"><Icon Name="@IconNames.Trash" Size="15" />@L[LocalizationKeys.Connection.Remove]</button>
+    </div>
+}
+@code {
+    [Parameter, EditorRequired] public ConnectionProfile Profile { get; set; } = null!;
+    [Parameter] public string Search { get; set; } = string.Empty;
+    [Parameter] public EventCallback<ConnectionProfile> OnConnect { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnEdit { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnDelete { get; set; }
+    [Parameter] public EventCallback<ConnectionProfile> OnCreateDatabase { get; set; }
+    [Parameter] public EventCallback<CollectionSelection> OnOpen { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnNewQuery { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnCreateCollection { get; set; }
+    [Parameter] public EventCallback<DatabaseSelection> OnManageUsers { get; set; }
+    private WebConnection? Connection => Catalog.Active.FirstOrDefault(connection => connection.Profile.Id == Profile.Id);
+    private ElementReference _trigger, _menu;
+    private bool _busy, _menuOpen, _placeMenu;
+    private double? _menuX, _menuY;
+    private string? _error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_placeMenu || !_menuOpen) return;
+        _placeMenu = false;
+        await JS.InvokeVoidAsync(JavaScriptCalls.OpenMenu, _menu, _trigger, _menuX, _menuY);
+    }
+    private bool MatchesDatabase(WebDatabase database) => Profile.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+        || database.Name.Contains(Search, StringComparison.OrdinalIgnoreCase)
+        || database.Collections is null || database.Collections.Any(name => name.Contains(Search, StringComparison.OrdinalIgnoreCase));
+    private Task ActivateAsync() => RunAsync(async () =>
+    {
+        if (Connection is { } connection) Catalog.ToggleConnection(connection);
+        else await OnConnect.InvokeAsync(Profile);
+    });
+    private void ToggleMenu() { if (_busy) return; _menuOpen = !_menuOpen; _menuX = _menuY = null; _placeMenu = _menuOpen; }
+    private void OpenContextMenu(MouseEventArgs args) { if (_busy) return; _menuOpen = _placeMenu = true; _menuX = args.ClientX; _menuY = args.ClientY; }
+    private async Task CloseMenuAsync() { _menuOpen = false; await JS.InvokeVoidAsync(JavaScriptCalls.FocusMenuTrigger, _trigger); }
+    private async Task OnMenuKeyAsync(KeyboardEventArgs args)
+    {
+        if (args.Key is "Escape" or "Tab") await CloseMenuAsync();
+    }
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_busy) return;
+        _menuOpen = false; SetBusy(true);
+        try { await action(); _error = null; }
+        catch (Exception exception) { _error = exception.Message; }
+        finally { SetBusy(false); }
+    }
+    private void SetBusy(bool busy) { _busy = busy; StateHasChanged(); }
+}

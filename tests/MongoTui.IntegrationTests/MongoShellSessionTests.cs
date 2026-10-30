@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using AwesomeAssertions;
 using MongoDB.Driver;
 using MongoTui.Application.Models;
@@ -18,7 +19,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [InlineData("'use strict'; const items = db.getCollection('items'); items.find({}).toArray()")]
     public async Task Should_QuerySelectedDatabase_WhenScriptUsesUnqualifiedDb(string script)
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -32,7 +33,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_UseExplicitDatabase_WhenScriptOverridesTabDatabase()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var collection = NewCollection();
         await gateway.InsertOneAsync(target, collection, "{\"name\":\"alice\"}", CancellationToken.None);
@@ -47,7 +48,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_KeepConnectionDatabase_WhenTabHasNoSelectedDatabase()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var collection = NewCollection();
         var connection = new MongoUrlBuilder(fixture.ConnectionString)
         {
@@ -66,7 +67,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     [Fact]
     public async Task Should_UseChangedDatabase_WhenSessionReused()
     {
-        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery());
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
         var target = new MongoConnectionTarget(fixture.ConnectionString);
         var first = NewCollection();
         var second = NewCollection();
@@ -82,7 +83,7 @@ public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture
     }
 
     private MongoShellSession CreateSession(MongoConnectionTarget target) =>
-        new(new MongoContainerProcessRunner(fixture.Container), new MongoToolsLocator(new MongoToolsOptions()), target);
+        new(new MongoContainerProcessRunner(fixture.Container), new MongoToolsLocator(new MongoToolsOptions()), target, NullLogger<MongoShellSession>.Instance);
 
     private static CollectionRef NewCollection() =>
         new(DatabaseName.Create($"it_{Guid.NewGuid():N}"), CollectionName.Create("items"));

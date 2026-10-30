@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
+using MongoTui.Application.Localization;
 using System.Drawing;
 using System.Text;
 using AwesomeAssertions;
@@ -34,7 +37,7 @@ public sealed class ConnectionManagerDialogTests
     {
         _secrets = new SecretKeyService(_crypto);
         _connections = new ConnectionService(_repository, _secrets, _gateway,
-            new ConnectionTunnelService(_tunnels, A.Fake<ITwoFactorPrompt>(), _gateway));
+            new ConnectionTunnelService(_tunnels, A.Fake<ITwoFactorPrompt>(), _gateway), NullLogger<ConnectionService>.Instance);
         A.CallTo(() => _application.Clipboard).Returns(_clipboard);
         A.CallTo(() => _clipboard.TrySetClipboardData(A<string>._)).Returns(true);
         _localizer.SetLanguage("en");
@@ -197,7 +200,7 @@ public sealed class ConnectionManagerDialogTests
     }
 
     private Button CopyButton(ConnectionManagerDialog dialog) =>
-        dialog.SubViews.OfType<Button>().Single(button => button.Text == _localizer.Get("Connections.CopyUri"));
+        dialog.SubViews.OfType<Button>().Single(button => button.Text == _localizer.Get(LocalizationKeys.Connections.CopyUri));
 
     private static string Status(ConnectionManagerDialog dialog) => dialog.SubViews.OfType<Label>().Single().Text;
 

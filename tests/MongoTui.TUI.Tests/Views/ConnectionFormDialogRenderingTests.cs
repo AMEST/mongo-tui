@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
+using MongoTui.Application.Localization;
 using System.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
@@ -45,15 +48,15 @@ public sealed class ConnectionFormDialogRenderingTests
         using IApplication app = Terminal.Gui.App.Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
         using var parent = new Dialog();
-        app.Begin(parent);
         var localizer = new ResxLocalizer();
         localizer.SetLanguage(language);
         using var dialog = CreateDialog(app, _gateway, localizer);
         var status = dialog.SubViews.OfType<Label>().Last();
-        var test = dialog.Buttons.Single(button => button.Text == localizer.Get("Connections.Test"));
+        var test = dialog.Buttons.Single(button => button.Text == localizer.Get(LocalizationKeys.Connections.Test));
         var observe = ObserveTest(app, dialog, test, fails, expected);
 
-        app.Run(dialog);
+        app.AddTimeout(TimeSpan.Zero, () => { app.Run(dialog); app.RequestStop(parent); return false; });
+        app.Run(parent);
 
         var observed = observe();
         status.Text.Should().Be(expected);
@@ -64,9 +67,9 @@ public sealed class ConnectionFormDialogRenderingTests
     }
 
     [Theory]
-    [InlineData("en", "Connection test: Error — Connection timed out after 10 seconds.")]
-    [InlineData("ru", "Тест подключения: Ошибка — Превышено время ожидания подключения (10 с).")]
-    public void Should_CancelRequestAndRenderLocalizedError_WhenTenSecondLimitExceeded(string language, string expected)
+    [InlineData("en", "Connection test: Error — Connection timed out after 3 seconds.")]
+    [InlineData("ru", "Тест подключения: Ошибка — Превышено время ожидания подключения (3 с).")]
+    public void Should_CancelRequestAndRenderLocalizedError_WhenSharedLimitExceeded(string language, string expected)
     {
         using IApplication app = Terminal.Gui.App.Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
@@ -74,7 +77,7 @@ public sealed class ConnectionFormDialogRenderingTests
         localizer.SetLanguage(language);
         using var dialog = CreateDialog(app, _gateway, localizer);
         var status = dialog.SubViews.OfType<Label>().Last();
-        var test = dialog.Buttons.Single(button => button.Text == localizer.Get("Connections.Test"));
+        var test = dialog.Buttons.Single(button => button.Text == localizer.Get(LocalizationKeys.Connections.Test));
         var observe = ObserveTest(app, dialog, test, fails: null, expected);
         var elapsed = Stopwatch.StartNew();
 
@@ -84,8 +87,8 @@ public sealed class ConnectionFormDialogRenderingTests
         _requestCancellation.IsCancellationRequested.Should().BeTrue();
         status.GetScheme().Normal.Foreground.Should().Be((Color)ColorName16.BrightRed);
         test.Enabled.Should().BeTrue();
-        elapsed.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromSeconds(9));
-        elapsed.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(13));
+        elapsed.Elapsed.Should().BeGreaterThanOrEqualTo(TimeSpan.FromSeconds(ConnectionService.TestTimeoutSeconds - 0.2));
+        elapsed.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(ConnectionService.TestTimeoutSeconds + 3));
     }
 
     private Func<(string? Progress, string? Result, bool Disabled)> ObserveTest(
@@ -140,7 +143,7 @@ public sealed class ConnectionFormDialogRenderingTests
     private static ConnectionFormDialog CreateDialog(IApplication app, IMongoGateway gateway, ResxLocalizer localizer)
     {
         var connections = new ConnectionService(A.Fake<IConnectionRepository>(), new SecretKeyService(A.Fake<ICryptoService>()),
-            gateway, new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway));
+            gateway, new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), gateway), NullLogger<ConnectionService>.Instance);
         return new ConnectionFormDialog(connections, localizer, app, profile: null, secret: null);
     }
 }

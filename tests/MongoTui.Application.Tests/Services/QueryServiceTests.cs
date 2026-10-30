@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging.Abstractions;
+using MongoTui.Application.Abstractions.Diagnostics;
 using AwesomeAssertions;
 using FakeItEasy;
 using MongoTui.Application.Abstractions.Mongo;
@@ -25,7 +27,8 @@ public sealed class QueryServiceTests
         A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .Returns(_session);
 
-        _sut = new QueryService(_sessionFactory, _history);
+        _sut = new QueryService(_sessionFactory, _history, A.Fake<IMongoGateway>(),
+            new SettingsService(A.Fake<ISettingsStore>()), NullLogger<QueryService>.Instance);
     }
 
     [Fact]
@@ -110,7 +113,7 @@ public sealed class QueryServiceTests
 
         await _sut.ExecuteAsync(context, CancellationToken.None);
 
-        A.CallTo(() => _session.EvaluateAsync(context.Script, database, CancellationToken.None)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, database, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _history.AddAsync(
             A<QueryHistoryEntry>.That.Matches(entry => entry.Database == database && entry.Script == context.Script),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -126,7 +129,7 @@ public sealed class QueryServiceTests
 
         A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
-        A.CallTo(() => _session.EvaluateAsync(context.Script, "other", CancellationToken.None)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, "other", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     private static QueryExecutionContext CreateContext() =>
