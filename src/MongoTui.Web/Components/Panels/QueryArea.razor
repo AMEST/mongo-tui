@@ -116,7 +116,7 @@
     {
         if (Workspace.Selected is not { } tab) return;
         await SaveDraftAsync();
-        Workspace.Open(tab.ConnectionId, tab.Database, tab.Collection, script);
+        try { Workspace.Open(tab.ConnectionId, tab.Database, tab.Collection, script); } catch (Exception exception) { tab.Error = SafeError.Message(exception); }
         _showAi = false;
     }
 }

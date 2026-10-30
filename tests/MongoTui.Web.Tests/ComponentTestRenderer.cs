@@ -31,6 +31,8 @@ internal sealed class ComponentTestRenderer(IServiceProvider services)
     public Task ClickAsync<T>(string cssClass) where T : IComponent => Dispatcher.InvokeAsync(() =>
         DispatchEventAsync(ElementAttributes(FindComponent<T>(_root)!.Value, cssClass)!
             .Single(frame => frame.AttributeName == "onclick").AttributeEventHandlerId, null, new MouseEventArgs()));
+    public Task InvokeAsync<T>(Func<T, Task> action) where T : IComponent => Dispatcher.InvokeAsync(() =>
+        action((T)GetComponentState(FindComponent<T>(_root)!.Value).Component));
     public Task<object?> AttributeAsync(string cssClass, string attribute) => Dispatcher.InvokeAsync<object?>(() =>
         ElementAttributes(_root, cssClass)!.FirstOrDefault(frame => frame.AttributeName == attribute).AttributeValue);
     public Task<string> TextAsync() => Dispatcher.InvokeAsync(() => Text(_root));
