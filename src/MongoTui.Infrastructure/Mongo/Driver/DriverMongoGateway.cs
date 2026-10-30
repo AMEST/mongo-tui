@@ -49,8 +49,8 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         CollectionRef collection,
         CancellationToken cancellationToken)
     {
-        using var cursor = await GetCollection(target, collection).Indexes.ListAsync(cancellationToken);
-        var documents = await cursor.ToListAsync(cancellationToken);
+        using var cursor = await GetCollection(target, collection).Indexes.ListAsync(cancellationToken).ConfigureAwait(false);
+        var documents = await cursor.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return documents.Select(MapIndex).ToList();
     }
@@ -63,8 +63,8 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         var mongoCollection = GetCollection(target, collection);
         var count = await mongoCollection.CountDocumentsAsync(
             FilterDefinition<BsonDocument>.Empty,
-            cancellationToken: cancellationToken);
-        var indexes = await ListIndexesAsync(target, collection, cancellationToken);
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        var indexes = await ListIndexesAsync(target, collection, cancellationToken).ConfigureAwait(false);
 
         return new CollectionStats
         {
@@ -122,7 +122,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         GetCollection(target, collection)
             .DeleteManyAsync(FilterDefinition<BsonDocument>.Empty, cancellationToken);
 
-    public async Task CreateIndexAsync(
+    public Task CreateIndexAsync(
         MongoConnectionTarget target,
         CollectionRef collection,
         string indexKeysJson,
@@ -135,7 +135,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         var options = new CreateIndexOptions { Name = name, Unique = unique, Background = background };
         var model = new CreateIndexModel<BsonDocument>(keys, options);
 
-        await GetCollection(target, collection).Indexes.CreateOneAsync(model, cancellationToken: cancellationToken);
+        return GetCollection(target, collection).Indexes.CreateOneAsync(model, cancellationToken: cancellationToken);
     }
 
     public Task DropIndexAsync(
