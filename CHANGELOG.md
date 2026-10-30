@@ -2,6 +2,66 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.8.0 — since v0.7.0
+
+### Added
+
+- **Local web interface** — run `mongo-tui web --open` to browse databases and collections,
+  execute JavaScript, view Table/Tree/JSON results, edit documents, manage indexes and use
+  the AI assistant in a browser. The host listens only on `127.0.0.1` (port `8765` by default).
+  Web assets are embedded in the existing executable; no separate frontend deployment is needed.
+- **Web sign-in** — master-password authentication or a single-use launch link for first setup
+  and keyring/local-key-file modes, with expiring browser sessions, sign-out and revocation
+  when security settings change.
+- **Web user management** — database and cluster permissions, user editing, password generation
+  and one-time credentials, with localized errors, current-user protection and cancellation.
+- **Web transfers and history** — JSON array/JSON Lines import, canonical JSON Lines export,
+  downloading displayed query results, and reopening saved history entries without executing them.
+- **Query deadlines** — a shared **Settings → Queries** timeout for TUI and Web: 30 seconds
+  by default, `0` to disable. Web queries can also be cancelled from the workspace.
+- **Application logs** — a Web log viewer and persisted logging-level settings in both clients,
+  with live updates and a diagnostic environment override.
+- **Co-author credit** — `--version` and **Help → About** credit Medvedev Denis (medved91)
+  below Copyright in English and Russian.
+
+### Changed
+
+- Creating a database now asks for its first collection and creates it on MongoDB immediately.
+  Saved connections stay visible in the explorer after disconnecting.
+- Both clients share document-editing and permission models, connection preparation and
+  localization keys. Document text, copied data and default JSON exports use Canonical Extended JSON.
+- Framework-dependent builds now require the ASP.NET Core 10 runtime as well as the .NET 10 runtime;
+  self-contained release archives include both. Source builds default to version `0.8.0`.
+
+### Fixed
+
+- Nested TUI dialogs apply asynchronous results without hanging on saving/loading or requiring
+  another keypress, including connection forms and document/user operations.
+- Opening a document reloads it by its original `_id` through the driver, preserving numeric
+  types lost in shell output. Editing is refused when Extended JSON cannot preserve the loaded BSON.
+- Document actions keep the source of the executed query. Web refresh after saving uses the
+  successful query snapshot and preserves an unsubmitted editor draft.
+- Web pagination commits the page only after a successful read, keeps the applied filter while
+  preserving a draft, and retains the previous results after errors or cancellation.
+- Reaching the Web tab limit displays an error without ending the browser circuit; editor
+  selection remains visible in the active line.
+- Security initialization checks persisted state before creating new key material. Failed Web
+  password attempts do not lock an encryption key already unlocked by another session.
+
+### Known limitations
+
+- Saving replaces the complete document without detecting writes made after the editor opened;
+  a concurrent update can be overwritten. Driver reads also normalize `Double(-0.0)` to `+0.0`,
+  which is then persisted on save. See [BSON editing limits](docs/bson-json.md).
+- Cancelling or timing out a write does not undo changes already accepted by MongoDB.
+  Web transfers are capped at 32 MiB and exports at 10,000 documents; SOCKS transfers remain unavailable.
+
+### Docs and tests
+
+- Added Web, BSON-editing and logging guides; updated installation, runtime and release instructions.
+- Added Web security, pagination and UI regression coverage, BSON round-trip checks with real MongoDB
+  and `mongosh`, and a separate integration-test job in CI.
+
 ## v0.7.0 — since v0.6.0
 
 ### Added
@@ -13,9 +73,6 @@ All notable changes to this project are documented in this file.
   generate passwords, preserve unmanaged roles on edit, and copy the password or a ready-to-use
   connection string after creating a user or changing a password.
   Passwords and connection strings are shown once and are never persisted or logged.
-- **Web user management** — the same database and cluster permissions, user editing,
-  password generation and one-time credentials are available in the web explorer, with
-  localized errors, current-user protection, request cancellation and operation diagnostics.
 
 ### Docs
 
@@ -283,6 +340,8 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.7.0 to v0.8.0]: https://github.com/AMEST/mongo-tui/compare/v0.7.0...v0.8.0
+[v0.6.0 to v0.7.0]: https://github.com/AMEST/mongo-tui/compare/v0.6.0...v0.7.0
 [v0.5.3 to v0.6.0]: https://github.com/AMEST/mongo-tui/compare/v0.5.3...v0.6.0
 [v0.5.2 to v0.5.3]: https://github.com/AMEST/mongo-tui/compare/v0.5.2...v0.5.3
 [v0.5.1 to v0.5.2]: https://github.com/AMEST/mongo-tui/compare/v0.5.1...v0.5.2

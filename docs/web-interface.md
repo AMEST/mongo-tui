@@ -4,6 +4,10 @@
 `mongo-tui` retains the terminal interface. `web --help` prints usage and exits.
 Run from source with `dotnet run --project src/MongoTui.TUI -- web --open`.
 
+Available since **0.8.0**. Self-contained release archives include both .NET and ASP.NET Core;
+framework-dependent builds require both 10.0 runtimes even when starting in TUI mode.
+See [installation](requirements.md) and [release preparation](releasing.md).
+
 ## Architecture
 
 `MongoTui.Web` is a Razor component library using Blazor Interactive Server. The existing
@@ -69,7 +73,8 @@ call the API directly. Do not expose this server through a proxy or port forward
   database on the server. The TUI offers the same actions from its context menu and toggles nodes
   with Enter. Disconnecting keeps the saved profile in both explorers.
 - Browse mode uses the driver, fetching 50 documents and one look-ahead document per page.
-  Results have no size cap.
+  Results have no size cap. Paging uses the last applied filter, preserving any unsubmitted draft;
+  a failed or cancelled page load keeps the previous page and documents.
 - Script mode uses installed `mongosh` and supports cancellation.
   Shell stdout/stderr are collected in memory without a size cap.
   Cancelling a write does not undo changes already accepted by MongoDB.
@@ -87,6 +92,9 @@ call the API directly. Do not expose this server through a proxy or port forward
   by `_id` through the driver and verifies that canonical JSON preserves its BSON representation.
   Replacing a document cannot change `_id` or its BSON type. See [BSON editing guarantees and tests](bson-json.md)
   for ambiguous JSON wrappers, shell numeric types and driver limitations.
+  Saving replaces the full document without detecting concurrent writes. Driver normalization
+  of `Double(-0.0)` also reaches storage on save. After saving, the displayed query is refreshed
+  from its successful snapshot; an unsubmitted editor draft is preserved.
 - Collection tools expose statistics and index creation/deletion. New collections can be created
   from the database tree. Other administrative operations are available through mongosh scripts.
 - **Manage users** in a connection's menu opens users of `admin`; the users button beside a

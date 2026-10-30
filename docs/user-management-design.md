@@ -1,8 +1,9 @@
 # Управление пользователями MongoDB — дизайн
 
-**Статус:** черновик  
+**Статус:** реализовано в TUI (0.7.0) и Web (0.8.0); далее сохранён исходный дизайн
+
 **Дата:** 2026-10-23  
-**Область:** Domain, Application, Infrastructure, TUI
+**Область:** Domain, Application, Infrastructure, TUI, Web
 
 ## 1. Цель
 

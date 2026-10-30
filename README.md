@@ -2,8 +2,8 @@
 
 **English** | [Русский](README_RU.md)
 
-A MongoDB client for your terminal. Browse databases, run queries, edit documents,
-and manage connections without leaving the command line. Available for Linux, macOS and Windows,
+A MongoDB client for your terminal and browser. Browse databases, run queries, edit documents,
+and manage connections from the TUI or local Web interface. Available for Linux, macOS and Windows,
 with English and Russian interfaces.
 
 | Main window | Connection manager |
@@ -14,15 +14,20 @@ with English and Russian interfaces.
 |---|---|
 | [![Document editor](docs/insert-document.jpg)](docs/insert-document.jpg) | [![Master password](docs/master-password.jpg)](docs/master-password.jpg) |
 
+| Web workspace | Web settings |
+|---|---|
+| [![Web workspace](docs/web-main.png)](docs/web-main.png) | [![Web settings](docs/web-setting.png)](docs/web-setting.png) |
+
 ## Features
 
+- Terminal and [local Web](docs/web-interface.md) interfaces in one executable, sharing saved profiles, settings and history.
 - Saved connections with encrypted passwords, selectable security modes (master password, OS keyring on macOS/Windows, or a local key file) and SSH/TPAM support with 2FA.
 - Database and collection browser, index management, user management and statistics.
   Empty databases known from the URI, authentication source or user privileges remain visible in the tree.
-  Right-click a connection to add a database, or a database to create a collection or open an empty query tab bound to it. A new database stays in the tree until refresh or reconnect; creating its first collection persists it on the server.
+  Right-click a connection to create a database with its first collection, or a database to create a collection or open an empty query tab bound to it. Creating a database writes to the server immediately.
   Right-click a database (or a connection for `admin`) to create, edit and delete MongoDB users, assign database and cluster roles, generate passwords and copy a ready-to-use connection string.
 - JavaScript query tabs with autocomplete and query history.
-- Table, Tree and JSON result views; document editing as JSON.
+- Table, Tree and JSON result views; document editing as Canonical Extended JSON with BSON type checks.
 - Collection import and export in JSON.
 - AI query assistance and translation through an OpenAI-compatible API.
 
@@ -35,6 +40,8 @@ with English and Russian interfaces.
 
 Download the archive for your platform from [Releases](https://github.com/AMEST/mongo-tui/releases)
 and extract it in full. The .NET runtime is included.
+
+Run `mongo-tui --version` to check the build version, license and author credits.
 
 ### macOS — required before first launch
 
@@ -76,6 +83,11 @@ Web resources are embedded; no `wwwroot` folder is required beside the executabl
 Connections and settings are shared with TUI. Features include database and collection browsing,
 JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, application logs,
 JSON import/export and AI assistance. [Details](docs/web-interface.md).
+
+Browse mode reads 50 documents per page through the driver; Script mode uses installed `mongosh`.
+The explorer also supports MongoDB user management, and Web history can open a query in a new tab.
+Web transfers are capped at 32 MiB and exports at 10,000 documents. The server is intended for
+local access; keep it on loopback without a reverse proxy or port forwarding.
 
 The query timeout is shared by TUI and web. Configure it under **Settings → Queries**
 (default: 30 seconds; `0` disables the timeout). Changes apply to subsequent queries.
@@ -144,16 +156,22 @@ names with their BSON types, so it can draft queries against the real schema.
 ## Current limitations
 
 - Editing and deletion require a simple `find`/`findOne` result without a projection.
-  The document's `_id` cannot be changed. Other results remain available for viewing.
-- Tree mode displays formatted documents without expandable nodes.
-- Use JSON for transfers: CSV options and BSON support in the dialogs are incomplete.
+  Web Browse results are also editable. The document's `_id` cannot be changed.
+  Opening an existing document reloads its current stored value through the driver.
+- Saving replaces the whole document and can overwrite changes made after opening the editor.
+  The driver also normalizes `Double(-0.0)` to `+0.0` on read; saving persists this change.
+  See [BSON editing limits](docs/bson-json.md). Cancelling or timing out a write does not roll it back.
+- TUI Tree mode displays formatted documents without expandable nodes; Web Tree nodes can expand.
+- Use JSON for transfers: TUI CSV options and BSON support in the dialogs are incomplete.
   Database dump/restore is not available in the interface.
-- Query history supports viewing only.
+- TUI query history supports viewing only; Web history can reopen queries without running them.
 
 ## Local data
 
 Connections, settings and history are stored in `~/.mongotui/mongotui.db`
-(`%USERPROFILE%\.mongotui\mongotui.db` on Windows). Logs are in the `logs` subdirectory.   
+(`%USERPROFILE%\.mongotui\mongotui.db` on Windows). `MONGOTUI_DATA_DIR` overrides the data directory.
+Logs are in its `logs` subdirectory. Shell query text is stored in history; it is excluded from logs.
+
 Connection passwords and the AI API key are encrypted with a key protected by the selected security mode. In **No master password** mode the key is stored in `~/.mongotui/kek.key` with user-only permissions; anyone who can read that file can decrypt the secrets.
 
 Choose the logging level in Settings → Logging in TUI or Web. The preference is stored in the local database and applied without restarting; see [logging configuration](docs/logging.md).
@@ -162,7 +180,11 @@ Choose the logging level in Settings → Logging in TUI or Web. The preference i
 
 [Build, run and test](docs/requirements.md#build-from-source) ·
 [Publish a build](docs/requirements.md#publish-a-build) ·
-[Project conventions](AGENTS.md) · [Changelog](CHANGELOG.md).
+[Project conventions](AGENTS.md) · [Release preparation](docs/releasing.md) · [Changelog](CHANGELOG.md).
+
+## Authors
+
+Klabukov Erik (AMEST) · Co-author: Medvedev Denis (medved91).
 
 ## License
 

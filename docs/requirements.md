@@ -7,17 +7,19 @@
 
 ## What to install
 
-MongoTui needs an interactive terminal and access to a local or remote MongoDB server.
+MongoTui needs access to a local or remote MongoDB server, plus an interactive terminal for
+the TUI or a browser for the local Web interface (`mongo-tui web --open`).
 Install the tools on the machine **running MongoTui**; a local MongoDB server is optional.
 
 | Component | When needed |
 |---|---|
-| MongoDB Shell (`mongosh`) | Running queries in tabs. Browsing connections and document operations use the bundled driver. |
+| MongoDB Shell (`mongosh`) | JavaScript queries in TUI/Web. Web Browse mode and document operations use the bundled driver. |
 | MongoDB Database Tools (`mongoimport`, `mongoexport`) | Collection import and export. Separate from `mongosh`. |
 | OpenSSH client 8.4+ (`ssh`) | SSH/TPAM connections, including interactive 2FA. |
-| .NET Runtime 10 | Framework-dependent builds only. Release archives and self-contained builds include it. |
+| .NET 10 and ASP.NET Core 10 runtimes | Framework-dependent builds only, including TUI mode. Release archives and self-contained builds include both. |
 | .NET SDK 10 and Git | Building from source. The SDK includes the runtime. |
-| Docker | Integration tests only. |
+| Docker | Integration tests only; MongoDB and `mongosh` run in disposable containers. |
+| Node.js/npm | Rebuilding the Web editor bundle only; normal .NET builds use the checked-in bundle. |
 
 External tools must be in the `PATH` used by MongoTui. Standalone MongoDB packages do not
 require Node.js/npm. Extract the entire MongoTui archive: SQLite and Oniguruma native
@@ -54,11 +56,11 @@ your architecture, extract them and add their `bin` directories to `PATH`.
 
 Skip this for release archives. For other builds, open the
 [.NET 10 download page](https://dotnet.microsoft.com/en-us/download/dotnet/10.0),
-choose **macOS → Arm64** for Apple Silicon or **x64** for Intel, and run the `.pkg` installer:
+choose **macOS → Arm64** for Apple Silicon or **x64** for Intel, and select the runtime or SDK:
 
 | Build type | Installer |
 |---|---|
-| Framework-dependent | .NET Runtime 10 |
+| Framework-dependent | ASP.NET Core Runtime 10 and .NET Runtime 10 |
 | Build/run from source | .NET SDK 10 |
 
 For source builds, install Git with `brew install git`. See the
@@ -129,7 +131,7 @@ sudo apt-get install -y ca-certificates libc6 libgcc-s1 libgssapi-krb5-2 libicu7
 For a framework-dependent build on **Ubuntu 24.04**, install the runtime:
 
 ```sh
-sudo apt-get install -y dotnet-runtime-10.0
+sudo apt-get install -y aspnetcore-runtime-10.0
 ```
 
 For building from source, install the SDK and Git instead:
@@ -204,7 +206,7 @@ See Microsoft's [OpenSSH client installation](https://learn.microsoft.com/en-us/
 Skip this for release archives. For a framework-dependent build, use PowerShell:
 
 ```powershell
-winget install --id Microsoft.DotNet.Runtime.10 --exact
+winget install --id Microsoft.DotNet.AspNetCore.10 --exact
 ```
 
 For source builds, install the SDK and Git instead:
@@ -242,8 +244,9 @@ mongoexport --version
 ssh -V
 ```
 
-For framework-dependent builds, `dotnet --list-runtimes` must include
-`Microsoft.NETCore.App 10.0.x`. For source builds, `dotnet --list-sdks` must include `10.0.x`.
+For framework-dependent builds, `dotnet --list-runtimes` must include both
+`Microsoft.NETCore.App 10.0.x` and `Microsoft.AspNetCore.App 10.0.x`, even when running the TUI.
+For source builds, `dotnet --list-sdks` must include `10.0.x`.
 If a tool works in another terminal but MongoTui cannot find it, restart MongoTui from a
 terminal with the updated `PATH`.
 
@@ -257,6 +260,15 @@ git clone https://github.com/AMEST/mongo-tui.git
 cd mongo-tui
 dotnet run --project src/MongoTui.TUI
 ```
+
+To run the local Web interface instead:
+
+```sh
+dotnet run --project src/MongoTui.TUI -- web --open
+```
+
+Normal builds do not need Node.js/npm. See [Web editor builds](web-interface.md#build-and-distribution)
+only when changing the bundled editor.
 
 Build and run tests without Docker:
 
@@ -295,19 +307,24 @@ Self-contained example, matching release packaging. Replace `linux-x64` in both 
 with your target RID:
 
 ```sh
-dotnet publish src/MongoTui.TUI/MongoTui.TUI.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o publish/linux-x64
+dotnet publish src/MongoTui.TUI/MongoTui.TUI.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:Version=0.8.0 -p:DebugType=none -p:DebugSymbols=false -o publish/linux-x64
 ```
 
 Distribute the **whole output directory**. Run `./mongo-tui` on macOS/Linux or
 `.\mongo-tui.exe` on Windows from that directory. The runtime is included; external MongoDB
-tools and Linux system libraries still need to be installed.
+tools and Linux system libraries still need to be installed. Web assets are embedded; no separate
+`wwwroot` directory is needed. The output includes `LICENSE` and `THIRD-PARTY-LICENSES.md`.
 
-For a framework-dependent build, use the matching RID and install .NET Runtime 10 on the target:
+For a framework-dependent build, use the matching RID and install both the .NET 10 and
+ASP.NET Core 10 runtimes on the target:
 
 ```sh
-dotnet publish src/MongoTui.TUI/MongoTui.TUI.csproj -c Release -r linux-x64 --self-contained false -o publish/framework-dependent
+dotnet publish src/MongoTui.TUI/MongoTui.TUI.csproj -c Release -r linux-x64 --self-contained false -p:Version=0.8.0 -o publish/framework-dependent
 dotnet publish/framework-dependent/mongo-tui.dll
 ```
 
 Keep the entire output directory for this build too. Downloaded macOS builds require the
 [Gatekeeper steps](../README.md#macos--required-before-first-launch).
+
+The release workflow takes the version from a `v*` Git tag; local builds default to `0.8.0`.
+See [release preparation](releasing.md) for validation and packaging checks.
