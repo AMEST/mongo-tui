@@ -91,11 +91,12 @@ public sealed class QueryWorkspace(
 
     public async Task PageAsync(WebTab tab, int direction)
     {
-        if (tab.Busy || tab.Page + direction < 0 || direction > 0 && !tab.HasNext) return;
-        tab.Page += direction;
-        if (tab.Browse) await ExecuteAsync(tab);
+        var page = tab.Page + direction;
+        if (tab.Busy || page < 0 || direction > 0 && !tab.HasNext) return;
+        if (tab.Browse) await ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
         else
         {
+            tab.Page = page;
             tab.HasNext = (tab.Page + 1) * PageSize < tab.Result?.Documents.Count;
             Changed?.Invoke();
         }
