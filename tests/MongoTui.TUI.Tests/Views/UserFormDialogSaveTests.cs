@@ -129,7 +129,7 @@ public sealed class UserFormDialogSaveTests
     private async Task CompleteResponseAsync(bool fails)
     {
         await Task.Delay(50).ConfigureAwait(false);
-        if (fails) _response.SetException(new DomainException("Insufficient privileges to manage users."));
+        if (fails) _response.SetException(new UserManagementException(UserManagementError.InsufficientPrivileges));
         else _response.SetResult();
     }
 

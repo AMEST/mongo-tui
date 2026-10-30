@@ -2,6 +2,7 @@
 @inject SettingsService Settings
 @inject WebText L
 @inject IJSRuntime JS
+@inject WebCircuitSession Session
 @if (_ready)
 {
     @ChildContent
@@ -84,10 +85,12 @@ else
         {
             if (_firstRun && _mode == SecurityMode.Password && _password != _confirmation)
             { _error = L[LocalizationKeys.Security.Mismatch]; return; }
+            await Session.BeginSecurityChangeAsync(CancellationToken.None);
             if (_firstRun) await Security.InitializeAsync(_mode, _password, CancellationToken.None);
             else if (Security.CurrentMode == SecurityMode.Password) await Security.UnlockWithPasswordAsync(_password, CancellationToken.None);
             else await Security.TryAutoUnlockAsync(CancellationToken.None);
             _ready = Security.IsUnlocked;
+            if (_ready) await Session.CompleteInitializationAsync(CancellationToken.None);
             if (!_ready) _error = L[LocalizationKeys.Security.Error];
         }
         catch
@@ -96,7 +99,7 @@ else
             try { await RefreshSecurityAsync(); }
             catch { }
         }
-        finally { _password = _confirmation = string.Empty; _busy = false; }
+        finally { await Session.EndSecurityChangeAsync(); _password = _confirmation = string.Empty; _busy = false; }
     }
 
     private async Task RefreshSecurityAsync()

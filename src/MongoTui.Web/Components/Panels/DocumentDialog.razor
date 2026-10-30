@@ -4,7 +4,7 @@
 @inject WebText L
 @inject IJSRuntime JS
 <Modal Title="@L[Insert ? LocalizationKeys.Document.Add : LocalizationKeys.Document.Title]" Class="document-dialog" OnClose="OnClose">
-    <div class="document-meta"><span class="mono">@Tab.Database / @(Tab.EditableCollection?.Collection.Value ?? Tab.Collection)</span><span class="badge">@L[Editable ? LocalizationKeys.Document.Editable : LocalizationKeys.Document.ReadOnly]</span></div>
+    <div class="document-meta"><span class="mono">@(_state?.Collection.Database.Value ?? Tab.Database) / @(_state?.Collection.Collection.Value ?? Tab.Collection)</span><span class="badge">@L[Editable ? LocalizationKeys.Document.Editable : LocalizationKeys.Document.ReadOnly]</span></div>
     <div class="document-editor" aria-busy="@(_loading ? "true" : "false")">@if (!_loading) { <CodeEditor @ref="_editor" Language="@JavaScriptCalls.Editor.Json" Value="@_json" /> }</div>
     <div class="modal-body document-actions">
         <FormFeedback Error="@_error" Message="@(_confirmDelete ? L[LocalizationKeys.Document.DeleteHint] : null)" />
@@ -23,28 +23,30 @@
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
     private CodeEditor? _editor;
-    private string _json = string.Empty, _filter = string.Empty;
+    private string _json = string.Empty;
+    private DocumentEditState? _state;
     private string? _error;
-    private bool _busy, _confirmDelete, _ready, _loading;
+    private bool _busy, _confirmDelete, _loading;
     private readonly CancellationTokenSource _lifetime = new();
     public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
-    private bool HasSource => Tab.EditableCollection is not null && (Insert || Document.Contains(MongoSystemNames.IdField));
-    private bool Editable => HasSource && _ready;
+    private bool HasSource => _state is not null;
+    private bool Editable => _state?.CanWrite == true;
     protected override async Task OnInitializedAsync()
     {
         _json = BsonTextCodec.Format(Document);
-        if (!HasSource) return;
-        if (Insert) { _ready = true; return; }
+        if (Tab.EditableCollection is not { } collection || !Insert && !Document.Contains(MongoSystemNames.IdField)) return;
+        try { _state = new DocumentEditState(Documents, Catalog.Get(Tab.ConnectionId).Target, collection, Insert ? null : Document); }
+        catch (Exception exception) { _error = ErrorMessage(exception, LocalizationKeys.Error.Load); return; }
+        if (Insert) { _state.Json = _json; return; }
         _loading = true;
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         operation.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.CommandSeconds));
         try
         {
-            var content = await Documents.LoadForEditAsync(Catalog.Get(Tab.ConnectionId).Target,
-                Tab.EditableCollection!, Document, operation.Token);
+            var loaded = await _state.InitializeAsync(operation.Token);
             if (operation.IsCancellationRequested) return;
-            if (content is null) { _error = L[LocalizationKeys.Document.NotFound]; return; }
-            _json = content.Json; _filter = content.IdFilter; _ready = true;
+            if (loaded) _json = _state.Json;
+            else _error = ValidationMessage(LocalizationKeys.Error.Load);
         }
         catch (Exception exception) { if (!_lifetime.IsCancellationRequested) _error = ErrorMessage(exception, LocalizationKeys.Error.Load); }
         finally { _loading = false; }
@@ -60,11 +62,8 @@
         _confirmDelete = false;
         await MutateAsync(async token =>
         {
-            var json = _editor is null ? _json : await _editor.GetValueAsync();
-            var target = Catalog.Get(Tab.ConnectionId).Target;
-            if (Insert) await Documents.InsertAsync(target, Tab.EditableCollection!, json, token);
-            else if (await Documents.ReplaceAsync(target, Tab.EditableCollection!, _filter, json, token) == 0)
-                throw new MongoTui.Domain.Exceptions.DomainException(L[LocalizationKeys.Document.NotFound]);
+            _state!.Json = _editor is null ? _json : await _editor.GetValueAsync();
+            return await _state.SaveAsync(token);
         });
     }
     private async Task DeleteAsync()
@@ -73,20 +72,28 @@
         if (!_confirmDelete) { _confirmDelete = true; return; }
         await MutateAsync(async token =>
         {
-            if (await Documents.DeleteAsync(Catalog.Get(Tab.ConnectionId).Target, Tab.EditableCollection!, _filter, token) == 0)
-                throw new MongoTui.Domain.Exceptions.DomainException(L[LocalizationKeys.Document.NotFound]);
+            _state!.Json = _editor is null ? _json : await _editor.GetValueAsync();
+            return await _state.DeleteAsync(token);
         });
     }
-    private async Task MutateAsync(Func<CancellationToken, Task> action)
+    private async Task MutateAsync(Func<CancellationToken, Task<bool>> action)
     {
         if (_busy || !Editable) return;
         _busy = true; _error = null;
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         operation.CancelAfter(TimeSpan.FromSeconds(WebOperationTimeouts.CommandSeconds));
-        try { await action(operation.Token); if (!operation.IsCancellationRequested) await OnSaved.InvokeAsync(); }
+        try
+        {
+            var succeeded = await action(operation.Token);
+            if (operation.IsCancellationRequested) return;
+            if (succeeded) await OnSaved.InvokeAsync();
+            else _error = ValidationMessage(LocalizationKeys.Error.Save);
+        }
         catch (Exception exception) { if (!_lifetime.IsCancellationRequested) _error = ErrorMessage(exception, LocalizationKeys.Error.Save); }
         finally { _busy = false; }
     }
+    private string ValidationMessage(string fallback) => _state?.ValidationErrorKey is { } key ? L[key]
+        : _state?.ValidationError is { } message ? SafeError.Message(message) : L[fallback];
     private string ErrorMessage(Exception exception, string fallback) => exception switch
     {
         DocumentEditException edit => L[edit.ErrorKey],

@@ -74,6 +74,39 @@ public sealed class UserManagementTests(MongoFixture fixture) : IClassFixture<Mo
     }
 
     [Fact]
+    public async Task Should_ReportAlreadyExists_WhenCreatingDuplicateUser()
+    {
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
+        var users = new UserManagementService(gateway, new PasswordGenerator());
+        var target = new MongoConnectionTarget(fixture.ConnectionString);
+        var scope = NewScope();
+        await users.CreateAsync(target, scope, "reader", "original-password", Access("orders", DatabaseAccessLevel.Read), CancellationToken.None);
+        try
+        {
+            var act = () => users.CreateAsync(target, scope, "reader", "other-password", Access("orders", DatabaseAccessLevel.Read), CancellationToken.None);
+
+            var failure = await act.Should().ThrowAsync<UserManagementException>();
+            failure.Which.Code.Should().Be(UserManagementError.AlreadyExists);
+            failure.Which.InnerException.Should().BeOfType<MongoCommandException>();
+        }
+        finally { await gateway.DeleteUserAsync(target, scope, "reader", CancellationToken.None); }
+    }
+
+    [Fact]
+    public async Task Should_ReportNotFound_WhenDeletingMissingUser()
+    {
+        using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
+        var users = new UserManagementService(gateway, new PasswordGenerator());
+        var target = new MongoConnectionTarget(fixture.ConnectionString);
+
+        var act = () => users.DeleteAsync(target, NewScope(), "missing-user", "admin", CancellationToken.None);
+
+        var failure = await act.Should().ThrowAsync<UserManagementException>();
+        failure.Which.Code.Should().Be(UserManagementError.NotFound);
+        failure.Which.InnerException.Should().BeOfType<MongoCommandException>();
+    }
+
+    [Fact]
     public async Task Should_ReportInsufficientPrivileges_WhenReadOnlyUserCreatesAnotherUser()
     {
         using var gateway = new DriverMongoGateway(new MongoDatabaseDiscovery(NullLogger<MongoDatabaseDiscovery>.Instance));
@@ -87,7 +120,9 @@ public sealed class UserManagementTests(MongoFixture fixture) : IClassFixture<Mo
 
             var act = () => users.CreateAsync(restricted, scope, "other", "other-password", Access("orders", DatabaseAccessLevel.Read), CancellationToken.None);
 
-            await act.Should().ThrowAsync<DomainException>().WithMessage("Insufficient privileges to manage users.");
+            var failure = await act.Should().ThrowAsync<UserManagementException>();
+            failure.Which.Code.Should().Be(UserManagementError.InsufficientPrivileges);
+            failure.Which.InnerException.Should().BeOfType<MongoCommandException>();
         }
         finally { await gateway.DeleteUserAsync(target, scope, "reader", CancellationToken.None); }
     }

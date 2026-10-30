@@ -15,7 +15,8 @@ public sealed class ConnectionEditorTests
     public async Task Should_PreserveSecret_WhenRenamingExistingConnection()
     {
         await using var fixture = new WorkspaceFixture();
-        var profile = fixture.Profile with { Auth = new AuthOptions { Kind = AuthKind.ScramSha256, Username = "alice" } };
+        var profile = fixture.Profile with { Uri = "mongodb://localhost:27017/app",
+            Auth = new AuthOptions { Kind = AuthKind.ScramSha256, Username = "alice", AuthDatabase = "admin" } };
         A.CallTo(() => fixture.Repository.GetAsync(profile.Id, A<CancellationToken>._))
             .Returns(new StoredConnection(profile, new EncryptedSecret(new byte[12], new byte[16])));
         A.CallTo(() => fixture.Crypto.Decrypt(A<byte[]>._, A<byte[]>._, A<byte[]>._))
@@ -30,8 +31,22 @@ public sealed class ConnectionEditorTests
 
         Encoding.UTF8.GetString(plaintext!).Should().Be("retained-password");
         A.CallTo(() => fixture.Repository.UpdateAsync(A<StoredConnection>.That.Matches(c =>
-            c.Profile.Name == "Renamed" && c.Profile.Auth.Username == "alice" && c.Secret != null),
+            c.Profile.Name == "Renamed" && c.Profile.Auth == profile.Auth && c.Secret != null),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_PreferPasswordField_WhenUriAlsoContainsPassword()
+    {
+        await using var fixture = new WorkspaceFixture();
+        var editor = new ConnectionEditor(fixture.Connections);
+        var draft = new ConnectionDraft { Uri = "mongodb://alice:uri-password@localhost", Password = "typed-password" };
+
+        await editor.TestAsync(draft, CancellationToken.None);
+
+        A.CallTo(() => fixture.Gateway.ListDatabasesAsync(A<MongoConnectionTarget>.That.Matches(target =>
+            target.ConnectionString == "mongodb://alice:typed-password@localhost"), A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
     }
 
     [Fact]

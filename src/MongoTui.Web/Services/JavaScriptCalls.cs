@@ -3,6 +3,8 @@ namespace MongoTui.Web.Services;
 /// <summary>Stable names exported by the application's browser scripts.</summary>
 public static class JavaScriptCalls
 {
+    public const string SignOut = "mongoTuiAuth.logout";
+    public const string ReplaceSession = "mongoTuiAuth.replace";
     public const string SetTheme = "mongoTuiTheme.set";
     public const string ToggleTheme = "mongoTuiTheme.toggle";
     public const string SetLanguage = "mongoTuiTheme.language";

@@ -22,4 +22,8 @@
     <Compile Include="../LoggingTestSink.cs" Link="Support/LoggingTestSink.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../MemorySettingsStore.cs" Link="Support/MemorySettingsStore.cs" />
+  </ItemGroup>
+
 </Project>

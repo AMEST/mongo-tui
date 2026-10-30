@@ -14,6 +14,10 @@ public sealed class LocalRequestGuardTests
     [InlineData("127.0.0.1:8765", "https://attacker.example", "", false)]
     [InlineData("127.0.0.1:8765", "null", "", false)]
     [InlineData("127.0.0.1:8765", "", "cross-site", false)]
+    [InlineData("127.0.0.1:8765", "", "same-site", false)]
+    [InlineData("127.0.0.1:8765", "http://127.0.0.1:9999", "same-site", false)]
+    [InlineData("127.0.0.1:8765", "", "none", true)]
+    [InlineData("127.0.0.1:8765", "", "unknown", false)]
     public async Task Should_EnforceLocalOrigin_WhenRequestArrives(string host, string origin, string site, bool allowed)
     {
         var context = new DefaultHttpContext();

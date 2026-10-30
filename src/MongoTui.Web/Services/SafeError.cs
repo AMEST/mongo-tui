@@ -5,9 +5,11 @@ namespace MongoTui.Web.Services;
 internal static partial class SafeError
 {
     private const int MaximumMessageCharacters = 1500;
-    public static string Message(Exception exception)
+    public static string Message(Exception exception) => Message(exception.Message);
+
+    public static string Message(string diagnostic)
     {
-        var message = MongoUri().Replace(exception.Message, "mongodb://[redacted]");
+        var message = MongoUri().Replace(diagnostic, "mongodb://[redacted]");
         return message.Length > MaximumMessageCharacters ? message[..MaximumMessageCharacters] + "…" : message;
     }
 

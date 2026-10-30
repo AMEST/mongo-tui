@@ -314,7 +314,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         }
         catch (MongoCommandException ex)
         {
-            throw MapUserManagementException(ex);
+            throw MongoUserErrorMapper.Map(ex);
         }
     }
 
@@ -339,7 +339,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         }
         catch (MongoCommandException ex)
         {
-            throw MapUserManagementException(ex);
+            throw MongoUserErrorMapper.Map(ex);
         }
     }
 
@@ -367,7 +367,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         }
         catch (MongoCommandException ex)
         {
-            throw MapUserManagementException(ex);
+            throw MongoUserErrorMapper.Map(ex);
         }
     }
 
@@ -385,7 +385,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         }
         catch (MongoCommandException ex)
         {
-            throw MapUserManagementException(ex);
+            throw MongoUserErrorMapper.Map(ex);
         }
     }
 
@@ -397,29 +397,6 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
             array.Add(new BsonDocument { { MongoWireNames.Fields.Role, role.Name }, { MongoWireNames.Fields.Database, role.Database } });
         }
         return array;
-    }
-
-    private static Exception MapUserManagementException(MongoCommandException ex)
-    {
-        var code = ex.Code;
-        if (code == 13)
-        {
-            return new DomainException("Insufficient privileges to manage users.");
-        }
-        if (code == 51003 || ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-        {
-            return new DomainException("User already exists.");
-        }
-        if (ex.Message.Contains("role", StringComparison.OrdinalIgnoreCase) &&
-            ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return new DomainException("Failed to grant role.");
-        }
-        if (code == 11 || ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return new DomainException("User not found.");
-        }
-        return new DomainException("MongoDB command failed.");
     }
 
     private static IndexInfo MapIndex(BsonDocument index)

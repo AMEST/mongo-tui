@@ -34,6 +34,24 @@ public sealed class ConnectionServiceTests
     }
 
     [Fact]
+    public async Task Should_RetainStoredSecret_WhenPreparingUnchangedCredentials()
+    {
+        await UnlockAsync();
+        var profile = NewProfile();
+        A.CallTo(() => _repository.GetAsync(profile.Id, A<CancellationToken>._))
+            .Returns(new StoredConnection(profile, new EncryptedSecret([1], [2])));
+        A.CallTo(() => _crypto.Decrypt(A<byte[]>._, A<byte[]>._, A<byte[]>._)).Returns(Encoding.UTF8.GetBytes("saved-password"));
+        var draft = new ConnectionProfileDraft { Id = profile.Id, Name = "renamed", Uri = profile.Uri };
+
+        var prepared = await _sut.PrepareAsync(draft, CancellationToken.None);
+
+        prepared.Secret.Should().Be("saved-password");
+        prepared.Profile.CreatedAt.Should().Be(profile.CreatedAt);
+        A.CallTo(() => _repository.AddAsync(A<StoredConnection>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => _repository.UpdateAsync(A<StoredConnection>._, A<CancellationToken>._)).MustNotHaveHappened();
+    }
+
+    [Fact]
     public async Task Should_EncryptSecret_When_UnlockedAndSecretProvided()
     {
         await UnlockAsync();

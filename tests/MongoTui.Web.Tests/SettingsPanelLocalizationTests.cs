@@ -31,6 +31,7 @@ public sealed class SettingsPanelLocalizationTests
         registrations.AddSingleton(A.Fake<ISshTunnelFactory>());
         registrations.AddSingleton(A.Fake<ITwoFactorPrompt>());
         registrations.AddSingleton(A.Fake<IJSRuntime>());
+        registrations.AddSingleton(A.Fake<Microsoft.AspNetCore.Components.NavigationManager>());
         var settings = A.Fake<ILoggingSettings>();
         A.CallTo(() => settings.GetAsync(A<CancellationToken>._))
             .Returns(new LoggingSettings(ApplicationLogLevel.Information, ApplicationLogLevel.Information, false));
@@ -44,6 +45,7 @@ public sealed class SettingsPanelLocalizationTests
         await renderer.ChangeAsync("ru");
 
         (await renderer.TextAsync()).Should().Contain(text[LocalizationKeys.Logging.Title])
-            .And.Contain(text[LocalizationKeys.Logging.Hint]).And.NotContain("Logging level");
+            .And.Contain(text[LocalizationKeys.Logging.Hint])
+            .And.NotContain("Logging level");
     }
 }

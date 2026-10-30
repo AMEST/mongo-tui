@@ -6,6 +6,7 @@ using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Queries;
+using MongoTui.Domain.Users;
 using MongoTui.Testing;
 using MongoTui.Web.Services;
 
@@ -14,9 +15,10 @@ namespace MongoTui.Web.Tests;
 public sealed class ServiceLoggingTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Should_LogOutcomeWithoutCredentials_When_UserSaved(bool fails)
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Should_LogOutcomeWithoutCredentials_When_UserSaved(bool fails, bool classified)
     {
         var sink = new LoggingTestSink();
         using var loggers = sink.CreateFactory();
@@ -25,9 +27,13 @@ public sealed class ServiceLoggingTests
         var draft = new UserDraft { Username = "private-username", Password = "private-password" };
         draft.SetDatabaseAccess("orders", MongoTui.Domain.Users.DatabaseAccessLevel.Read);
         if (fails)
+        {
+            var cause = new DomainException("private-username private-password mongodb://user:secret@host");
+            Exception failure = classified ? new UserManagementException(UserManagementError.CommandFailed, cause) : cause;
             A.CallTo(() => fixture.Gateway.CreateUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._,
                 A<string>._, A<string>._, A<IReadOnlyList<MongoTui.Domain.Users.MongoRole>>._, A<CancellationToken>._))
-                .ThrowsAsync(new DomainException("private-username private-password mongodb://user:secret@host"));
+                .ThrowsAsync(failure);
+        }
 
         var error = await Record.ExceptionAsync(() => fixture.Users.SaveAsync(fixture.Selection, draft, CancellationToken.None));
 

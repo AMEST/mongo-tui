@@ -140,7 +140,7 @@ public sealed class SecurityModeService
         {
             if (CurrentMode is null)
             {
-                await DetectAsync(token);
+                await DetectAsync(token).ConfigureAwait(false);
             }
 
             if (CurrentMode != SecurityMode.Password)
@@ -148,16 +148,19 @@ public sealed class SecurityModeService
                 throw new DomainException("Secrets are not protected by a master password.");
             }
 
+            var wasUnlocked = _secrets.IsUnlocked;
             try
             {
-                var kek = await SourceFor(SecurityMode.Password).UnlockAsync(password, token);
+                var kek = await SourceFor(SecurityMode.Password).UnlockAsync(password, token).ConfigureAwait(false);
+                await _connections.ValidateKekAsync(kek, token).ConfigureAwait(false);
+                await _ai.ValidateKekAsync(kek, token).ConfigureAwait(false);
                 _secrets.SetKek(kek);
-                await _connections.MigrateCredentialsAsync(token);
-                await EnsureLegacyMarkerAsync(token);
+                await _connections.MigrateCredentialsAsync(token).ConfigureAwait(false);
+                await EnsureLegacyMarkerAsync(token).ConfigureAwait(false);
             }
             catch
             {
-                _secrets.Lock();
+                if (!wasUnlocked) _secrets.Lock();
                 throw;
             }
         }, cancellationToken);

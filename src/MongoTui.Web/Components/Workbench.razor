@@ -14,7 +14,7 @@
                     <button class="@(_page == item.Item1 ? "active" : "")" @onclick="() => NavigateAsync(item.Item1)"><Icon Name="@item.Item2" Size="16" /><span>@L[item.Item3]</span></button>
                 }
             </nav>
-            <div class="header-actions"><button class="icon-button" title="@L[LocalizationKeys.App.Theme]" @onclick="ToggleThemeAsync"><Icon Name="@IconNames.Moon" /></button><button class="button primary compact" @onclick="() => EditConnection(null)"><Icon Name="@IconNames.Plus" Size="16" />@L[LocalizationKeys.Connection.Add]</button></div>
+            <div class="header-actions"><button class="icon-button" title="@L[LocalizationKeys.WebAuth.SignOut]" @onclick="SignOutAsync"><Icon Name="@IconNames.Lock" /></button><button class="icon-button" title="@L[LocalizationKeys.App.Theme]" @onclick="ToggleThemeAsync"><Icon Name="@IconNames.Moon" /></button><button class="button primary compact" @onclick="() => EditConnection(null)"><Icon Name="@IconNames.Plus" Size="16" />@L[LocalizationKeys.Connection.Add]</button></div>
         </header>
         @if (_error is not null) { <div class="app-error" role="alert"><span>@_error</span><button class="icon-button" title="@L[LocalizationKeys.Common.Close]" @onclick="() => _error = null"><Icon Name="@IconNames.Close" /></button></div> }
         @if (_page == MainPage.Workspace)
@@ -38,6 +38,7 @@
     @if (_manageUsers is not null) { <UserManagementDialog @key="_manageUsers" Selection="_manageUsers" OnClose="() => _manageUsers = null" /> }
 </SecurityGate>
 @code {
+    private async Task SignOutAsync() => await JS.InvokeVoidAsync(JavaScriptCalls.SignOut);
     private enum MainPage { Workspace, Connections, History, Logs, Settings }
     private MainPage _page = MainPage.Workspace;
     private string? _error;

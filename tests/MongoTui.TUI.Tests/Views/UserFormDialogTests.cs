@@ -55,6 +55,39 @@ public sealed class UserFormDialogTests
     }
 
     [Fact]
+    public void Should_ApplySharedRoleState_WhenExistingAdministratorIsLoaded()
+    {
+        var existing = new MongoUser("bob", "admin", [new("read", "orders"), new("clusterMonitor", "admin"),
+            new("root", "admin"), new("custom", "reports")]);
+
+        using var dialog = new UserFormDialog(_users, _localizer, _application, _connection, DatabaseName.Create("admin"), existing);
+
+        var checks = dialog.SubViews.OfType<CheckBox>().ToArray();
+        var root = checks.Single(check => check.Text == _localizer.Get("Users.ClusterRoles.Administrator"));
+        root.Value.Should().Be(CheckState.Checked);
+        checks.Where(check => check != root).Should().OnlyContain(check => !check.Enabled && check.Value == CheckState.UnChecked);
+        var lists = dialog.SubViews.OfType<ListView>().ToArray();
+        lists[0].Source!.ToList().Cast<string>().Should().BeEmpty();
+        lists[1].Source!.ToList().Cast<string>().Should().Equal("custom@reports");
+    }
+
+    [Fact]
+    public void Should_EnableFreshSelection_WhenAdministratorIsUnselected()
+    {
+        using var dialog = new UserFormDialog(_users, _localizer, _application, _connection, DatabaseName.Create("admin"), null);
+        var checks = dialog.SubViews.OfType<CheckBox>().ToArray();
+        var monitor = checks.Single(check => check.Text == _localizer.Get("Users.ClusterRoles.ClusterMonitor"));
+        var root = checks.Single(check => check.Text == _localizer.Get("Users.ClusterRoles.Administrator"));
+        monitor.Value = CheckState.Checked;
+        root.Value = CheckState.Checked;
+
+        root.Value = CheckState.UnChecked;
+
+        checks.Should().OnlyContain(check => check.Enabled && check.Value == CheckState.UnChecked);
+        dialog.SubViews.OfType<ListView>().First().Enabled.Should().BeTrue();
+    }
+
+    [Fact]
     public void Should_DisableOtherManagedRoles_When_AdministratorChecked()
     {
         using var dialog = new UserFormDialog(_users, _localizer, _application, _connection, DatabaseName.Create("admin"), null);

@@ -18,6 +18,7 @@ internal sealed class DocumentDialogFixture : IAsyncDisposable
     public WorkspaceFixture Workspace { get; }
     public ComponentTestRenderer Renderer { get; }
     public bool Saved { get; private set; }
+    public WebTab? Tab { get; private set; }
     private readonly ServiceProvider _services;
 
     public DocumentDialogFixture(IMongoGateway gateway, string connectionString = "mongodb://localhost:27017")
@@ -36,17 +37,19 @@ internal sealed class DocumentDialogFixture : IAsyncDisposable
         Renderer = new ComponentTestRenderer(_services);
     }
 
-    public async Task OpenAsync(BsonDocument selected, CollectionRef collection, bool editable = true)
+    public async Task OpenAsync(BsonDocument selected, CollectionRef collection, bool editable = true, bool insert = false)
     {
         await Workspace.Catalog.ConnectAsync(Workspace.Profile, CancellationToken.None);
         var tab = new WebTab(Workspace.Profile.Id, collection.Database.Value, collection.Collection.Value)
         {
             EditableCollection = editable ? collection : null,
         };
+        Tab = tab;
         await Renderer.MountAsync<DocumentDialog>(new()
         {
             [nameof(DocumentDialog.Tab)] = tab,
             [nameof(DocumentDialog.Document)] = selected,
+            [nameof(DocumentDialog.Insert)] = insert,
             [nameof(DocumentDialog.OnSaved)] = EventCallback.Factory.Create(this, () => Saved = true),
         });
     }
@@ -54,6 +57,7 @@ internal sealed class DocumentDialogFixture : IAsyncDisposable
     public Task EditAsync(string json) => Renderer.ChangeAsync(json);
     public async Task<string> EditorTextAsync() => (string)(await Renderer.AttributeAsync("editor-fallback", "value"))!;
     public Task SaveAsync() => Renderer.ClickAsync("primary");
+    public async Task DeleteAsync() { await Renderer.ClickAsync("danger"); await Renderer.ClickAsync("danger"); }
 
     public async ValueTask DisposeAsync()
     {

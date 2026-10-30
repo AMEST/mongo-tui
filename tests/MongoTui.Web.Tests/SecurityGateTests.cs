@@ -13,6 +13,9 @@ using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Web.Components.Shared;
 using MongoTui.Web.Localization;
+using MongoTui.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 namespace MongoTui.Web.Tests;
 
@@ -56,6 +59,8 @@ public sealed class SecurityGateTests
             .ReturnsLazily((string key, CancellationToken _) => Task.FromResult(_values.GetValueOrDefault(key)));
         A.CallTo(() => settings.SetAsync(A<string>._, A<string>._, A<CancellationToken>._))
             .Invokes((string key, string value, CancellationToken _) => _values[key] = value).Returns(Task.CompletedTask);
+        A.CallTo(() => settings.GetAllAsync(A<CancellationToken>._))
+            .ReturnsLazily(() => Task.FromResult<IReadOnlyDictionary<string, string>>(new Dictionary<string, string>(_values)));
         _values["ui.language"] = language;
         A.CallTo(() => _source.Mode).Returns(SecurityMode.None);
         A.CallTo(() => _source.IsAvailable).Returns(true);
@@ -74,9 +79,28 @@ public sealed class SecurityGateTests
         services.AddSingleton(A.Fake<IJSRuntime>());
         services.AddScoped<WebText>();
         services.AddApplication();
+        services.AddSingleton<TimeProvider>(new SessionClock());
+        services.AddSingleton<WebSessionStore>();
+        services.AddSingleton<WebSecurityStamp>();
+        services.AddScoped<WebCircuitSession>();
+        services.AddScoped<AuthenticationStateProvider>(provider =>
+        {
+            var authentication = A.Fake<AuthenticationStateProvider>();
+            Task<AuthenticationState>? state = null;
+            A.CallTo(() => authentication.GetAuthenticationStateAsync()).ReturnsLazily(() => state ??= CreateStateAsync(provider));
+            return authentication;
+        });
         services.Replace(ServiceDescriptor.Scoped<SecurityModeService, SecurityModeService>());
         services.Replace(ServiceDescriptor.Scoped<ConnectionService, ConnectionService>());
         services.Replace(ServiceDescriptor.Scoped<ConnectionTunnelService, ConnectionTunnelService>());
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true });
+    }
+
+    private static async Task<AuthenticationState> CreateStateAsync(IServiceProvider provider)
+    {
+        var sessions = provider.GetRequiredService<WebSessionStore>();
+        var stamp = await provider.GetRequiredService<WebSecurityStamp>().ReadAsync(CancellationToken.None);
+        var id = sessions.Authenticate(sessions.Create(stamp.Revision, canInitialize: true), stamp.Revision)!;
+        return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id)], "WebSession")));
     }
 }

@@ -1,10 +1,37 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <RootNamespace>MongoTui.Web</RootNamespace>
+    <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" />
     <ProjectReference Include="..\MongoTui.Application\MongoTui.Application.csproj" />
     <InternalsVisibleTo Include="MongoTui.Web.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot\**" />
+    <Content Remove="ClientAssets\**" />
+    <None Update="ClientAssets\**" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <EmbeddedResource Include="wwwroot\**" />
+  </ItemGroup>
+  <Target Name="EmbedBlazorBootstrap" BeforeTargets="_CalculateEmbeddedFilesManifestInputs"
+          DependsOnTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <_BlazorBootstrapPack Include="@(PackageReference)" Condition="'%(PackageReference.Identity)' == 'Microsoft.AspNetCore.App.Internal.Assets'">
+        <NuGetPackageId>%(PackageReference.Identity)</NuGetPackageId>
+        <NuGetPackageVersion>%(PackageReference.Version)</NuGetPackageVersion>
+      </_BlazorBootstrapPack>
+    </ItemGroup>
+    <GetPackageDirectory Items="@(_BlazorBootstrapPack)" PackageFolders="@(AssetsFilePackageFolder)">
+      <Output TaskParameter="Output" ItemName="_ResolvedBlazorBootstrapPack" />
+    </GetPackageDirectory>
+    <ItemGroup>
+      <EmbeddedResource Include="%(_ResolvedBlazorBootstrapPack.PackageDirectory)/_framework/blazor.web.js">
+        <Link>framework/blazor.web.js</Link>
+        <LogicalName>MongoTui.Web.framework.blazor.web.js</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+  </Target>
 </Project>

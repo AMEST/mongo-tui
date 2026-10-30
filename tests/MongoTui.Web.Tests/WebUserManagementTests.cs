@@ -53,7 +53,7 @@ public sealed class WebUserManagementTests
         await using var fixture = new UserManagementFixture();
         await fixture.ConnectAsync();
         var draft = new UserDraft(new MongoUser("alice", "admin", [new("read", "orders"), new("custom", "reports")]));
-        draft.Databases.Clear();
+        draft.RemoveDatabaseAccess(DatabaseName.Create("orders"));
 
         await fixture.Users.SaveAsync(fixture.Selection, draft, CancellationToken.None);
 
@@ -63,10 +63,10 @@ public sealed class WebUserManagementTests
     }
 
     [Theory]
-    [InlineData("", "secret", true, "Username must not be empty.")]
-    [InlineData("alice", "", true, "Password must not be empty.")]
-    [InlineData("alice", "secret", false, "At least one database access or cluster role is required.")]
-    public async Task Should_RejectInvalidNewUser_WhenSaving(string username, string password, bool access, string message)
+    [InlineData("", "secret", true, UserManagementError.UsernameRequired)]
+    [InlineData("alice", "", true, UserManagementError.PasswordRequired)]
+    [InlineData("alice", "secret", false, UserManagementError.AccessRequired)]
+    public async Task Should_RejectInvalidNewUser_WhenSaving(string username, string password, bool access, UserManagementError code)
     {
         await using var fixture = new UserManagementFixture();
         await fixture.ConnectAsync();
@@ -75,7 +75,7 @@ public sealed class WebUserManagementTests
 
         var act = () => fixture.Users.SaveAsync(fixture.Selection, draft, CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>().WithMessage(message);
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == code);
         A.CallTo(() => fixture.Gateway.CreateUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<string>._, A<string>._,
             A<IReadOnlyList<MongoRole>>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
@@ -105,7 +105,7 @@ public sealed class WebUserManagementTests
 
         var act = () => fixture.Users.DeleteAsync(fixture.Selection with { Database = "orders" }, user, CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>().WithMessage("Cannot delete the user of the current connection.");
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.DeleteCurrentForbidden);
         A.CallTo(() => fixture.Gateway.DeleteUserAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<string>._, A<CancellationToken>._))
             .MustNotHaveHappened();
     }
@@ -147,6 +147,6 @@ public sealed class WebUserManagementTests
 
         var act = () => fixture.Users.ListAsync(fixture.Selection, CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>().WithMessage("Connection is no longer active.");
+        await act.Should().ThrowAsync<UserManagementException>().Where(error => error.Code == UserManagementError.ConnectionClosed);
     }
 }

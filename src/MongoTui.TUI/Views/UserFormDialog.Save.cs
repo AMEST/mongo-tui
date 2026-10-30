@@ -57,10 +57,10 @@ public sealed partial class UserFormDialog
 
     private async Task SaveUserAsync(string username, string password)
     {
-        var access = new UserAccessSelection(_accesses.ToList(), _clusterRoles.Selected());
-        if (_isEdit && _existing is not null)
+        var access = _draft.Snapshot();
+        if (_draft.Existing is { } existing)
         {
-            await _users.UpdateAsync(_connection.Target, _scope, _existing, password, access, CancellationToken.None).ConfigureAwait(false);
+            await _users.UpdateAsync(_connection.Target, _scope, existing, password, access, CancellationToken.None).ConfigureAwait(false);
             PasswordChanged = password.Length > 0;
         }
         else
@@ -76,14 +76,14 @@ public sealed partial class UserFormDialog
     {
         if (string.IsNullOrWhiteSpace(username)) return LocalizationKeys.Users.UsernameRequired;
         if (!_isEdit && string.IsNullOrWhiteSpace(password)) return LocalizationKeys.Users.PasswordRequired;
-        return !_isEdit && _accesses.Count == 0 && _clusterRoles.Selected().Count == 0
+        return !_isEdit && _draft.Databases.Count == 0 && _draft.ClusterRoles.Count == 0
             ? LocalizationKeys.Users.AccessRequired
             : null;
     }
 
     private void ShowSaveError(Exception exception)
     {
-        var message = exception is DomainException domain ? _localizer.GetErrorMessage(domain) : exception.Message;
+        var message = _localizer.GetUserErrorMessage(exception);
         SetStatus(message, ColorName16.BrightRed);
         if (exception is DomainException)
         {

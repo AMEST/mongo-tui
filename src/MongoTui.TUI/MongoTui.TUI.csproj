@@ -2,8 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <!-- Components live in the Web library; include the Blazor bootstrap assets in this host. -->
-    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     <RootNamespace>MongoTui.TUI</RootNamespace>
     <AssemblyName>mongo-tui</AssemblyName>
   </PropertyGroup>

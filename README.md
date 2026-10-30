@@ -69,6 +69,9 @@ mongo-tui web --open
 
 The default address is `http://127.0.0.1:8765`; use `--port 9000` to change it.
 Running `mongo-tui` without arguments still starts the terminal interface.
+Sign in with your master password. For first setup or keyring/local-key-file modes, use the
+one-time link printed in the terminal; `--open` opens that link automatically.
+Web resources are embedded; no `wwwroot` folder is required beside the executable.
 
 Connections and settings are shared with TUI. Features include database and collection browsing,
 JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, application logs,

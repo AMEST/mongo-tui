@@ -404,4 +404,22 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Logging.SaveError" xml:space="preserve"><value>Could not save the logging level. The active level has not changed.</value></data>
   <data name="Logging.LoadError" xml:space="preserve"><value>Could not load logging settings.</value></data>
   <data name="Users.AdministratorName" xml:space="preserve"><value>Administrator</value></data>
+  <data name="Users.Error.Cancelled" xml:space="preserve"><value>Operation cancelled.</value></data>
+  <data name="Users.Error.Timeout" xml:space="preserve"><value>User management operation timed out. Refresh the list before retrying.</value></data>
+  <data name="Users.Error.ConnectionClosed" xml:space="preserve"><value>The connection was closed. Reconnect to manage users.</value></data>
+  <data name="Error.Load" xml:space="preserve"><value>Could not load the data. Try refreshing.</value></data>
+  <data name="Error.Save" xml:space="preserve"><value>Could not save changes. Check the input and connection permissions.</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save changes</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="WebAuth.SignIn" xml:space="preserve"><value>Sign in</value></data>
+  <data name="WebAuth.LaunchRequired" xml:space="preserve"><value>Open the one-time link from the terminal running Web. Restart Web to get a new link.</value></data>
+  <data name="WebAuth.InvalidPassword" xml:space="preserve"><value>Invalid master password.</value></data>
+  <data name="WebAuth.InvalidLaunch" xml:space="preserve"><value>This sign-in link has expired or has already been used. Restart Web to get a new link.</value></data>
+  <data name="WebAuth.Unavailable" xml:space="preserve"><value>Could not sign in. Check that storage is available and try again.</value></data>
+  <data name="WebAuth.RateLimited" xml:space="preserve"><value>Too many sign-in attempts. Try again in one minute.</value></data>
+  <data name="WebAuth.SessionExpired" xml:space="preserve"><value>Your session has ended. Sign in again.</value></data>
+  <data name="WebAuth.SignOut" xml:space="preserve"><value>Sign out</value></data>
+  <data name="WebAuth.StartupLink" xml:space="preserve"><value>Sign-in link: {0}</value></data>
+  <data name="WebAuth.StartupHint" xml:space="preserve"><value>The link is single-use and expires in 15 minutes. With master-password protection, you can also sign in at the regular Web address.</value></data>
 </root>

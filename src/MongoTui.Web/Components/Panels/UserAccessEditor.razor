@@ -5,7 +5,7 @@
     <div class="user-access-list">
         @foreach (var access in Draft.Databases.ToArray())
         {
-            <div class="user-access-row"><span class="mono">@access.Database.Value</span><span class="badge subtle">@L[AccessKey(access.Level)]</span><button type="button" class="icon-button" title="@L[LocalizationKeys.Users.AccessRemove]" @onclick="() => Draft.Databases.Remove(access)"><Icon Name="@IconNames.Close" Size="15" /></button></div>
+            <div class="user-access-row"><span class="mono">@access.Database.Value</span><span class="badge subtle">@L[AccessKey(access.Level)]</span><button type="button" class="icon-button" title="@L[LocalizationKeys.Users.AccessRemove]" @onclick="() => Draft.RemoveDatabaseAccess(access.Database)"><Icon Name="@IconNames.Close" Size="15" /></button></div>
         }
     </div>
     <fieldset disabled="@Draft.IsAdministrator" class="user-access-add">

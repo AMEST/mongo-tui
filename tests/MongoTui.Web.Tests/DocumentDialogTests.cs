@@ -62,7 +62,7 @@ public sealed class DocumentDialogTests
         await fixture.OpenAsync(new BsonDocument("_id", 1), Collection);
         await fixture.SaveAsync();
 
-        (await fixture.Renderer.TextAsync()).Should().Contain(fixture.Workspace.Text[LocalizationKeys.Document.NotFound]);
+        (await fixture.Renderer.TextAsync()).Should().Contain(fixture.Workspace.Text[LocalizationKeys.Documents.NotFound]);
         fixture.Saved.Should().BeFalse();
         AssertNoReplacement();
     }
@@ -78,6 +78,73 @@ public sealed class DocumentDialogTests
         await fixture.SaveAsync();
 
         (await fixture.Renderer.TextAsync()).Should().Contain(fixture.Workspace.Text[LocalizationKeys.Documents.IdChanged]);
+        AssertNoReplacement();
+    }
+
+    [Fact]
+    public async Task Should_RejectDelete_WhenOnlyIdTypeChanged()
+    {
+        Returns(new BsonDocument("_id", 42));
+        await using var fixture = new DocumentDialogFixture(_gateway);
+        await fixture.OpenAsync(new BsonDocument("_id", 42), Collection);
+        await fixture.EditAsync(BsonTextCodec.Format(new BsonDocument("_id", new BsonInt64(42))));
+
+        await fixture.DeleteAsync();
+
+        (await fixture.Renderer.TextAsync()).Should().Contain(fixture.Workspace.Text[LocalizationKeys.Documents.IdChanged]);
+        A.CallTo(() => _gateway.DeleteOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_DisableWritesAndExplain_WhenDocumentDisappearsBeforeMutation(bool delete)
+    {
+        Returns(new BsonDocument("_id", 42));
+        A.CallTo(() => _gateway.ReplaceOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<string>._, A<CancellationToken>._))
+            .Returns(0L);
+        A.CallTo(() => _gateway.DeleteOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<CancellationToken>._)).Returns(0L);
+        await using var fixture = new DocumentDialogFixture(_gateway);
+        await fixture.OpenAsync(new BsonDocument("_id", 42), Collection);
+
+        await (delete ? fixture.DeleteAsync() : fixture.SaveAsync());
+
+        fixture.Saved.Should().BeFalse();
+        (await fixture.Renderer.TextAsync()).Should().Contain(fixture.Workspace.Text[LocalizationKeys.Documents.NotFound]);
+        (await fixture.Renderer.AttributeAsync("primary", "disabled")).Should().Be(true);
+    }
+
+    [Fact]
+    public async Task Should_KeepOriginalCollection_WhenTabSourceChangesAfterOpening()
+    {
+        Returns(new BsonDocument("_id", 42));
+        A.CallTo(() => _gateway.ReplaceOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<string>._, A<CancellationToken>._))
+            .Returns(1L);
+        await using var fixture = new DocumentDialogFixture(_gateway);
+        await fixture.OpenAsync(new BsonDocument("_id", 42), Collection);
+        fixture.Tab!.EditableCollection = new CollectionRef(Collection.Database, CollectionName.Create("another"));
+
+        await fixture.SaveAsync();
+
+        fixture.Saved.Should().BeTrue();
+        A.CallTo(() => _gateway.ReplaceOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<string>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task Should_InsertWithoutReload_WhenNewDocumentIsOpened()
+    {
+        await using var fixture = new DocumentDialogFixture(_gateway);
+        await fixture.OpenAsync(new BsonDocument(), Collection, insert: true);
+
+        await fixture.SaveAsync();
+
+        fixture.Saved.Should().BeTrue();
+        A.CallTo(() => _gateway.InsertOneAsync(A<MongoConnectionTarget>._, Collection, A<string>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _gateway.FindAsync(A<MongoConnectionTarget>._, Collection, A<string>._,
+            A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();
         AssertNoReplacement();
     }
 

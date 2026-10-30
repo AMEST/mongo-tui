@@ -404,4 +404,22 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Logging.SaveError" xml:space="preserve"><value>Не удалось сохранить уровень логирования. Действующий уровень не изменён.</value></data>
   <data name="Logging.LoadError" xml:space="preserve"><value>Не удалось загрузить настройки логирования.</value></data>
   <data name="Users.AdministratorName" xml:space="preserve"><value>Администратор</value></data>
+  <data name="Users.Error.Cancelled" xml:space="preserve"><value>Операция отменена.</value></data>
+  <data name="Users.Error.Timeout" xml:space="preserve"><value>Истекло время ожидания операции. Обновите список перед повторной попыткой.</value></data>
+  <data name="Users.Error.ConnectionClosed" xml:space="preserve"><value>Подключение закрыто. Подключитесь снова для управления пользователями.</value></data>
+  <data name="Error.Load" xml:space="preserve"><value>Не удалось загрузить данные. Попробуйте обновить.</value></data>
+  <data name="Error.Save" xml:space="preserve"><value>Не удалось сохранить изменения. Проверьте данные и права подключения.</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Закрыть</value></data>
+  <data name="Common.Copy" xml:space="preserve"><value>Копировать</value></data>
+  <data name="WebAuth.SignIn" xml:space="preserve"><value>Вход</value></data>
+  <data name="WebAuth.LaunchRequired" xml:space="preserve"><value>Откройте одноразовую ссылку из терминала, в котором запущен Web. Чтобы получить новую ссылку, перезапустите Web.</value></data>
+  <data name="WebAuth.InvalidPassword" xml:space="preserve"><value>Неверный мастер-пароль.</value></data>
+  <data name="WebAuth.InvalidLaunch" xml:space="preserve"><value>Ссылка для входа устарела или уже использована. Перезапустите Web, чтобы получить новую.</value></data>
+  <data name="WebAuth.Unavailable" xml:space="preserve"><value>Не удалось войти. Проверьте доступность хранилища и повторите попытку.</value></data>
+  <data name="WebAuth.RateLimited" xml:space="preserve"><value>Слишком много попыток входа. Повторите через минуту.</value></data>
+  <data name="WebAuth.SessionExpired" xml:space="preserve"><value>Сессия завершена. Войдите снова.</value></data>
+  <data name="WebAuth.SignOut" xml:space="preserve"><value>Выйти</value></data>
+  <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
+  <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
 </root>

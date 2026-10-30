@@ -149,7 +149,8 @@ public sealed class ConnectionFormViewModelTests
 
         saved.Should().BeTrue();
         A.CallTo(() => _repository.AddAsync(
-            A<StoredConnection>.That.Matches(value => value.Profile.Ssh == ssh && value.Profile.Tls == tls),
+            A<StoredConnection>.That.Matches(value => value.Profile.Ssh == ssh && value.Profile.Tls == tls
+                && value.Profile.CreatedAt == profile.CreatedAt),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 

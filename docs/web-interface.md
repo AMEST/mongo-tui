@@ -16,10 +16,48 @@ Closing a tab cancels its request; disconnected circuits are retained for 30 sec
 Reloading the page starts a fresh workspace. Saved profiles, query history and settings persist in
 the existing SQLite store. Optional `MONGOTUI_DATA_DIR` selects a separate directory for testing.
 
-The host rejects foreign Host/Origin headers and cross-site requests, applies antiforgery protection
-and denies framing. It deliberately has no external bind option, remote login or multi-user model.
-The existing master password/keyring/local-key-file choice protects stored secrets; it is not a
-remote web authentication system. Do not expose this server through a proxy or port forward.
+API requests and Blazor transports require an opaque session token. The document shell, sign-in
+page, embedded static files and the read-only Blazor initializer manifest are public. The host
+rejects foreign Host/Origin headers and requests from other sites or localhost ports, applies
+antiforgery protection, and denies framing. The server remains IPv4 loopback-only.
+
+## Web sign-in
+
+Users sign in with their existing master password; no Basic username/password is requested.
+The server checks the password again for each new session, even if another browser has already
+unlocked the shared encryption key. Failed password attempts leave an already unlocked key intact.
+Password sign-in accepts JSON only and is limited to five attempts per minute per running host.
+
+Every `web` start prints a random, single-use launch link valid for 15 minutes. `--open` opens this
+link automatically. Its secret is placed in the URL fragment, removed immediately by the browser,
+and exchanged for a session token. It never enters HTTP request URLs. Use this link for first
+setup, legacy security migration, or keyring/local-key-file modes, which have no password to prove
+browser ownership. A regular address in these modes only displays instructions; it cannot create
+a session or initialize security. Restart Web to obtain a fresh launch link.
+
+The browser keeps the bearer token in `sessionStorage`, scoped to its origin (including the port)
+and tab, and sends it automatically to API and SignalR. It is not included in distributed JS or
+HTML. The server keeps only token hashes in memory. Sessions expire after eight hours, and all
+sessions end when the Web host restarts. **Sign out** revokes the current session without affecting
+other sessions. The previous `web.basicAuth` SQLite setting is removed on startup.
+
+Every incoming Blazor action checks session expiry/revocation and a fingerprint of persisted
+security settings. Changing the master password or security mode, including in another process,
+revokes previous sessions. An authorized browser performing a security change gets a replacement
+session; first setup binds only the launch-authorized session to the new configuration. A bounded
+one-minute transition permits that browser's in-flight setup/change messages. Already authorized
+operations may finish. Preferences such as language and logging do not revoke sessions.
+
+Blazor's WebSocket/SSE transports carry bearer tokens in the transport query string because browser
+APIs cannot set their headers. Query tokens are accepted only on those transports; application
+logs do not record transport URLs or credentials. Ordinary API requests use the Authorization header.
+Launch links are printed only to the owner's terminal, never to application logs. Master passwords
+are not retained by the browser after submission.
+
+The master password/keyring/local-key-file choice continues to protect MongoDB and AI secrets.
+Session authentication does not isolate processes that can modify the same user's SQLite database
+or inspect that user's processes. A client with the master password or a valid session token can
+call the API directly. Do not expose this server through a proxy or port forward.
 
 ## Working with data
 
@@ -91,13 +129,18 @@ npm ci
 npm run build
 ```
 
-Publish the existing executable project with the repository release options. Keep the whole output
-folder, including `wwwroot` and the static asset endpoint manifest, next to the executable.
-The host opts into `RequiresAspNetWebAssets` because its Razor components live in a library;
-see [Microsoft's project structure guidance](https://learn.microsoft.com/en-us/aspnet/core/blazor/project-structure?view=aspnetcore-10.0).
+Publish the existing executable project with the repository release options. Web assets are embedded
+in `MongoTui.Web` and served through `ManifestEmbeddedFileProvider`; `wwwroot` and static-asset
+endpoint manifests are not required beside the executable. The matching Blazor bootstrap script
+is also embedded from the SDK's ASP.NET Core asset package during the build. Editor build sources
+in `ClientAssets` are excluded from publication. Keep native libraries and license files produced
+by the existing publish configuration. See Microsoft's [embedded file provider guidance](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/file-providers?view=aspnetcore-10.0).
 
 `dotnet test tests/MongoTui.Web.Tests` checks origin restrictions, command-line parsing,
 BSON round trips, retained connection secrets, cancellation, pagination, editability and SSH prompt isolation.
+It also checks public embedded assets, protected API/Blazor endpoints, password proof despite a
+shared unlocked key, one-time launch redemption, expiry/logout, foreign origins/ports, rate limits,
+and revocation of open connections after key changes.
 User-management tests additionally cover authentication scope, preserved custom roles and passwords,
 one-time credentials, English/Russian errors, duplicate submissions and cancellation on dialog disposal.
 The full solution's integration tests additionally require a running Docker daemon.

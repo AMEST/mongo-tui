@@ -93,8 +93,7 @@ public sealed class QueryTabViewModel : ObservableObject
 
             var result = await _queryService.ExecuteAsync(context, cancellationToken);
             Result.Load(result);
-            ResultCollection = result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
-                ? DocumentQuerySource.Resolve(context.Script, context.Database) : null;
+            ResultCollection = DocumentQuerySource.Resolve(context, result);
             Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result.Documents.Count, result.Elapsed);
         }
         catch (DomainException exception)

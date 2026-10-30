@@ -1,8 +1,10 @@
 using System.Text.RegularExpressions;
 using MongoTui.Application.Services;
+using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 
 namespace MongoTui.Application.Queries;
 
@@ -12,6 +14,11 @@ public static class DocumentQuerySource
     private const string Quoted = "(?:\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*')";
     private const string Identifier = @"[$\p{L}_][$\p{L}\p{N}_]*";
     private static readonly TimeSpan MatchTimeout = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>Verifies document identities against the submitted query snapshot, including empty reads.</summary>
+    public static CollectionRef? Resolve(QueryExecutionContext context, QueryResult result) =>
+        result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
+            ? Resolve(context.Script, context.Database) : null;
 
     public static CollectionRef? Resolve(string script, string? database)
     {

@@ -2,6 +2,7 @@ using MongoTui.Application.Localization;
 using System.Collections.ObjectModel;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
+using MongoTui.Application.Models;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Users;
 using MongoTui.TUI.ViewModels;
@@ -21,9 +22,7 @@ public sealed partial class UserFormDialog : ThemedDialog
     private readonly ActiveConnection _connection;
     private readonly DatabaseName _scope;
     private readonly bool _isEdit;
-    private readonly MongoUser? _existing;
-    private readonly List<DatabaseAccess> _accesses = new();
-    private readonly List<MongoRole> _additional = new();
+    private readonly UserDraft _draft;
 
     private readonly TextField _username = new() { X = 20, Y = 0, Width = Dim.Fill(1) };
     private readonly TextField _password = new() { X = 20, Y = 2, Secret = true };
@@ -51,7 +50,7 @@ public sealed partial class UserFormDialog : ThemedDialog
         _application = application;
         _connection = connection;
         _scope = scope;
-        _existing = existingUser;
+        _draft = new UserDraft(existingUser);
         _isEdit = existingUser is not null;
 
         Title = _isEdit ? localizer.Get(LocalizationKeys.Users.FormEditTitle) : localizer.Get(LocalizationKeys.Users.FormCreateTitle);
@@ -98,7 +97,7 @@ public sealed partial class UserFormDialog : ThemedDialog
         Add(_addAccess, _removeAccess);
 
         Add(new Label { Text = localizer.Get(LocalizationKeys.Users.ClusterRoles), X = 1, Y = clusterLabelY });
-        _clusterRoles = new ClusterRoleCheckboxes(localizer, 1, clusterLabelY + 1);
+        _clusterRoles = new ClusterRoleCheckboxes(localizer, _draft, 1, clusterLabelY + 1);
         _clusterRoles.AdministratorChanged += OnAdministratorChanged;
         foreach (var check in _clusterRoles.Checks)
         {
@@ -122,12 +121,8 @@ public sealed partial class UserFormDialog : ThemedDialog
         cancel.OnAccept(() => _application.RequestStop(this));
         this.AddButtons(_save, cancel);
 
-        if (_isEdit && existingUser is not null)
-        {
-            LoadExisting(existingUser);
-        }
-
-        RefreshAccessList();
+        RefreshAdditional();
+        OnAdministratorChanged(_draft.IsAdministrator);
     }
 
     public string? SavedPassword { get; private set; }
@@ -135,48 +130,16 @@ public sealed partial class UserFormDialog : ThemedDialog
     public bool PasswordChanged { get; private set; }
     public bool Saved { get; private set; }
 
-    private void LoadExisting(MongoUser user)
-    {
-        var isAdministrator = user.Roles.Any(role => role.Database == MongoRoleCatalog.AdminDatabase && role.Name == MongoRoleNames.Root);
-        if (isAdministrator)
-        {
-            _clusterRoles.Set(ClusterRole.Administrator, true);
-        }
-
-        foreach (var role in user.Roles)
-        {
-            if (MongoRoleCatalog.TryGetClusterRole(role, out var clusterRole) && !isAdministrator)
-            {
-                _clusterRoles.Set(clusterRole, true);
-            }
-            else if (MongoRoleCatalog.TryGetDatabaseAccess(role, out var access) && !isAdministrator)
-            {
-                _accesses.Add(access);
-            }
-            else if (!MongoRoleCatalog.IsManaged(role))
-            {
-                _additional.Add(role);
-            }
-        }
-
-        RefreshAdditional();
-    }
-
     private void RefreshAdditional()
     {
         if (!_isEdit) return;
-        _additionalLabel.Visible = _additionalList.Visible = _additional.Count > 0;
-        _additionalList.SetSource(new ObservableCollection<string>(_additional.Select(r => $"{r.Name}@{r.Database}").ToList()));
+        _additionalLabel.Visible = _additionalList.Visible = _draft.AdditionalRoles.Count > 0;
+        _additionalList.SetSource(new ObservableCollection<string>(_draft.AdditionalRoles.Select(r => $"{r.Name}@{r.Database}").ToList()));
     }
 
     private void OnAdministratorChanged(bool isAdministrator)
     {
-        if (isAdministrator)
-        {
-            _accesses.Clear();
-            RefreshAccessList();
-        }
-
+        RefreshAccessList();
         _accessList.Enabled = !isAdministrator;
         _addAccess.Enabled = !isAdministrator;
         _removeAccess.Enabled = !isAdministrator;
@@ -188,24 +151,23 @@ public sealed partial class UserFormDialog : ThemedDialog
         _application.Run(dialog);
         if (dialog.SelectedAccess is { } access)
         {
-            _accesses.RemoveAll(a => a.Database.Value == access.Database.Value);
-            _accesses.Add(access);
+            _draft.SetDatabaseAccess(access.Database.Value, access.Level);
             RefreshAccessList();
         }
     }
 
     private void RemoveAccess()
     {
-        if (_accessList.SelectedItem is int idx && idx >= 0 && idx < _accesses.Count)
+        if (_accessList.SelectedItem is int idx && idx >= 0 && idx < _draft.Databases.Count)
         {
-            _accesses.RemoveAt(idx);
+            _draft.RemoveDatabaseAccess(_draft.Databases[idx].Database);
             RefreshAccessList();
         }
     }
 
     private void RefreshAccessList()
     {
-        var items = _accesses.Select(a => $"{a.Database.Value}: {a.Level switch { DatabaseAccessLevel.Read => "r", DatabaseAccessLevel.ReadWrite => "rw", _ => MongoRoleNames.DbOwner }}").ToList();
+        var items = _draft.Databases.Select(a => $"{a.Database.Value}: {a.Level switch { DatabaseAccessLevel.Read => "r", DatabaseAccessLevel.ReadWrite => "rw", _ => MongoRoleNames.DbOwner }}").ToList();
         _accessList.SetSource(new ObservableCollection<string>(items));
     }
 }

@@ -81,7 +81,7 @@ public sealed class WebUserManagement(ConnectionCatalog catalog, UserManagementS
 
     private WebConnection Connection(DatabaseSelection selection) =>
         catalog.Active.FirstOrDefault(connection => connection.Profile.Id == selection.ConnectionId)
-        ?? throw new DomainException("Connection is no longer active.");
+        ?? throw new UserManagementException(UserManagementError.ConnectionClosed);
 
     private async Task<T> WithDeadlineAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
     {

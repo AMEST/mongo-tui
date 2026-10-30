@@ -32,6 +32,7 @@ public sealed class ConnectionFormDialogTests
 
     public ConnectionFormDialogTests()
     {
+        A.CallTo(() => _application.MainThreadId).ReturnsLazily(() => Environment.CurrentManagedThreadId);
         _connections = new ConnectionService(_repository, new SecretKeyService(A.Fake<ICryptoService>()), _gateway,
             new ConnectionTunnelService(A.Fake<ISshTunnelFactory>(), A.Fake<ITwoFactorPrompt>(), _gateway), NullLogger<ConnectionService>.Instance);
     }

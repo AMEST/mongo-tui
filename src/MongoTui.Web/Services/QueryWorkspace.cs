@@ -135,13 +135,13 @@ public sealed class QueryWorkspace(
             return;
         }
         if (request.Script.Length > MaximumScriptCharacters) throw new DomainException(text[LocalizationKeys.Error.ScriptSize]);
-        var scriptResult = await queries.ExecuteAsync(new QueryExecutionContext
+        var context = new QueryExecutionContext
         {
             TabId = tab.Id, ConnectionId = tab.ConnectionId, Target = connection.Target,
             Database = tab.Database, Collection = tab.Collection, Script = request.Script,
-        }, cancellationToken);
-        var source = scriptResult.Documents.All(document => document.Contains(MongoSystemNames.IdField))
-            ? DocumentQuerySource.Resolve(request.Script, tab.Database) : null;
+        };
+        var scriptResult = await queries.ExecuteAsync(context, cancellationToken);
+        var source = DocumentQuerySource.Resolve(context, scriptResult);
         tab.Result = scriptResult;
         tab.Page = 0;
         tab.HasNext = tab.Result.Documents.Count > PageSize;

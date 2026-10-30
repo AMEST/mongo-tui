@@ -1,11 +1,12 @@
 using MongoTui.Application.Localization;
+using MongoTui.Application.Models;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Domain.Users;
 using Terminal.Gui.Views;
 
 namespace MongoTui.TUI.Views;
 
-/// <summary>Cluster role checkboxes with administrator exclusivity.</summary>
+/// <summary>Projects shared role selection into terminal checkboxes.</summary>
 public sealed class ClusterRoleCheckboxes
 {
     private static readonly (string Key, ClusterRole Role)[] Items =
@@ -20,8 +21,12 @@ public sealed class ClusterRoleCheckboxes
 
     private readonly Dictionary<CheckBox, ClusterRole> _roles = new();
 
-    public ClusterRoleCheckboxes(ILocalizer localizer, int x, int y)
+    private readonly UserDraft _draft;
+    private bool _refreshing;
+
+    public ClusterRoleCheckboxes(ILocalizer localizer, UserDraft draft, int x, int y)
     {
+        _draft = draft;
         for (var i = 0; i < Items.Length; i++)
         {
             var check = new CheckBox
@@ -34,58 +39,33 @@ public sealed class ClusterRoleCheckboxes
             check.ValueChanged += (_, _) => OnChanged(check);
             Checks.Add(check);
         }
+        Refresh();
     }
 
     public event Action<bool>? AdministratorChanged;
 
     public List<CheckBox> Checks { get; } = [];
 
-    public void Set(ClusterRole role, bool value)
-    {
-        foreach (var (check, checkRole) in _roles)
-        {
-            if (checkRole == role)
-            {
-                check.Value = value ? CheckState.Checked : CheckState.UnChecked;
-            }
-        }
-    }
-
-    public HashSet<ClusterRole> Selected()
-    {
-        var set = new HashSet<ClusterRole>();
-        foreach (var (check, role) in _roles)
-        {
-            if (check.Value == CheckState.Checked)
-            {
-                set.Add(role);
-            }
-        }
-
-        return set;
-    }
-
     private void OnChanged(CheckBox check)
     {
-        if (_roles[check] != ClusterRole.Administrator)
-        {
-            return;
-        }
+        if (_refreshing) return;
+        var wasAdministrator = _draft.IsAdministrator;
+        _draft.SetClusterRole(_roles[check], check.Value == CheckState.Checked);
+        Refresh();
+        if (wasAdministrator != _draft.IsAdministrator) AdministratorChanged?.Invoke(_draft.IsAdministrator);
+    }
 
-        var isAdministrator = check.Value == CheckState.Checked;
-        foreach (var other in Checks.Where(other => other != check))
+    private void Refresh()
+    {
+        _refreshing = true;
+        try
         {
-            if (isAdministrator)
+            foreach (var (check, role) in _roles)
             {
-                other.Value = CheckState.UnChecked;
-                other.Enabled = false;
-            }
-            else
-            {
-                other.Enabled = true;
+                check.Value = _draft.ClusterRoles.Contains(role) ? CheckState.Checked : CheckState.UnChecked;
+                check.Enabled = !_draft.IsAdministrator || role == ClusterRole.Administrator;
             }
         }
-
-        AdministratorChanged?.Invoke(isAdministrator);
+        finally { _refreshing = false; }
     }
 }

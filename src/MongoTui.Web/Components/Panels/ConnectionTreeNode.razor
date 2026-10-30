@@ -88,9 +88,10 @@
     private async Task RunAsync(Func<Task> action)
     {
         if (_busy) return;
-        _menuOpen = false; _busy = true;
+        _menuOpen = false; SetBusy(true);
         try { await action(); _error = null; }
         catch (Exception exception) { _error = exception.Message; }
-        finally { _busy = false; }
+        finally { SetBusy(false); }
     }
+    private void SetBusy(bool busy) { _busy = busy; StateHasChanged(); }
 }

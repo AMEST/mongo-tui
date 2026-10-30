@@ -1,10 +1,38 @@
 using MongoTui.Application.Queries;
+using MongoTui.Application.Models;
 using AwesomeAssertions;
+using MongoDB.Bson;
+using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 
-namespace MongoTui.TUI.Tests.Editor;
+namespace MongoTui.Application.Tests.Queries;
 
 public sealed class DocumentQuerySourceTests
 {
+    [Theory]
+    [InlineData("db.orders.find({})", 0, false, true)]
+    [InlineData("db.orders.find({})", 2, false, true)]
+    [InlineData("db.orders.find({})", 2, true, false)]
+    [InlineData("db.orders.find({}, {_id:1})", 2, false, false)]
+    [InlineData("db.orders.aggregate([])", 2, false, false)]
+    public void Should_VerifySourceAndIdentities_WhenResolvingExecutedResult(string script, int count, bool missingId, bool editable)
+    {
+        var context = new QueryExecutionContext { TabId = Guid.NewGuid(), ConnectionId = ConnectionId.New(),
+            Target = new MongoConnectionTarget("mongodb://localhost"), Database = "app", Collection = "users", Script = script };
+        var documents = Enumerable.Range(0, count).Select(index =>
+            new BsonDocument(missingId && index == 1 ? "value" : "_id", index)).ToArray();
+        var result = new QueryResult { Kind = QueryResultKind.Documents, Documents = documents };
+
+        var source = DocumentQuerySource.Resolve(context, result);
+
+        (source is not null).Should().Be(editable);
+        if (editable)
+        {
+            source!.Database.Value.Should().Be("app");
+            source.Collection.Value.Should().Be("orders");
+        }
+    }
+
     [Theory]
     [InlineData("db.users.find({})", "app", "app", "users")]
     [InlineData("db.getCollection('system.version').find({})", "admin", "admin", "system.version")]

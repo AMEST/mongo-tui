@@ -16,6 +16,7 @@ public sealed class LocalRequestGuard(RequestDelegate next)
         context.Response.Headers.XFrameOptions = "DENY";
         context.Response.Headers["Referrer-Policy"] = "no-referrer";
         context.Response.Headers["Content-Security-Policy"] = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'";
+        context.Response.Headers["Cross-Origin-Resource-Policy"] = "same-origin";
         await next(context);
     }
 
@@ -27,6 +28,6 @@ public sealed class LocalRequestGuard(RequestDelegate next)
         var origin = request.Headers.Origin.ToString();
         if (origin.Length > 0 && !origin.Equals($"{request.Scheme}://{request.Host}", StringComparison.Ordinal))
             return false;
-        return request.Headers["Sec-Fetch-Site"] != "cross-site";
+        return request.Headers["Sec-Fetch-Site"].ToString() is "" or "same-origin" or "none";
     }
 }

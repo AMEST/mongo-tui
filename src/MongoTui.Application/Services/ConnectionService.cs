@@ -12,6 +12,8 @@ namespace MongoTui.Application.Services;
 /// <summary>Manages connection profiles and their encrypted secrets.</summary>
 public sealed class ConnectionService
 {
+    public const int TestTimeoutSeconds = 3;
+
     private readonly IConnectionRepository _repository;
     private readonly SecretKeyService _secrets;
     private readonly IMongoGateway _gateway;
@@ -67,6 +69,17 @@ public sealed class ConnectionService
 
     public async Task<ConnectionProfile?> GetProfileAsync(ConnectionId id, CancellationToken cancellationToken) =>
         (await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false))?.Profile;
+
+    /// <summary>Prepares submitted fields, loading saved settings and a secret only when needed.</summary>
+    public async Task<(ConnectionProfile Profile, string? Secret)> PrepareAsync(
+        ConnectionProfileDraft draft, CancellationToken cancellationToken)
+    {
+        var parsed = ConnectionUriParser.Parse(draft.Uri);
+        var original = draft.Id is null ? null : await GetProfileAsync(draft.Id, cancellationToken).ConfigureAwait(false);
+        var secret = original is not null && string.IsNullOrEmpty(draft.Password) && parsed.Password is null
+            ? await GetSecretAsync(original.Id, cancellationToken).ConfigureAwait(false) : null;
+        return ConnectionProfilePreparation.Prepare(draft, original, secret);
+    }
 
     public async Task SaveAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
     {

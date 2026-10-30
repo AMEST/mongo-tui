@@ -1,0 +1,54 @@
+@inject WebText L
+@inject SettingsService Settings
+@inject WebSecurityStamp Stamp
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Context
+<!DOCTYPE html>
+<html lang="@L.Language" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/" />
+    <title>MongoTui</title>
+    <link rel="icon" href="_content/MongoTui.Web/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="_content/MongoTui.Web/app.css" />
+    <script src="_content/MongoTui.Web/theme.js"></script>
+</head>
+<body>
+    <main class="welcome-screen">
+        <div class="welcome-brand"><span class="brand-mark"><Icon Name="@IconNames.Database" Size="25" /></span>MongoTui<span class="badge">WEB</span></div>
+        <section class="welcome-card">
+            <span class="welcome-symbol"><Icon Name="@IconNames.Lock" Size="28" /></span>
+            <h1>@L[LocalizationKeys.WebAuth.SignIn]</h1>
+            @if (_passwordEnabled)
+            {
+                <form id="web-sign-in" action="/auth/password" method="post">
+                    <input type="hidden" autocomplete="username" value="MongoTui" />
+                    <label for="master-password">@L[LocalizationKeys.Security.Password]</label>
+                    <input id="master-password" name="password" type="password" autocomplete="current-password" maxlength="4096" required autofocus />
+                    <div class="feedback-slot"><p id="auth-error" class="error-message" role="alert" hidden></p></div>
+                    <button type="submit" class="button primary full-width">@L[LocalizationKeys.Security.Continue]</button>
+                </form>
+            }
+            else
+            {
+                <p>@L[LocalizationKeys.WebAuth.LaunchRequired]</p>
+                <div class="feedback-slot"><p id="auth-error" class="error-message" role="alert" hidden></p></div>
+            }
+        </section>
+        <div class="welcome-footer"><a class="text-button" href="/login?lang=@(L.Language == UiLanguages.English ? UiLanguages.Russian : UiLanguages.English)">@(L.Language == UiLanguages.English ? UiLanguages.RussianName : UiLanguages.EnglishName)</a></div>
+    </main>
+    <div id="auth-messages" hidden data-password="@L[LocalizationKeys.WebAuth.InvalidPassword]"
+         data-launch="@L[LocalizationKeys.WebAuth.InvalidLaunch]" data-unavailable="@L[LocalizationKeys.WebAuth.Unavailable]"
+         data-rate="@L[LocalizationKeys.WebAuth.RateLimited]" data-expired="@L[LocalizationKeys.WebAuth.SessionExpired]"></div>
+    <script src="_content/MongoTui.Web/auth.js"></script>
+</body>
+</html>
+@code {
+    private bool _passwordEnabled;
+    protected override async Task OnInitializedAsync()
+    {
+        L.SetLanguage(Context.HttpContext?.Request.Query["lang"].FirstOrDefault()
+            ?? await Settings.GetLanguageAsync(CancellationToken.None));
+        _passwordEnabled = (await Stamp.ReadAsync(CancellationToken.None)).PasswordEnabled;
+    }
+}

@@ -1,6 +1,7 @@
 using MongoTui.Application.Localization;
 using MongoTui.Application.Abstractions.Localization;
 using MongoTui.Application.Services;
+using MongoTui.Application.Models;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
@@ -22,7 +23,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
     private string? _authDatabase;
     private string? _validationError;
     private SshTunnelOptions _ssh = new();
-    private TlsOptions _tls = new();
+    private ConnectionProfile? _original;
+    private string? _originalSecret;
 
     public ConnectionFormViewModel(ConnectionService connections, ILocalizer localizer)
     {
@@ -94,7 +96,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
         AuthDatabase = null;
         ValidationError = null;
         Ssh = new SshTunnelOptions();
-        _tls = new TlsOptions();
+        _original = null;
+        _originalSecret = null;
         OnPropertyChanged(nameof(Id));
         OnPropertyChanged(nameof(IsNew));
     }
@@ -111,7 +114,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
         AuthDatabase = profile.Auth.AuthDatabase;
         Password = secret;
         Ssh = profile.Ssh;
-        _tls = profile.Tls;
+        _original = profile;
+        _originalSecret = secret;
         ValidationError = null;
         OnPropertyChanged(nameof(Id));
         OnPropertyChanged(nameof(IsNew));
@@ -120,12 +124,12 @@ public sealed class ConnectionFormViewModel : ObservableObject
     public async Task<bool> SaveAsync(CancellationToken cancellationToken)
     {
         ValidationError = null;
-        MergeCredentialsFromUri();
-
         try
         {
-            var profile = BuildProfile(Name);
-            await _connections.SaveAsync(profile, Password, cancellationToken);
+            var (profile, secret) = Prepare(Name);
+            await _connections.SaveAsync(profile, secret, cancellationToken).ConfigureAwait(false);
+            _original = profile;
+            _originalSecret = secret;
             IsNew = false;
             OnPropertyChanged(nameof(IsNew));
 
@@ -141,12 +145,10 @@ public sealed class ConnectionFormViewModel : ObservableObject
     public async Task<string?> TestAsync(CancellationToken cancellationToken)
     {
         ValidationError = null;
-        MergeCredentialsFromUri();
-
         try
         {
-            var profile = BuildProfile(_localizer.Get(LocalizationKeys.Connections.Test));
-            await _connections.TestConnectionAsync(profile, Password, cancellationToken);
+            var (profile, secret) = Prepare(_localizer.Get(LocalizationKeys.Connections.Test));
+            await _connections.TestConnectionAsync(profile, secret, cancellationToken).ConfigureAwait(false);
 
             return null;
         }
@@ -168,10 +170,8 @@ public sealed class ConnectionFormViewModel : ObservableObject
             if (parsed.Username is null && parsed.Password is null) return;
 
             Uri = parsed.Uri;
-            Username = string.IsNullOrEmpty(Username) ? parsed.Username : Username;
-            Password = string.IsNullOrEmpty(Password) ? parsed.Password : Password;
-            AuthDatabase = string.IsNullOrEmpty(AuthDatabase) ? parsed.AuthDatabase : AuthDatabase;
-            if (AuthKind == AuthKind.None) AuthKind = parsed.AuthKind;
+            var (auth, secret) = ConnectionCredentials.Merge(parsed, ReadAuth(), Password);
+            ApplyCredentials(auth, secret);
         }
         catch (DomainException exception)
         {
@@ -226,17 +226,23 @@ public sealed class ConnectionFormViewModel : ObservableObject
         }
     }
 
-    private ConnectionProfile BuildProfile(string name) =>
-        ConnectionProfile.Create(
-            Id,
-            name,
-            Uri,
-            new AuthOptions
-            {
-                Kind = AuthKind,
-                Username = Username,
-                AuthDatabase = AuthDatabase,
-            },
-            tls: _tls,
-            ssh: Ssh);
+    private (ConnectionProfile Profile, string? Secret) Prepare(string name)
+    {
+        var draft = new ConnectionProfileDraft { Id = Id, Name = name, Uri = Uri,
+            Auth = ReadAuth(), Password = Password, Ssh = Ssh };
+        var prepared = ConnectionProfilePreparation.Prepare(draft, _original, _originalSecret);
+        Uri = prepared.Profile.Uri;
+        ApplyCredentials(prepared.Profile.Auth, prepared.Secret);
+        return prepared;
+    }
+
+    private AuthOptions ReadAuth() => new() { Kind = AuthKind, Username = Username, AuthDatabase = AuthDatabase };
+
+    private void ApplyCredentials(AuthOptions auth, string? secret)
+    {
+        AuthKind = auth.Kind;
+        Username = auth.Username;
+        AuthDatabase = auth.AuthDatabase;
+        Password = secret;
+    }
 }

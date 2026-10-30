@@ -86,6 +86,23 @@ public sealed class SecurityModeServiceTests
         _sut.CurrentMode.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_PreserveExistingUnlock_WhenAnotherClientProvidesWrongPassword(bool unlocked)
+    {
+        _values[SecurityModeService.ModeSettingKey] = "password";
+        if (unlocked) _secrets.SetKek(new byte[32]);
+        A.CallTo(() => _password.UnlockAsync("wrong", A<CancellationToken>._))
+            .ThrowsAsync(new DomainException("Invalid master password."));
+
+        var act = () => _sut.UnlockWithPasswordAsync("wrong", CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+        _secrets.IsUnlocked.Should().Be(unlocked);
+        A.CallTo(() => _password.UnlockAsync("wrong", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
     [Fact]
     public async Task Should_DetectPassword_When_LegacySaltExists()
     {

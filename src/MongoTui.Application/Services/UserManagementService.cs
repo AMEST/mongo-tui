@@ -78,7 +78,7 @@ public sealed class UserManagementService
 
         if (sameUser && sameDatabase)
         {
-            throw new DomainException("Cannot delete the user of the current connection.");
+            throw new UserManagementException(UserManagementError.DeleteCurrentForbidden);
         }
 
         return _gateway.DeleteUserAsync(target, database, username, cancellationToken);
@@ -93,7 +93,7 @@ public sealed class UserManagementService
     {
         if (string.IsNullOrWhiteSpace(username))
         {
-            throw new DomainException("Username must not be empty.");
+            throw new UserManagementException(UserManagementError.UsernameRequired);
         }
     }
 
@@ -101,7 +101,7 @@ public sealed class UserManagementService
     {
         if (string.IsNullOrWhiteSpace(password))
         {
-            throw new DomainException("Password must not be empty.");
+            throw new UserManagementException(UserManagementError.PasswordRequired);
         }
     }
 
@@ -114,7 +114,7 @@ public sealed class UserManagementService
 
         if (access.Databases.Count == 0 && access.ClusterRoles.Count == 0)
         {
-            throw new DomainException("At least one database access or cluster role is required.");
+            throw new UserManagementException(UserManagementError.AccessRequired);
         }
     }
 

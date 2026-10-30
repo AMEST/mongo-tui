@@ -206,7 +206,7 @@ public sealed class UserManagementDialog : ThemedDialog
         }
         catch (DomainException exception)
         {
-            await _application.InvokeAsync(() => _status.Text = _localizer.GetErrorMessage(exception)).ConfigureAwait(false);
+            await _application.InvokeAsync(() => _status.Text = ErrorText(exception)).ConfigureAwait(false);
         }
     }
 
@@ -222,8 +222,7 @@ public sealed class UserManagementDialog : ThemedDialog
         }
     }
 
-    private string ErrorText(Exception exception) =>
-        exception is DomainException domain ? _localizer.GetErrorMessage(domain) : exception.Message;
+    private string ErrorText(Exception exception) => _localizer.GetUserErrorMessage(exception);
 
     private MongoUser? SelectedUser() =>
         _list.SelectedItem is int index && index >= 0 && index < _userList.Count ? _userList[index] : null;

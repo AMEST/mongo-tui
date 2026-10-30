@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using MongoTui.Application.Localization;
 using MongoTui.Application.Models;
+using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Users;
 using MongoTui.Web.Components.Panels;
@@ -107,7 +108,7 @@ public sealed class UserManagementDialogTests
         await fixture.ConnectAsync();
         fixture.Workspace.Text.SetLanguage(language);
         A.CallTo(() => fixture.Gateway.ListUsersAsync(A<MongoConnectionTarget>._, A<DatabaseName>._, A<CancellationToken>._))
-            .ThrowsAsync(new MongoTui.Domain.Exceptions.DomainException("Insufficient privileges to manage users."));
+            .ThrowsAsync(new UserManagementException(UserManagementError.InsufficientPrivileges));
 
         var html = await RenderAsync<UserManagementDialog>(fixture, new() { [nameof(UserManagementDialog.Selection)] = fixture.Selection });
 
