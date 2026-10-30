@@ -28,6 +28,9 @@ internal sealed class ComponentTestRenderer(IServiceProvider services)
     public Task ClickAsync(string cssClass) => Dispatcher.InvokeAsync(() =>
         DispatchEventAsync(ElementAttributes(_root, cssClass)!.Single(frame => frame.AttributeName == "onclick").AttributeEventHandlerId,
             null, new MouseEventArgs()));
+    public Task ClickAsync<T>(string cssClass) where T : IComponent => Dispatcher.InvokeAsync(() =>
+        DispatchEventAsync(ElementAttributes(FindComponent<T>(_root)!.Value, cssClass)!
+            .Single(frame => frame.AttributeName == "onclick").AttributeEventHandlerId, null, new MouseEventArgs()));
     public Task<object?> AttributeAsync(string cssClass, string attribute) => Dispatcher.InvokeAsync<object?>(() =>
         ElementAttributes(_root, cssClass)!.FirstOrDefault(frame => frame.AttributeName == attribute).AttributeValue);
     public Task<string> TextAsync() => Dispatcher.InvokeAsync(() => Text(_root));
@@ -35,6 +38,19 @@ internal sealed class ComponentTestRenderer(IServiceProvider services)
 
     protected override Task UpdateDisplayAsync(in RenderBatch renderBatch) => Task.CompletedTask;
     protected override void HandleException(Exception exception) => throw new InvalidOperationException("Component event failed.", exception);
+
+    private int? FindComponent<T>(int componentId) where T : IComponent
+    {
+        var frames = GetCurrentRenderTreeFrames(componentId);
+        for (var index = 0; index < frames.Count; index++)
+        {
+            var frame = frames.Array[index];
+            if (frame.FrameType != RenderTreeFrameType.Component) continue;
+            if (frame.ComponentType == typeof(T)) return frame.ComponentId;
+            if (FindComponent<T>(frame.ComponentId) is { } child) return child;
+        }
+        return null;
+    }
 
     private ulong FindEvent(int componentId, string attribute)
     {

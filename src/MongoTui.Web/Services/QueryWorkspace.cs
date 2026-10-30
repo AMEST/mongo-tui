@@ -22,6 +22,7 @@ public sealed class QueryWorkspace(
     private const int MaximumTabs = 12;
     private const int MaximumScriptCharacters = 256 * 1024;
     private readonly List<WebTab> _tabs = [];
+    private readonly Dictionary<Guid, QueryRequest> _resultRequests = [];
     private readonly CancellationTokenSource _lifetime = new();
     public IReadOnlyList<WebTab> Tabs => _tabs;
     public WebTab? Selected { get; private set; }
@@ -43,10 +44,15 @@ public sealed class QueryWorkspace(
 
     public void Select(WebTab tab) { Selected = tab; Changed?.Invoke(); }
 
-    public async Task ExecuteAsync(WebTab tab)
+    public Task ExecuteAsync(WebTab tab) => ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, tab.Page));
+
+    /// <summary>Reloads the displayed results using their successful query snapshot, preserving the editor draft.</summary>
+    public Task RefreshAsync(WebTab tab) => tab.Result is not null && _resultRequests.TryGetValue(tab.Id, out var request)
+        ? ExecuteAsync(tab, request) : Task.CompletedTask;
+
+    private async Task ExecuteAsync(WebTab tab, QueryRequest request)
     {
         if (tab.Busy || !_tabs.Contains(tab)) return;
-        var request = new QueryRequest(tab.Script, tab.Browse, tab.Filter, tab.Page);
         tab.Cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         tab.Busy = true;
         tab.Error = null;
@@ -71,6 +77,7 @@ public sealed class QueryWorkspace(
         if (tab.Operation is { } operation) await operation;
         await queries.CloseTabAsync(tab.Id, CancellationToken.None);
         _tabs.Remove(tab);
+        _resultRequests.Remove(tab.Id);
         tab.Result = null;
         if (Selected == tab) Selected = _tabs.LastOrDefault();
         Changed?.Invoke();
@@ -110,7 +117,11 @@ public sealed class QueryWorkspace(
         try
         {
             await limiter.EnterAsync(cancellationToken);
-            try { await LoadAsync(tab, request, cancellationToken); }
+            try
+            {
+                await LoadAsync(tab, request, cancellationToken);
+                _resultRequests[tab.Id] = request;
+            }
             finally { limiter.Exit(); }
         }
         catch (QueryTimeoutException exception) { tab.Error = text.Format(LocalizationKeys.Query.TimedOut, exception.Timeout.TotalSeconds); }
@@ -131,6 +142,7 @@ public sealed class QueryWorkspace(
                 new QueryExecutionOptions { Skip = request.Page * PageSize, Limit = PageSize + 1 }, cancellationToken);
             tab.HasNext = result.Documents.Count > PageSize;
             tab.Result = result with { Documents = result.Documents.Take(PageSize).ToArray() };
+            tab.Page = request.Page;
             tab.EditableCollection = collection;
             return;
         }
