@@ -13,10 +13,10 @@ namespace MongoTui.TUI.Tests.Views;
 public sealed class AboutDialogTests
 {
     [Theory]
-    [InlineData("en", "About MongoTui", "A terminal user interface for MongoDB.", "Version: ")]
-    [InlineData("ru", "О MongoTui", "Терминальный интерфейс для MongoDB.", "Версия: ")]
+    [InlineData("en", "About MongoTui", "A terminal user interface for MongoDB.", "Version: ", "Co-author: ")]
+    [InlineData("ru", "О MongoTui", "Терминальный интерфейс для MongoDB.", "Версия: ", "Соавтор: ")]
     public void Should_ShowLocalizedInformationAndEntryAssemblyVersion_WhenOpened(
-        string language, string title, string description, string versionLabel)
+        string language, string title, string description, string versionLabel, string coAuthorLabel)
     {
         var localizer = new ResxLocalizer();
         localizer.SetLanguage(language);
@@ -28,7 +28,8 @@ public sealed class AboutDialogTests
         dialog.Title.Should().Be(title);
         dialog.SubViews.OfType<Label>().Select(label => label.Text)
             .Should().Contain(["MongoTui", description, versionLabel + version,
-                "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)"]);
+                "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)",
+                coAuthorLabel + "Medvedev Denis (medved91)"]);
     }
 
     [Theory]

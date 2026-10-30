@@ -22,6 +22,7 @@ if (args.Contains("--version", StringComparer.Ordinal))
     await Console.Out.WriteLineAsync(ApplicationVersion.GetInformationalVersion());
     await Console.Out.WriteLineAsync(localizer.Get(LocalizationKeys.About.License));
     await Console.Out.WriteLineAsync(localizer.Get(LocalizationKeys.About.Copyright));
+    await Console.Out.WriteLineAsync(localizer.Get(LocalizationKeys.About.CoAuthor));
     return 0;
 }
 

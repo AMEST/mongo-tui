@@ -32,7 +32,8 @@ public sealed class CommandLineTests
 
         process.ExitCode.Should().Be(0);
         output.Should().Be(string.Join(Environment.NewLine,
-            expectedVersion, "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)", string.Empty));
+            expectedVersion, "MIT License", "Copyright (c) 2026 Klabukov Erik (AMEST)",
+            "Co-author: Medvedev Denis (medved91)", string.Empty));
         error.Should().BeEmpty();
     }
 }

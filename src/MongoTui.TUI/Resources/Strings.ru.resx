@@ -20,6 +20,7 @@
   <data name="About.Version" xml:space="preserve"><value>Версия: {0}</value></data>
   <data name="About.License" xml:space="preserve"><value>MIT License</value></data>
   <data name="About.Copyright" xml:space="preserve"><value>Copyright (c) 2026 Klabukov Erik (AMEST)</value></data>
+  <data name="About.CoAuthor" xml:space="preserve"><value>Соавтор: Medvedev Denis (medved91)</value></data>
   <data name="Status.Ready" xml:space="preserve"><value>Готово</value></data>
   <data name="Status.Hint" xml:space="preserve"><value>F5/Ctrl+R Выполнить · Ctrl+T Новая вкладка · Ctrl+W Закрыть · Ctrl+O Подключения · Ctrl+Q Выход</value></data>
   <data name="Common.Ok" xml:space="preserve"><value>OK</value></data>

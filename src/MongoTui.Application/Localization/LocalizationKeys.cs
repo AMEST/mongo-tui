@@ -5,6 +5,7 @@ public static partial class LocalizationKeys
 {
     public static class About
     {
+        public const string CoAuthor = "About.CoAuthor";
         public const string Copyright = "About.Copyright";
         public const string Description = "About.Description";
         public const string License = "About.License";

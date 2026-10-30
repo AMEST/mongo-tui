@@ -27,6 +27,7 @@ public sealed class AboutDialog : ThemedDialog
         });
         Add(new Label { Text = localizer.Get(LocalizationKeys.About.License), X = 1, Y = 7, Width = Dim.Fill(1) });
         Add(new Label { Text = localizer.Get(LocalizationKeys.About.Copyright), X = 1, Y = 8, Width = Dim.Fill(1) });
+        Add(new Label { Text = localizer.Get(LocalizationKeys.About.CoAuthor), X = 1, Y = 9, Width = Dim.Fill(1) });
 
         var okButton = new Button { Text = localizer.Get(LocalizationKeys.Common.Ok), IsDefault = true };
         okButton.OnAccept(() => application.RequestStop(this));
