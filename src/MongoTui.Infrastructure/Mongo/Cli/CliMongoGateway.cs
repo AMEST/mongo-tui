@@ -25,7 +25,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         EnsureProxySupported(target);
         var arguments = new List<string>
         {
-            $"--uri={target.ConnectionString}",
+            $"--uri={UriForDatabase(target, request.Collection.Database)}",
             $"--db={request.Collection.Database.Value}",
             $"--collection={request.Collection.Collection.Value}",
             $"--out={request.OutputPath}",
@@ -71,7 +71,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         EnsureProxySupported(target);
         var arguments = new List<string>
         {
-            $"--uri={target.ConnectionString}",
+            $"--uri={UriForDatabase(target, request.Collection.Database)}",
             $"--db={request.Collection.Database.Value}",
             $"--collection={request.Collection.Collection.Value}",
             $"--file={request.InputPath}",
@@ -117,7 +117,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         EnsureProxySupported(target);
         var arguments = new List<string>
         {
-            $"--uri={target.ConnectionString}",
+            $"--uri={UriForDatabase(target, database)}",
             $"--db={database.Value}",
             $"--out={outputDirectory}",
         };
@@ -134,7 +134,7 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         EnsureProxySupported(target);
         var arguments = new List<string>
         {
-            $"--uri={target.ConnectionString}",
+            $"--uri={UriForDatabase(target, database)}",
             $"--db={database.Value}",
             $"--dir={inputDirectory}",
         };
@@ -150,10 +150,22 @@ public sealed class CliMongoGateway : ICliMongoTransferGateway
         }
     }
 
+    private static string UriForDatabase(MongoConnectionTarget target, DatabaseName database)
+    {
+        var original = new MongoUrl(target.ConnectionString);
+        // Database Tools also use --db as the implicit authentication database.
+        var uri = new MongoUrlBuilder(target.ConnectionString)
+        {
+            DatabaseName = database.Value,
+            AuthenticationSource = original.AuthenticationSource ?? original.GetCredential()?.Source,
+        };
+        return uri.ToString();
+    }
+
     private async Task RunToolAsync(string tool, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         var request = new ProcessRequest(_tools.Resolve(tool), arguments);
-        var result = await _runner.RunAsync(request, cancellationToken);
+        var result = await _runner.RunAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (!result.Succeeded)
         {

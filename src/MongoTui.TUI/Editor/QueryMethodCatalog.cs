@@ -25,6 +25,7 @@ internal static class QueryMethodCatalog
         QueryMethodScope.Cursor =>
         [
             new("limit", "", 1, QueryMethodScope.Cursor), new("skip", "", 1, QueryMethodScope.Cursor),
+            new("maxTimeMS", "", 1, QueryMethodScope.Cursor),
             new("sort", "{}", 2, QueryMethodScope.Cursor), new("toArray", "", 0), new("count", "", 0),
         ],
         _ => [],

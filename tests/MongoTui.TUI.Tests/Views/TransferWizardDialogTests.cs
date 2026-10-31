@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using Microsoft.Extensions.Logging.Abstractions;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
@@ -36,7 +37,7 @@ public sealed class TransferWizardDialogTests
         var collection = new CollectionRef(DatabaseName.Create("app"), CollectionName.Create("users"));
         using ThemedDialog dialog = import
             ? new ImportWizardDialog(new ImportService(transfer), localizer, application, target, collection)
-            : new ExportWizardDialog(new ExportService(transfer), localizer, application, target, collection);
+            : new ExportWizardDialog(new ExportService(transfer, NullLogger<ExportService>.Instance), localizer, application, target, collection);
         dialog.SubViews.OfType<TextField>().First().Text = "/tmp/transfer.json";
 
         dialog.Buttons[0].InvokeCommand(Command.Accept);

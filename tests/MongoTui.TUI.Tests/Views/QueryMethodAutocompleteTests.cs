@@ -42,12 +42,16 @@ public sealed class QueryMethodAutocompleteTests
     [InlineData("db.items.findO|", "findOne", "db.items.findOne({|})")]
     [InlineData("db.items.find({}).li|", "limit", "db.items.find({}).limit(|)")]
     [InlineData("db.items.find({}).sk|", "skip", "db.items.find({}).skip(|)")]
+    [InlineData("db.items.find({}).max|", "maxTimeMS", "db.items.find({}).maxTimeMS(|)")]
+    [InlineData("db.items.find({}).maxt|", "maxTimeMS", "db.items.find({}).maxTimeMS(|)")]
     [InlineData("db.items.find({}).so|", "sort", "db.items.find({}).sort({|})")]
     [InlineData("db.items.find({}).toA|", "toArray", "db.items.find({}).toArray()|")]
     [InlineData("db.items.find({}).co|", "count", "db.items.find({}).count()|")]
     [InlineData("db.items.find({}).limit(5).toA|", "toArray", "db.items.find({}).limit(5).toArray()|")]
+    [InlineData("db.items.find({}).maxTimeMS(1000).li|", "limit", "db.items.find({}).maxTimeMS(1000).limit(|)")]
     [InlineData("db.getColle|cton('items').find({})", "getCollection", "db.getCollection|('items').find({})")]
     [InlineData("db.items.find({}).li|mt(5).toArray()", "limit", "db.items.find({}).limit|(5).toArray()")]
+    [InlineData("db.items.find({}).maxT|meMS(5000).toArray()", "maxTimeMS", "db.items.find({}).maxTimeMS|(5000).toArray()")]
     public async Task Should_InsertMethodAndPositionCaret_WhenSuggestionAccepted(string marked, string method, string expected)
     {
         using var tabs = CreateTabs(marked.Replace("|", string.Empty, StringComparison.Ordinal), marked.IndexOf('|'));
@@ -67,8 +71,10 @@ public sealed class QueryMethodAutocompleteTests
     [InlineData("db.ge", 't', "getSiblingDB,getCollection")]
     [InlineData("db.get", 'C', "getCollection")]
     [InlineData("db.getCollection('items')", '.', "find,findOne,countDocuments,estimatedDocumentCount")]
-    [InlineData("db.items.find({})", '.', "limit,skip,sort,toArray,count")]
-    [InlineData("db.items.find({}).limit(5)", '.', "limit,skip,sort,toArray,count")]
+    [InlineData("db.items.find({})", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
+    [InlineData("db.items.find({}).limit(5)", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
+    [InlineData("db.items.find({}).maxTimeMS(1000)", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
+    [InlineData("db.items.find({}).max", 'T', "maxTimeMS")]
     public void Should_OpenPopupAutomatically_WhenTypingMethodPrefixOrDot(string script, char character, string methods)
     {
         using IApplication app = Terminal.Gui.App.Application.Create();
@@ -91,13 +97,15 @@ public sealed class QueryMethodAutocompleteTests
         Fake.GetCalls(_gateway).Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Should_ReopenCursorMethods_WhenDotTypedAfterAcceptedLimit()
+    [Theory]
+    [InlineData("li", "5", "limit(5)")]
+    [InlineData("max", "1000", "maxTimeMS(1000)")]
+    public async Task Should_ReopenCursorMethods_WhenDotTypedAfterAcceptedMethod(string prefix, string argument, string call)
     {
         using IApplication app = Terminal.Gui.App.Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
         using var runnable = new Runnable<bool>();
-        var tabs = CreateTabs("db.items.find({}).li");
+        var tabs = CreateTabs($"db.items.find({{}}).{prefix}");
         tabs.Width = 70;
         tabs.Height = 20;
         runnable.Add(tabs);
@@ -106,13 +114,13 @@ public sealed class QueryMethodAutocompleteTests
         editor.SetFocus();
         await tabs.CompleteActiveAsync(CancellationToken.None);
         editor.Autocomplete.ProcessKey(Key.Enter);
-        editor.InsertText("5");
+        editor.InsertText(argument);
         editor.MoveEnd();
 
         editor.NewKeyDownEvent(new Key('.'));
 
         app.LayoutAndDraw();
-        editor.Text.Should().Be("db.items.find({}).limit(5).");
+        editor.Text.Should().Be($"db.items.find({{}}).{call}.");
         editor.Autocomplete.Visible.Should().BeTrue();
         editor.Autocomplete.Suggestions.Should().Contain(item => item.Title == "toArray");
     }

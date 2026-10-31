@@ -44,7 +44,7 @@ public static class DocumentQuerySource
         if (selectedDatabase is null || collection is null) return null;
 
         var query = Match(script[prefix.Length..], @"\A\s*\.\s*(?<method>findOne|find)\s*\(
-            \s*(?<filter>.*?)\s*\)\s*(?<tail>(?:\.\s*(?:limit|skip)\s*\(\s*\d+\s*\)\s*
+            \s*(?<filter>.*?)\s*\)\s*(?<tail>(?:\.\s*(?:limit|skip|maxTimeMS)\s*\(\s*\d+\s*\)\s*
             |\.\s*sort\s*\(\s*(?<sort>\{.*?\})\s*\)\s*)*)
             (?<array>\.\s*toArray\s*\(\s*\)\s*)?;?\s*\z");
         if (!query.Success || !IsDocument(query.Groups["filter"].Value)) return null;

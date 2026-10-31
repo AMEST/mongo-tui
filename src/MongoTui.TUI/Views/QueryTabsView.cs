@@ -4,6 +4,7 @@ using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Primitives;
 using MongoTui.TUI.ViewModels;
+using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -69,10 +70,12 @@ public sealed class QueryTabsView : View
         MongoConnectionTarget target,
         string? database = null,
         string? collection = null,
-        string script = "")
+        string script = "",
+        string? connectionName = null)
     {
         _counter++;
-        var model = new QueryTabViewModel(_queryService, _localizer, connectionId, target, $"Query {_counter}", database, collection, script);
+        var model = new QueryTabViewModel(_queryService, _localizer, connectionId, target,
+            $"Query {_counter}", database, collection, script, connectionName);
         model.Result.Mode = _resultViewMode;
 
         var pane = new QueryTabPane(this, model, _localizer, _autocomplete);
@@ -104,28 +107,42 @@ public sealed class QueryTabsView : View
         }
     }
 
-    public async Task<QueryRunSummary?> RunActiveAsync()
+    public Task<QueryRunSummary?> RunActiveAsync(IApplication application)
     {
-        if (CurrentPane() is not { } pane)
-        {
-            Log.Debug("RunActive: no active query pane");
-            return null;
-        }
+        var pane = CurrentPane();
+        if (pane is null || pane.Model.IsExecuting || pane.Operation is { IsCompleted: false })
+            return Task.FromResult<QueryRunSummary?>(null);
+        return pane.Operation = RunAsync(application, pane);
+    }
 
+    /// <summary>Reloads the tab's last verified read without changing its editor or the selected tab.</summary>
+    public Task<QueryRunSummary?> RefreshAsync(IApplication application, QueryTabViewModel tab)
+    {
+        var pane = _panes.Values.FirstOrDefault(candidate => candidate.Model == tab);
+        if (pane is null || tab.IsExecuting || pane.Operation is { IsCompleted: false } || tab.ResultCollection is null)
+            return Task.FromResult<QueryRunSummary?>(null);
+        return pane.Operation = RunAsync(application, pane, refresh: true);
+    }
+
+    private async Task<QueryRunSummary?> RunAsync(IApplication application, QueryTabPane pane, bool refresh = false)
+    {
+        var cancellationToken = pane.CancellationToken;
         Log.Debug("RunActive: executing tab {TabId} ({Title})", pane.Model.Id, pane.Model.Title);
         pane.Editor.CancelCompletion();
-        await pane.Model.ExecuteAsync(CancellationToken.None);
-        InvalidateCompletions();
-        pane.ShowResult();
-        pane.FocusResult();
-
-        var summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed);
-
-        Log.Debug(
-            "RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
-            pane.Model.Id,
-            pane.Model.Result.Documents.Count,
-            pane.Model.Result.HasError);
+        QueryRunSummary? summary = null;
+        Task UpdateAsync(Action update) => application.InvokeAsync(() =>
+        {
+            if (cancellationToken.IsCancellationRequested || !_panes.ContainsKey(pane.Container)) return;
+            update();
+            InvalidateCompletions();
+            pane.ShowResult();
+            if (!refresh && CurrentPane() == pane) pane.FocusResult();
+            summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed);
+            Log.Debug("RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
+                pane.Model.Id, pane.Model.Result.Documents.Count, pane.Model.Result.HasError);
+        });
+        await (refresh ? pane.Model.RefreshAsync(UpdateAsync, cancellationToken)
+            : pane.Model.ExecuteAsync(UpdateAsync, cancellationToken)).ConfigureAwait(false);
 
         return summary;
     }
@@ -145,6 +162,7 @@ public sealed class QueryTabsView : View
         InvalidateCompletions();
         foreach (var pane in _panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToList())
         {
+            pane.Cancel();
             pane.Editor.CancelCompletion();
             await pane.Model.CloseAsync(CancellationToken.None);
             _panes.Remove(pane.Container);
@@ -160,6 +178,7 @@ public sealed class QueryTabsView : View
             return;
         }
 
+        pane.Cancel();
         pane.Editor.CancelCompletion();
         await pane.Model.CloseAsync(CancellationToken.None);
         _panes.Remove(pane.Container);

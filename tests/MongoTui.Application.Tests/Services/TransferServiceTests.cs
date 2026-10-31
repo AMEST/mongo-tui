@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using Microsoft.Extensions.Logging.Abstractions;
 using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
 using MongoTui.Application.Services;
@@ -22,7 +23,7 @@ public sealed class TransferServiceTests
 
     public TransferServiceTests()
     {
-        _export = new ExportService(_transfer);
+        _export = new ExportService(_transfer, NullLogger<ExportService>.Instance);
         _import = new ImportService(_transfer);
     }
 

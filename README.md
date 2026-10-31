@@ -26,8 +26,12 @@ with English and Russian interfaces.
   Empty databases known from the URI, authentication source or user privileges remain visible in the tree.
   Right-click a connection to create a database with its first collection, or a database to create a collection or open an empty query tab bound to it. Creating a database writes to the server immediately.
   Right-click a database (or a connection for `admin`) to create, edit and delete MongoDB users, assign database and cluster roles, generate passwords and copy a ready-to-use connection string.
-- JavaScript query tabs with autocomplete and query history.
+  Index lists show key fields, directions and uniqueness; deleting an index requires confirmation.
+- JavaScript query tabs with syntax highlighting, autocomplete and query history.
+  Each TUI tab shows its connection name and database above the query editor.
+  History lets you choose a saved connection, inspect query details and reopen a query without running it.
 - Table, Tree and JSON result views; document editing as Canonical Extended JSON with BSON type checks.
+  After a document is inserted, saved or deleted, TUI reloads the last verified read without changing the editor draft.
 - Collection import and export in JSON.
 - AI query assistance and translation through an OpenAI-compatible API.
 
@@ -99,7 +103,7 @@ The query timeout is shared by TUI and web. Configure it under **Settings → Qu
    **From URI** fills the authentication fields from a full connection string.
    **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
 3. Expand a database and open a collection with **Enter** or a double-click. A query tab opens
-   with a ready-to-run `find` query.
+   with a `find` query that runs immediately and loads up to 50 documents.
 4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree or JSON in
    **Settings → Result view**.
 
@@ -164,7 +168,6 @@ names with their BSON types, so it can draft queries against the real schema.
 - TUI Tree mode displays formatted documents without expandable nodes; Web Tree nodes can expand.
 - Use JSON for transfers: TUI CSV options and BSON support in the dialogs are incomplete.
   Database dump/restore is not available in the interface.
-- TUI query history supports viewing only; Web history can reopen queries without running them.
 
 ## Local data
 

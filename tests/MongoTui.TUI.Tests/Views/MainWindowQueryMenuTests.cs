@@ -1,5 +1,6 @@
 using MongoTui.Application.Localization;
 using System.Reflection;
+using MongoDB.Bson;
 using AwesomeAssertions;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.Domain.Connections;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 using MongoTui.TUI.Bootstrap;
 using MongoTui.TUI.ViewModels;
 using MongoTui.TUI.Views;
@@ -33,9 +35,15 @@ public sealed class MainWindowQueryMenuTests : IDisposable
     private readonly ILocalizer _localizer;
     private readonly IMongoGateway _gateway;
     private readonly IConnectionRepository _repository = A.Fake<IConnectionRepository>();
+    private readonly IMongoShellSessionFactory _sessions = A.Fake<IMongoShellSessionFactory>();
+    private readonly IMongoShellSession _session = A.Fake<IMongoShellSession>();
 
     public MainWindowQueryMenuTests()
     {
+        A.CallTo(() => _sessions.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_session);
+        A.CallTo(() => _session.IsRunning).Returns(true);
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+            .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("loaded", "automatically")] });
         _gateway = A.Fake<IMongoGateway>();
         A.CallTo(() => _gateway.ListCollectionsAsync(Target, A<DatabaseName>._, A<CancellationToken>._))
             .Returns(Task.FromResult<IReadOnlyList<string>>(["c1"]));
@@ -52,7 +60,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         services.AddSingleton(A.Fake<IStorageTransaction>());
         services.AddSingleton(A.Fake<ISshTunnelFactory>());
         services.AddSingleton(A.Fake<ITwoFactorPrompt>());
-        services.AddSingleton(A.Fake<IMongoShellSessionFactory>());
+        services.AddSingleton(_sessions);
         services.AddLogging();
         services.AddSingleton(A.Fake<MongoTui.Application.Abstractions.Diagnostics.ILoggingSettings>());
         services.AddApplication();
@@ -87,8 +95,10 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         var tabs = (QueryTabsView)Field(_window, "_queryTabs");
         tabs.TabCount.Should().Be(1);
         tabs.ActiveTab!.Database.Should().Be("app");
+        tabs.ActiveTab.ConnectionName.Should().Be("local");
         tabs.ActiveTab.Collection.Should().BeNull();
         tabs.ActiveTab.Script.Should().Be("// write your query below this line");
+        A.CallTo(() => _sessions.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -104,9 +114,32 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         var tabs = (QueryTabsView)Field(_window, "_queryTabs");
         tabs.TabCount.Should().Be(1);
         tabs.ActiveTab!.Database.Should().Be("app");
+        tabs.ActiveTab.ConnectionName.Should().Be("local");
         tabs.ActiveTab.Collection.Should().Be("c1");
         tabs.ActiveTab.Script.Should().Be("db.getCollection(\"c1\").find({}).limit(50).toArray()");
         tabs.ActiveTab.Script.Should().NotContain("getSiblingDB");
+        tabs.ActiveResultView!.Text.Should().Contain("automatically");
+        A.CallTo(() => _session.EvaluateAsync(tabs.ActiveTab.Script, "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData("c1", "\"c1\"")]
+    [InlineData("x\");db.dropDatabase();db.getCollection(\"x", "\"x\\u0022);db.dropDatabase();db.getCollection(\\u0022x\"")]
+    public async Task Should_ExecuteOnlyGeneratedFind_WhenCollectionIsOpened(string collection, string literal)
+    {
+        A.CallTo(() => _gateway.ListCollectionsAsync(Target, DatabaseName.Create("app"), A<CancellationToken>._))
+            .Returns(new[] { collection });
+        var connection = AddConnection("app", new DatabaseInfo("app", false));
+        await _tree.ToggleDatabaseAsync(connection.Profile.Id, Target, "app", CancellationToken.None);
+        Invoke(windowRebuild: true);
+        ((ListView)Field(_window, "_treeList")).SelectedItem = Rows().FindIndex(row => row.Collection == collection);
+
+        await InvokeAsync("OpenTreeItemAsync");
+
+        var tabs = (QueryTabsView)Field(_window, "_queryTabs");
+        tabs.ActiveResultView!.Text.Should().Contain("automatically");
+        A.CallTo(() => _session.EvaluateAsync($"db.getCollection({literal}).find({{}}).limit(50).toArray()",
+            "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]

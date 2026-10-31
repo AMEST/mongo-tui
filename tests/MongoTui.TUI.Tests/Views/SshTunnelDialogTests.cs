@@ -11,6 +11,26 @@ namespace MongoTui.TUI.Tests.Views;
 
 public sealed class SshTunnelDialogTests
 {
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public void Should_PrefillHomeWithoutSettingIdentityFile_WhenSshKeyNotSelected(string language)
+    {
+        var application = A.Fake<IApplication>();
+        var localizer = new ResxLocalizer();
+        localizer.SetLanguage(language);
+        using var dialog = new SshTunnelDialog(localizer, application, new SshTunnelOptions { Enabled = true, Host = "jump" });
+        var path = dialog.SubViews.OfType<TextField>().Last().Text;
+
+        dialog.Buttons[0].InvokeCommand(Command.Accept);
+
+        Path.TrimEndingDirectorySeparator(path).Should().Be(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        Path.EndsInDirectorySeparator(path).Should().BeTrue();
+        dialog.Options.Should().NotBeNull();
+        dialog.Options!.PrivateKeyFile.Should().BeNull();
+        A.CallTo(() => application.RequestStop(dialog)).MustHaveHappenedOnceExactly();
+    }
+
     [Fact]
     public void Should_PopulateAndSaveOptions_WhenEditingSshSettings()
     {

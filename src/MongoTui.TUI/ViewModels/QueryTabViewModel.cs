@@ -7,6 +7,7 @@ using MongoTui.Application.Services;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Primitives;
 using MongoTui.Domain.Collections;
+using MongoTui.Domain.Queries;
 
 namespace MongoTui.TUI.ViewModels;
 
@@ -18,6 +19,7 @@ public sealed class QueryTabViewModel : ObservableObject
     private string _title;
     private string _script;
     private bool _isExecuting;
+    private QueryExecutionContext? _resultContext;
 
     public QueryTabViewModel(
         QueryService queryService,
@@ -27,12 +29,14 @@ public sealed class QueryTabViewModel : ObservableObject
         string title,
         string? database = null,
         string? collection = null,
-        string script = "")
+        string script = "",
+        string? connectionName = null)
     {
         _queryService = queryService;
         _localizer = localizer;
         Id = Guid.NewGuid();
         ConnectionId = connectionId;
+        ConnectionName = connectionName ?? connectionId.Value.ToString();
         Target = target;
         Database = database;
         Collection = collection;
@@ -44,9 +48,15 @@ public sealed class QueryTabViewModel : ObservableObject
 
     public ConnectionId ConnectionId { get; }
 
+    public string ConnectionName { get; }
+
     public MongoConnectionTarget Target { get; }
 
     public string? Database { get; set; }
+
+    /// <summary>The tab database, or mongosh's URI/default database when none was selected.</summary>
+    public string ContextDatabase => Database ?? ConnectionUriParser.Parse(Target.ConnectionString).Database
+        ?? MongoSystemNames.DefaultDatabase;
 
     public string? Collection { get; set; }
 
@@ -73,43 +83,75 @@ public sealed class QueryTabViewModel : ObservableObject
         private set => SetProperty(ref _isExecuting, value);
     }
 
-    public async Task ExecuteAsync(CancellationToken cancellationToken)
+    public Task ExecuteAsync(CancellationToken cancellationToken) =>
+        ExecuteAsync(action => { action(); return Task.CompletedTask; }, cancellationToken);
+
+    internal Task ExecuteAsync(Func<Action, Task> update, CancellationToken cancellationToken) =>
+        ExecuteAsync(new QueryExecutionContext
+        {
+            TabId = Id, ConnectionId = ConnectionId, Target = Target,
+            Script = Script, Database = Database, Collection = Collection,
+        }, update, cancellationToken);
+
+    // Only verified reads can be replayed after document mutations; the editor may contain a different script.
+    internal Task RefreshAsync(Func<Action, Task> update, CancellationToken cancellationToken) =>
+        _resultContext is { } context && ResultCollection is not null
+            ? ExecuteAsync(context, update, cancellationToken) : Task.CompletedTask;
+
+    private async Task ExecuteAsync(QueryExecutionContext context, Func<Action, Task> update, CancellationToken cancellationToken)
     {
         IsExecuting = true;
         ResultCollection = null;
-        Log.Debug("Query tab {TabId}: executing ({ScriptLength} chars)", Id, Script.Length);
+        _resultContext = null;
+        Log.Debug("Query tab {TabId}: executing ({ScriptLength} chars)", Id, context.Script.Length);
 
         try
         {
-            var context = new QueryExecutionContext
+            QueryResult? result = null;
+            Exception? failure = null;
+            try
             {
-                TabId = Id,
-                ConnectionId = ConnectionId,
-                Target = Target,
-                Script = Script,
-                Database = Database,
-                Collection = Collection,
-            };
-
-            var result = await _queryService.ExecuteAsync(context, cancellationToken);
-            Result.Load(result);
-            ResultCollection = DocumentQuerySource.Resolve(context, result);
-            Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result.Documents.Count, result.Elapsed);
-        }
-        catch (DomainException exception)
-        {
-            Log.Warning("Query tab {TabId}: execution failed ({ExceptionType})", Id, exception.GetType().Name);
-            Result.LoadError(exception is QueryTimeoutException timeout
-                ? _localizer.Format(LocalizationKeys.Query.TimedOut, timeout.Timeout.TotalSeconds) : exception.Message);
-        }
-        catch (Exception exception)
-        {
-            Log.Error("Query tab {TabId}: unexpected error ({ExceptionType})", Id, exception.GetType().Name);
-            Result.LoadError(exception.Message);
+                result = await _queryService.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.Debug("Query tab {TabId}: execution cancelled", Id);
+                return;
+            }
+            catch (Exception exception) { failure = exception; }
+            await update(() => ApplyResult(context, result, failure)).ConfigureAwait(false);
         }
         finally
         {
             IsExecuting = false;
+        }
+    }
+
+    private void ApplyResult(QueryExecutionContext context, QueryResult? result, Exception? failure)
+    {
+        if (failure is null)
+        {
+            try
+            {
+                Result.Load(result!);
+                ResultCollection = DocumentQuerySource.Resolve(context, result!);
+                _resultContext = ResultCollection is null ? null : context;
+                Log.Debug("Query tab {TabId}: loaded {DocumentCount} documents in {Elapsed}", Id, result!.Documents.Count, result.Elapsed);
+                return;
+            }
+            catch (Exception exception) { failure = exception; }
+        }
+        if (failure is DomainException)
+        {
+            Log.Warning("Query tab {TabId}: execution failed ({ExceptionType})", Id, failure.GetType().Name);
+            Result.LoadError(failure is QueryTimeoutException timeout
+                ? _localizer.Format(LocalizationKeys.Query.TimedOut, timeout.Timeout.TotalSeconds) : failure.Message);
+        }
+        else
+        {
+            Log.Error("Query tab {TabId}: unexpected error ({ExceptionType})", Id, failure.GetType().Name);
+            Result.LoadError(failure.Message);
         }
     }
 

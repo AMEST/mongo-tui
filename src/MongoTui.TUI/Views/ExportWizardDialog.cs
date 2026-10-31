@@ -26,6 +26,7 @@ public sealed class ExportWizardDialog : ThemedDialog
     private readonly ListView _formatList = new();
     private readonly Label _error = new();
     private readonly string[] _formats = Enum.GetNames<ExportFormat>();
+    private string _suggestedOutputPath = string.Empty;
 
     public ExportWizardDialog(
         ExportService export,
@@ -48,6 +49,9 @@ public sealed class ExportWizardDialog : ThemedDialog
         _outputField.X = 22;
         _outputField.Y = 1;
         _outputField.Width = Dim.Fill();
+        _suggestedOutputPath = DialogPathDefaults.ExportPath(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), collection, DateTimeOffset.Now, ExportFormat.CanonicalJson);
+        _outputField.Text = _suggestedOutputPath;
         Add(_outputField);
 
         Add(FieldLabel(LocalizationKeys.Export.FieldFilter, 3));
@@ -69,6 +73,7 @@ public sealed class ExportWizardDialog : ThemedDialog
         _formatList.Height = 5;
         _formatList.SetSource(new ObservableCollection<string>(_formats));
         _formatList.SelectedItem = Array.IndexOf(_formats, ExportFormat.CanonicalJson.ToString());
+        _formatList.ValueChanged += (_, _) => UpdateSuggestedOutputPath();
         Add(_formatList);
 
         _error.X = 1;
@@ -85,6 +90,15 @@ public sealed class ExportWizardDialog : ThemedDialog
     }
 
     public bool Completed { get; private set; }
+
+    private void UpdateSuggestedOutputPath()
+    {
+        if (_formatList.SelectedItem is not int index || index < 0 || index >= _formats.Length) return;
+        var format = Enum.Parse<ExportFormat>(_formats[index]);
+        var path = Path.ChangeExtension(_suggestedOutputPath, DialogPathDefaults.ExportExtension(format));
+        if (_outputField.Text == _suggestedOutputPath) _outputField.Text = path;
+        _suggestedOutputPath = path;
+    }
 
     private async Task RunAsync()
     {

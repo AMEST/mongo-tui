@@ -20,7 +20,7 @@ public sealed class ImportWizardDialog : ThemedDialog
     private readonly IApplication _application;
     private readonly MongoConnectionTarget _target;
     private readonly CollectionRef _collection;
-    private readonly TextField _inputField = new();
+    private readonly OpenFilePathField _inputField = new();
     private readonly TextField _dropField = new();
     private readonly ListView _formatList = new();
     private readonly ListView _modeList = new();

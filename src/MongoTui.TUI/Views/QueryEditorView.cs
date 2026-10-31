@@ -15,7 +15,7 @@ using Terminal.Gui.Views;
 namespace MongoTui.TUI.Views;
 
 /// <summary>Query editor with asynchronously loaded MongoDB name completions.</summary>
-internal sealed class QueryEditorView : TextView, ISuggestionGenerator
+internal sealed class QueryEditorView : SyntaxTextView, ISuggestionGenerator
 {
     private readonly AutocompleteService _autocomplete;
     private readonly QueryTabViewModel _model;

@@ -2,6 +2,48 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+
+- **TUI query context** — each tab shows its connection profile and database above the editor,
+  including the URI/default database when no database was explicitly selected.
+- **TUI query timeout completion** — suggest `maxTimeMS()` in cursor method chains and place
+  the caret inside its parentheses for entering a timeout in milliseconds. Document editing
+  and automatic result refresh remain available for verified reads using `maxTimeMS`.
+- **TUI query history** — choose a saved connection, inspect the query, database, collection,
+  date, status and duration, and reopen it in a new tab without executing it.
+- **TUI syntax highlighting** — JavaScript/JSON tokens are colored in query and document editors
+  and history previews, preserving editing, autocomplete and selection.
+- **TUI index details** — show key fields, directions and uniqueness; require confirmation
+  before dropping an index and disable dropping the built-in `_id_` index.
+
+### Changed
+
+- TUI file dialogs start in the user's home directory on macOS, Linux and Windows.
+  Exports suggest a portable filename with database, collection and timestamp; format changes
+  update the suggested extension while preserving custom paths. Existing SSH key paths remain unchanged.
+- TUI document dialogs grow with the terminal height and reserve more space for the document editor.
+- Opening a collection in TUI immediately runs its generated `find({}).limit(50)` query,
+  including opening it from the collection context menu. Closing a tab cancels its pending query.
+- TUI refreshes results after document insertion, editing and deletion by replaying the last
+  verified read in its original tab, preserving the editor draft and selected tab.
+
+### Fixed
+
+- Collection names are escaped as JavaScript string literals before generating TUI queries.
+- Pending TUI queries do not run twice or steal focus after switching tabs; delayed results
+  are applied through the UI loop and never update a closed tab.
+- TUI index dialogs finish background loading and index creation inside nested windows
+  without hanging on progress; failures and cancellation restore the controls.
+- Enter selects the highlighted action in the TUI connection tree context menu instead of
+  dismissing it without running the action. Space still selects and Esc cancels.
+- Collection export failures are logged with database, collection, format and safe exception
+  diagnostics, including errors handled by the TUI dialog; filters, output paths and credentials
+  stay out of logs.
+- MongoDB Tools use the selected transfer database in the URI and preserve the original
+  authentication source, avoiding conflicting database options and authentication failures.
+
 ## v0.8.0 — since v0.7.0
 
 ### Added

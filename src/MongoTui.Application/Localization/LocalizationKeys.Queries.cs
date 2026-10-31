@@ -74,6 +74,11 @@ public static partial class LocalizationKeys
 
     public static class History
     {
+        public const string Entry = "History.Entry";
+        public const string Failed = "History.Failed";
+        public const string LoadError = "History.LoadError";
+        public const string Open = "History.Open";
+        public const string Success = "History.Success";
         public const string Empty = "History.Empty";
         public const string EmptyHint = "History.EmptyHint";
         public const string Recent = "History.Recent";
@@ -86,6 +91,7 @@ public static partial class LocalizationKeys
         public const string Apply = "Query.Apply";
         public const string Browse = "Query.Browse";
         public const string Cancelled = "Query.Cancelled";
+        public const string Context = "Query.Context";
         public const string Driver = "Query.Driver";
         public const string Editor = "Query.Editor";
         public const string Empty = "Query.Empty";
@@ -101,6 +107,7 @@ public static partial class LocalizationKeys
         public const string Result = "Query.Result";
         public const string Results = "Query.Results";
         public const string Run = "Query.Run";
+        public const string Running = "Query.Running";
         public const string Script = "Query.Script";
         public const string SettingsSaveError = "Query.Settings.SaveError";
         public const string SettingsLoadError = "Query.Settings.LoadError";

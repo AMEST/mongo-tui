@@ -80,6 +80,7 @@ public static class ConnectionUriParser
             Host = HostOf(authority),
             Username = username,
             Password = password,
+            Database = path.Length > 0 ? Decode(path) : null,
             AuthDatabase = authDatabase,
             AuthKind = authKind,
         };

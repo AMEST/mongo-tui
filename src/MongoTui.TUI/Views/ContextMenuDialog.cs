@@ -31,7 +31,11 @@ public sealed class ContextMenuDialog : ThemedDialog
         _list.Height = Dim.Fill();
         _list.SetSource(new ObservableCollection<string>(items));
         _list.SelectedItem = items.Count > 0 ? 0 : null;
-        _list.Accepted += (_, _) => Choose(application);
+        _list.Accepting += (_, args) =>
+        {
+            args.Handled = true;
+            Choose(application);
+        };
         _list.Activated += (_, _) => Choose(application);
 
         Add(_list);

@@ -25,8 +25,8 @@ public sealed class DocumentEditDialog : ThemedDialog
     private readonly CancellationTokenSource _lifetime = new();
     private bool _busy;
 #pragma warning disable CS0618 // TextView is superseded by the external Editor package; kept for M7.
-    private readonly TextView _filter = new() { Multiline = true };
-    private readonly TextView _editor = new() { Multiline = true };
+    private readonly SyntaxTextView _filter = new() { Multiline = true };
+    private readonly SyntaxTextView _editor = new() { Multiline = true };
 #pragma warning restore CS0618
     private readonly Label _error = new();
 
@@ -42,7 +42,8 @@ public sealed class DocumentEditDialog : ThemedDialog
 
         Title = localizer.Get(LocalizationKeys.Documents.Title);
         Width = 76;
-        Height = 24;
+        Height = Dim.Func(_ => Math.Min(_application.Screen.Height,
+            Math.Max(24, _application.Screen.Height * 9 / 10)), this);
 
         _filterFrame = new FrameView
         {
@@ -50,7 +51,7 @@ public sealed class DocumentEditDialog : ThemedDialog
             X = 1,
             Y = 1,
             Width = Dim.Fill(),
-            Height = 6,
+            Height = 4,
         };
         _filter.X = 0;
         _filter.Y = 0;
@@ -68,7 +69,7 @@ public sealed class DocumentEditDialog : ThemedDialog
         {
             Title = localizer.Get(LocalizationKeys.Documents.Document),
             X = 1,
-            Y = 8,
+            Y = Pos.Bottom(_loadButton),
             Width = Dim.Fill(),
             Height = Dim.Fill(4),
         };
@@ -99,7 +100,7 @@ public sealed class DocumentEditDialog : ThemedDialog
             _filterFrame.Visible = false;
             _loadButton.Visible = false;
             _deleteButton.Enabled = false;
-            _documentFrame.Y = 1;
+            _documentFrame.Y = 0;
         }
     }
 

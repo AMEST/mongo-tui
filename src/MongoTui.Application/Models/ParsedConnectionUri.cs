@@ -14,6 +14,9 @@ public sealed record ParsedConnectionUri
 
     public string? Password { get; init; }
 
+    /// <summary>The database in the URI path, independent of the authentication source.</summary>
+    public string? Database { get; init; }
+
     public string? AuthDatabase { get; init; }
 
     public AuthKind AuthKind { get; init; }
