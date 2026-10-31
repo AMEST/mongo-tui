@@ -20,6 +20,9 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- TUI file dialogs start in the user's home directory on macOS, Linux and Windows.
+  Exports suggest a portable filename with database, collection and timestamp; format changes
+  update the suggested extension while preserving custom paths. Existing SSH key paths remain unchanged.
 - TUI document dialogs grow with the terminal height and reserve more space for the document editor.
 - Opening a collection in TUI immediately runs its generated `find({}).limit(50)` query,
   including opening it from the collection context menu. Closing a tab cancels its pending query.
@@ -35,6 +38,11 @@ All notable changes to this project are documented in this file.
   without hanging on progress; failures and cancellation restore the controls.
 - Enter selects the highlighted action in the TUI connection tree context menu instead of
   dismissing it without running the action. Space still selects and Esc cancels.
+- Collection export failures are logged with database, collection, format and safe exception
+  diagnostics, including errors handled by the TUI dialog; filters, output paths and credentials
+  stay out of logs.
+- MongoDB Tools use the selected transfer database in the URI and preserve the original
+  authentication source, avoiding conflicting database options and authentication failures.
 
 ## v0.8.0 — since v0.7.0
 

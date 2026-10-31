@@ -18,7 +18,7 @@ public sealed class SshTunnelDialog : ThemedDialog
     private readonly TextField _port = new();
     private readonly TextField _username = new();
     private readonly TextField _localPort = new();
-    private readonly TextField _keyFile = new();
+    private readonly OpenFilePathField _keyFile = new();
     private readonly Label _error = new();
 
     public SshTunnelDialog(ILocalizer localizer, IApplication application, SshTunnelOptions options)
@@ -50,7 +50,8 @@ public sealed class SshTunnelDialog : ThemedDialog
         AddField(_port, LocalizationKeys.Ssh.Port, options.Port.ToString(CultureInfo.InvariantCulture), 5);
         AddField(_username, LocalizationKeys.Ssh.Username, options.Username, 7);
         AddField(_localPort, LocalizationKeys.Ssh.LocalPort, options.LocalPort.ToString(CultureInfo.InvariantCulture), 9);
-        AddField(_keyFile, LocalizationKeys.Ssh.KeyFile, options.PrivateKeyFile, 11);
+        AddField(_keyFile, LocalizationKeys.Ssh.KeyFile,
+            string.IsNullOrWhiteSpace(options.PrivateKeyFile) ? _keyFile.SuggestedDirectory : options.PrivateKeyFile, 11);
         Add(new Label { Text = _localizer.Get(LocalizationKeys.Ssh.Hint), X = 1, Y = 13, Width = Dim.Fill(), Height = 3 });
         _error.X = 1;
         _error.Y = 16;
@@ -76,6 +77,7 @@ public sealed class SshTunnelDialog : ThemedDialog
             return;
         }
 
+        var keyFile = NullIfEmpty(_keyFile.Text);
         var options = new SshTunnelOptions
         {
             Enabled = _enabled.Value == CheckState.Checked,
@@ -83,7 +85,7 @@ public sealed class SshTunnelDialog : ThemedDialog
             Port = port,
             Username = NullIfEmpty(_username.Text),
             LocalPort = localPort,
-            PrivateKeyFile = NullIfEmpty(_keyFile.Text),
+            PrivateKeyFile = keyFile == _keyFile.SuggestedDirectory ? null : keyFile,
         };
         try
         {
