@@ -16,6 +16,8 @@ public sealed class ShortcutsDialog : ThemedDialog
     private static readonly (string Key, string Shortcut)[] Entries =
     [
         (LocalizationKeys.Shortcuts.Run, "F5 / Ctrl+R"),
+        (LocalizationKeys.Shortcuts.OpenQuery, "Ctrl+L"),
+        (LocalizationKeys.Shortcuts.SaveQuery, "Ctrl+S"),
         (LocalizationKeys.Shortcuts.NewTab, "Ctrl+T"),
         (LocalizationKeys.Shortcuts.CloseTab, "Ctrl+W"),
         (LocalizationKeys.Shortcuts.Connections, "Ctrl+O"),

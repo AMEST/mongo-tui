@@ -40,6 +40,7 @@ internal sealed class TuiFeatureTestHost : IAsyncDisposable
         services.AddSingleton(A.Fake<IMongoUserGateway>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());
+        services.AddSingleton(A.Fake<IQueryFileStore>());
         services.AddSingleton(A.Fake<IAiAssistant>());
         services.AddSingleton(A.Fake<ISettingsStore>());
         services.AddSingleton(A.Fake<IStorageTransaction>());

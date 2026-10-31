@@ -1,0 +1,66 @@
+@implements IDisposable
+@inject QueryFileService Files
+@inject ConnectionCatalog Catalog
+@inject WebText L
+<main class="page-content">
+    <header class="page-heading">
+        <div class="history-heading"><h1>@L[LocalizationKeys.QueryFiles.OpenTitle]</h1><BusyIcon Busy="_busy" /></div>
+        <select aria-label="@L[LocalizationKeys.QueryFiles.NoTarget]" value="@_connection" disabled="@(Catalog.Profiles.Count == 0)" @onchange="SelectAsync">
+            @if (Catalog.Profiles.Count == 0) { <option value="">@L[LocalizationKeys.Connection.Empty]</option> }
+            @foreach (var profile in Catalog.Profiles) { <option @key="profile.Id" value="@profile.Id">@profile.Name</option> }
+        </select>
+    </header>
+    <section class="panel history-panel">
+        <div class="panel-heading">
+            <strong>@L[LocalizationKeys.QueryFiles.Recent]</strong>
+            @if (_error is not null) { <span class="history-error" role="alert" title="@_error">@_error</span> }
+            <span class="badge">@_recent.Count</span>
+        </div>
+        @foreach (var path in _recent) { <button @key="path" class="history-row" @onclick="() => _path = path"><span class="history-status success"><Icon Name="@IconNames.Bookmark" Size="15" /></span><div><code>@System.IO.Path.GetFileName(path)</code><span class="history-meta">@path</span></div><Icon Name="@IconNames.Arrow" Size="16" /></button> }
+        @if (_recent.Count == 0) { <div class="empty-section"><Icon Name="@IconNames.Bookmark" Size="32" /><h3>@L[LocalizationKeys.QueryFiles.Empty]</h3></div> }
+        <form class="filter-bar" @onsubmit="OpenAsync" @onsubmit:preventDefault="true">
+            <span class="filter-label">@L[LocalizationKeys.QueryFiles.Path]</span>
+            <input class="mono" aria-label="@L[LocalizationKeys.QueryFiles.Path]" @bind="_path" spellcheck="false" />
+            <button class="button primary compact" type="submit" disabled="@_busy"><Icon Name="@IconNames.Bookmark" Size="15" />@L[LocalizationKeys.QueryFiles.Open]</button>
+        </form>
+    </section>
+</main>
+@code {
+    [Parameter] public EventCallback<QueryFileOpenRequest> OnOpen { get; set; }
+    private IReadOnlyList<string> _recent = [];
+    private string _connection = string.Empty;
+    private string _path = string.Empty;
+    private string? _error;
+    private readonly CancellationTokenSource _lifetime = new();
+    private bool _busy, _disposed;
+    protected override async Task OnInitializedAsync()
+    {
+        await Catalog.RefreshAsync(_lifetime.Token);
+        if (_disposed) return;
+        _connection = Catalog.Active.FirstOrDefault()?.Profile.Id.ToString() ?? Catalog.Profiles.FirstOrDefault()?.Id.ToString() ?? "";
+        await LoadAsync();
+    }
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private void SelectAsync(ChangeEventArgs args) => _connection = args.Value?.ToString() ?? "";
+    private async Task LoadAsync()
+    {
+        if (_disposed) return;
+        _busy = true;
+        try
+        {
+            var recent = await Files.GetRecentAsync(_lifetime.Token);
+            if (!_disposed) { _recent = recent; _error = null; }
+        }
+        catch (OperationCanceledException) when (_disposed) { }
+        catch { if (!_disposed) _error = L[LocalizationKeys.QueryFiles.OpenError]; }
+        finally { if (!_disposed) _busy = false; }
+    }
+    private async Task OpenAsync()
+    {
+        var path = _path.Trim();
+        if (path.Length == 0) { _error = L[LocalizationKeys.QueryFiles.PathRequired]; return; }
+        if (_connection.Length == 0) { _error = L[LocalizationKeys.QueryFiles.NoTarget]; return; }
+        _error = null;
+        await OnOpen.InvokeAsync(new QueryFileOpenRequest(ConnectionId.Parse(_connection), path));
+    }
+}

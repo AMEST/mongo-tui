@@ -17,6 +17,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<SecurityModeDetector>();
         services.AddSingleton<SecurityModeService>();
         services.AddSingleton<QueryService>();
+        services.AddSingleton<QueryFileService>();
         services.AddSingleton<DocumentService>();
         services.AddSingleton<IndexService>();
         services.AddSingleton<DatabaseService>();

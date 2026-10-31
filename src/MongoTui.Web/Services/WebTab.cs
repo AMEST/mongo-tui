@@ -20,6 +20,7 @@ public sealed class WebTab(ConnectionId connectionId, string database, string? c
     public QueryResult? Result { get; set; }
     public CollectionRef? EditableCollection { get; set; }
     public string? Error { get; set; }
+    public string? QueryFilePath { get; set; }
     public bool Busy { get; internal set; }
     internal CancellationTokenSource? Cancellation { get; set; }
     internal Task? Operation { get; set; }

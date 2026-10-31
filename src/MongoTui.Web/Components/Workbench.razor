@@ -3,13 +3,14 @@
 @inject WebText L
 @inject ConnectionCatalog Catalog
 @inject QueryWorkspace Workspace
+@inject QueryFileService Files
 @inject IJSRuntime JS
 <SecurityGate>
     <div class="app-shell">
         <header class="app-header">
             <a class="brand" href="/"><span class="brand-mark"><Icon Name="@IconNames.Database" Size="22" /></span>MongoTui<span class="badge">WEB</span></a>
             <nav class="main-nav" aria-label="@L[LocalizationKeys.App.Navigation]">
-                @foreach (var item in new[] { (MainPage.Workspace, IconNames.Grid, LocalizationKeys.Nav.Workspace), (MainPage.Connections, IconNames.Plug, LocalizationKeys.Nav.Connections), (MainPage.History, IconNames.History, LocalizationKeys.Nav.History), (MainPage.Logs, IconNames.Logs, LocalizationKeys.Nav.Logs), (MainPage.Settings, IconNames.Settings, LocalizationKeys.Nav.Settings) })
+                @foreach (var item in new[] { (MainPage.Workspace, IconNames.Grid, LocalizationKeys.Nav.Workspace), (MainPage.Connections, IconNames.Plug, LocalizationKeys.Nav.Connections), (MainPage.Files, IconNames.Bookmark, LocalizationKeys.Nav.Files), (MainPage.History, IconNames.History, LocalizationKeys.Nav.History), (MainPage.Logs, IconNames.Logs, LocalizationKeys.Nav.Logs), (MainPage.Settings, IconNames.Settings, LocalizationKeys.Nav.Settings) })
                 {
                     <button class="@(_page == item.Item1 ? "active" : "")" @onclick="() => NavigateAsync(item.Item1)"><Icon Name="@item.Item2" Size="16" /><span>@L[item.Item3]</span></button>
                 }
@@ -25,6 +26,7 @@
             </div>
         }
         else if (_page == MainPage.Connections) { <ConnectionList OnEdit="EditConnection" OnConnect="ConnectAsync" /> }
+        else if (_page == MainPage.Files) { <QueryFilesPanel OnOpen="OpenQueryFileAsync" /> }
         else if (_page == MainPage.History) { <HistoryPanel OnOpen="OpenHistoryAsync" /> }
         else if (_page == MainPage.Logs) { <LogsPanel /> }
         else { <SettingsPanel OnChanged="StateHasChanged" /> }
@@ -39,7 +41,7 @@
 </SecurityGate>
 @code {
     private async Task SignOutAsync() => await JS.InvokeVoidAsync(JavaScriptCalls.SignOut);
-    private enum MainPage { Workspace, Connections, History, Logs, Settings }
+    private enum MainPage { Workspace, Connections, Files, History, Logs, Settings }
     private MainPage _page = MainPage.Workspace;
     private string? _error;
     private bool _showConnection;
@@ -96,6 +98,16 @@
         var profile = Catalog.Profiles.First(item => item.Id == entry.ConnectionId);
         await Catalog.ConnectAsync(profile, CancellationToken.None);
         Workspace.Open(entry.ConnectionId, entry.Database ?? MongoSystemNames.AdminDatabase, entry.Collection, entry.Script);
+        _page = MainPage.Workspace;
+    });
+
+    private async Task OpenQueryFileAsync(QueryFileOpenRequest request) => await SafeAsync(async () =>
+    {
+        var file = await Files.OpenAsync(request.Path, CancellationToken.None);
+        var profile = Catalog.Profiles.First(item => item.Id == request.ConnectionId);
+        await Catalog.ConnectAsync(profile, CancellationToken.None);
+        var tab = Workspace.Open(request.ConnectionId, MongoSystemNames.AdminDatabase, null, file.Script);
+        tab.QueryFilePath = file.Path;
         _page = MainPage.Workspace;
     });
 

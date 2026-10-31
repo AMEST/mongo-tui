@@ -1,0 +1,45 @@
+@implements IDisposable
+@inject QueryFileService Files
+@inject WebText L
+<Modal Title="@L[LocalizationKeys.QueryFiles.SaveTitle]" OnClose="CloseAsync">
+    <form class="modal-body" @onsubmit="SaveAsync" @onsubmit:preventDefault="true">
+        <p class="muted">@Tab.Database@(Tab.Collection is null ? string.Empty : " / " + Tab.Collection)</p>
+        <label for="query-file-path">@L[LocalizationKeys.QueryFiles.Path]</label>
+        <input id="query-file-path" class="mono" required autofocus disabled="@_busy" @bind="_path" spellcheck="false" />
+        <p class="field-hint">@L[LocalizationKeys.QueryFiles.JavaScript] (.js)</p>
+        <FormFeedback Error="@_error" />
+        <footer class="modal-actions"><BusyButton Class="button secondary" Pending="_busy" Icon="@IconNames.Close" OnClick="CloseAsync">@L[LocalizationKeys.Common.Cancel]</BusyButton><BusyButton Type="submit" Busy="_busy" Icon="@IconNames.Bookmark">@L[LocalizationKeys.QueryFiles.Save]</BusyButton></footer>
+    </form>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
+    [Parameter] public EventCallback OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private string _path = string.Empty;
+    private string? _error;
+    private bool _busy, _disposed;
+    protected override void OnInitialized() => _path = Tab.QueryFilePath ?? string.Empty;
+    private Task CloseAsync() => _busy ? Task.CompletedTask : OnClose.InvokeAsync();
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+    private async Task SaveAsync()
+    {
+        if (_busy) return;
+        var path = _path.Trim();
+        if (path.Length == 0) { _error = L[LocalizationKeys.QueryFiles.PathRequired]; return; }
+        _busy = true; _error = null;
+        try
+        {
+            var file = await Files.SaveAsync(path, Tab.Script, _lifetime.Token);
+            Tab.QueryFilePath = file.Path;
+        }
+        catch (OperationCanceledException) when (_disposed) { return; }
+        catch (Exception exception)
+        {
+            if (!_disposed) _error = exception is MongoTui.Domain.Exceptions.DomainException ? SafeError.Message(exception) : L[LocalizationKeys.QueryFiles.SaveError];
+            _busy = false; return;
+        }
+        if (_disposed) return;
+        await OnSaved.InvokeAsync();
+    }
+}

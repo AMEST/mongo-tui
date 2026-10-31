@@ -60,6 +60,9 @@ public sealed class QueryTabViewModel : ObservableObject
 
     public string? Collection { get; set; }
 
+    /// <summary>The file this tab's script was last opened from or saved to, if any.</summary>
+    public string? QueryFilePath { get; set; }
+
     public ResultViewModel Result { get; } = new();
 
     /// <summary>The verified collection that produced the displayed documents, or null for ambiguous scripts.</summary>

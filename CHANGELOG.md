@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+
+- **Query files** — open a JavaScript query from a `.js` file and save the active query back to
+  disk (`Ctrl+L` / `Ctrl+S` in TUI, a toolbar action and the **Files** page in Web). TUI offers a
+  native file/folder picker next to the typed path, and both interfaces remember the ten most
+  recently opened or saved query files.
+
 ## v0.9.0 — since v0.8.0
 
 ### Added

@@ -86,6 +86,25 @@ public static partial class LocalizationKeys
         public const string Title = "History.Title";
     }
 
+    public static class QueryFiles
+    {
+        public const string Browse = "QueryFiles.Browse";
+        public const string Empty = "QueryFiles.Empty";
+        public const string JavaScript = "QueryFiles.JavaScript";
+        public const string NoTarget = "QueryFiles.NoTarget";
+        public const string Open = "QueryFiles.Open";
+        public const string Opened = "QueryFiles.Opened";
+        public const string OpenError = "QueryFiles.OpenError";
+        public const string OpenTitle = "QueryFiles.OpenTitle";
+        public const string Path = "QueryFiles.Path";
+        public const string PathRequired = "QueryFiles.PathRequired";
+        public const string Recent = "QueryFiles.Recent";
+        public const string Save = "QueryFiles.Save";
+        public const string Saved = "QueryFiles.Saved";
+        public const string SaveError = "QueryFiles.SaveError";
+        public const string SaveTitle = "QueryFiles.SaveTitle";
+    }
+
     public static class Query
     {
         public const string Apply = "Query.Apply";

@@ -18,14 +18,16 @@ namespace MongoTui.TUI.Tests.Views;
 public sealed class QueryTabsViewContextMenuTests
 {
     [Fact]
-    public void Should_AddRunItem_ToEditorContextMenu()
+    public void Should_AddRunAndFileItems_ToEditorContextMenu()
     {
         var tabs = CreateTabs();
 
         var subViews = tabs.ActiveEditorView!.ContextMenu!.Root!.SubViews.ToList();
 
-        subViews[^2].Should().BeOfType<Line>();
-        subViews[^1].Should().BeOfType<MenuItem>().Which.Title.Should().Be(LocalizationKeys.Menu.QueryRun);
+        subViews[^4].Should().BeOfType<Line>();
+        subViews[^3].Should().BeOfType<MenuItem>().Which.Title.Should().Be(LocalizationKeys.Menu.QueryRun);
+        subViews[^2].Should().BeOfType<MenuItem>().Which.Title.Should().Be(LocalizationKeys.Menu.QueryOpenFile);
+        subViews[^1].Should().BeOfType<MenuItem>().Which.Title.Should().Be(LocalizationKeys.Menu.QuerySaveFile);
     }
 
     [Fact]

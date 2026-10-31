@@ -78,7 +78,9 @@ public static partial class LocalizationKeys
         public const string QueryClose = "Menu.Query.Close";
         public const string QueryHistory = "Menu.Query.History";
         public const string QueryNew = "Menu.Query.New";
+        public const string QueryOpenFile = "Menu.Query.OpenFile";
         public const string QueryRun = "Menu.Query.Run";
+        public const string QuerySaveFile = "Menu.Query.SaveFile";
         public const string QueryTranslate = "Menu.Query.Translate";
         public const string Settings = "Menu.Settings";
         public const string SettingsAi = "Menu.Settings.Ai";
@@ -91,6 +93,7 @@ public static partial class LocalizationKeys
     public static class Nav
     {
         public const string Connections = "Nav.connections";
+        public const string Files = "Nav.files";
         public const string History = "Nav.history";
         public const string Logs = "Nav.logs";
         public const string Settings = "Nav.settings";
@@ -148,10 +151,12 @@ public static partial class LocalizationKeys
         public const string MenuBar = "Shortcuts.MenuBar";
         public const string MoveFocus = "Shortcuts.MoveFocus";
         public const string NewTab = "Shortcuts.NewTab";
+        public const string OpenQuery = "Shortcuts.OpenQuery";
         public const string Paste = "Shortcuts.Paste";
         public const string Quit = "Shortcuts.Quit";
         public const string Refresh = "Shortcuts.Refresh";
         public const string Run = "Shortcuts.Run";
+        public const string SaveQuery = "Shortcuts.SaveQuery";
         public const string Title = "Shortcuts.Title";
         public const string Translate = "Shortcuts.Translate";
         public const string Unlock = "Shortcuts.Unlock";

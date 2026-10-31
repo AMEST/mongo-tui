@@ -10,6 +10,12 @@ internal static class DialogPathDefaults
     public static string OpenDirectory(string homeDirectory) =>
         Path.EndsInDirectorySeparator(homeDirectory) ? homeDirectory : homeDirectory + Path.DirectorySeparatorChar;
 
+    public static string QueryFile(string homeDirectory, string? database)
+    {
+        var name = string.IsNullOrWhiteSpace(database) ? "query" : FileNamePart(database) + "_query";
+        return Path.Combine(homeDirectory, name + ".js");
+    }
+
     public static string ExportPath(string homeDirectory, CollectionRef collection, DateTimeOffset timestamp, ExportFormat format)
     {
         var date = timestamp.ToString("yyyyMMdd_HHmmssfff", CultureInfo.InvariantCulture);
