@@ -8,6 +8,9 @@ All notable changes to this project are documented in this file.
 
 - **TUI query context** — each tab shows its connection profile and database above the editor,
   including the URI/default database when no database was explicitly selected.
+- **TUI query timeout completion** — suggest `maxTimeMS()` in cursor method chains and place
+  the caret inside its parentheses for entering a timeout in milliseconds. Document editing
+  and automatic result refresh remain available for verified reads using `maxTimeMS`.
 - **TUI query history** — choose a saved connection, inspect the query, database, collection,
   date, status and duration, and reopen it in a new tab without executing it.
 - **TUI syntax highlighting** — JavaScript/JSON tokens are colored in query and document editors
@@ -28,6 +31,10 @@ All notable changes to this project are documented in this file.
 - Collection names are escaped as JavaScript string literals before generating TUI queries.
 - Pending TUI queries do not run twice or steal focus after switching tabs; delayed results
   are applied through the UI loop and never update a closed tab.
+- TUI index dialogs finish background loading and index creation inside nested windows
+  without hanging on progress; failures and cancellation restore the controls.
+- Enter selects the highlighted action in the TUI connection tree context menu instead of
+  dismissing it without running the action. Space still selects and Esc cancels.
 
 ## v0.8.0 — since v0.7.0
 

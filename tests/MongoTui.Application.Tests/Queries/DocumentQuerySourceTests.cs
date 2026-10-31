@@ -37,6 +37,8 @@ public sealed class DocumentQuerySourceTests
     [InlineData("db.users.find({})", "app", "app", "users")]
     [InlineData("db.getCollection('system.version').find({})", "admin", "admin", "system.version")]
     [InlineData("db.orders.find().limit(10).skip(2).sort({date:-1}).toArray();", "app", "app", "orders")]
+    [InlineData("db.orders.find({}).maxTimeMS(1000).toArray()", "app", "app", "orders")]
+    [InlineData("db.orders.find().limit(10).maxTimeMS(0).skip(2).sort({date:-1}).toArray();", "app", "app", "orders")]
     [InlineData("db.getSiblingDB('other').getCollection('items').findOne({_id:1})", "app", "other", "items")]
     [InlineData("db.getSiblingDB(\"other\").getCollection(\"a\\\"b\").find({}).limit(50).toArray()", null, "other", "a\"b")]
     [InlineData("db.getCollection('a\\u0027b').find({name:'a)b'})", "app", "app", "a'b")]
@@ -59,6 +61,9 @@ public sealed class DocumentQuerySourceTests
     [InlineData("db.users.find((() => ({}))())")]
     [InlineData("print({_id:1})")]
     [InlineData("db.users.findOne({}).limit(1)")]
+    [InlineData("db.users.findOne({}).maxTimeMS(1000)")]
+    [InlineData("db.users.find({}).maxTimeMS(getTimeout())")]
+    [InlineData("db.users.find({}).maxTimeMS(1000); db.users.deleteMany({})")]
     [InlineData("db.users.find({}).sort(unknown)")]
     [InlineData("db.users.find({}).toArray().reverse()")]
     public void ShouldNot_ResolveCollection_When_SourceAmbiguous(string script)

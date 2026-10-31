@@ -18,6 +18,8 @@ public sealed class QueryMethodCompletionTests(MongoFixture fixture) : IClassFix
     [InlineData("db.getCollection('items').find({}).li|mt(1).toArray()", "limit", 1)]
     [InlineData("db.getCollection('items').find({}).toA|", "toArray", 2)]
     [InlineData("db.getCollection('items').find({}).limit(1).toA|", "toArray", 1)]
+    [InlineData("db.getCollection('items').find({}).maxT|meMS(5000).toArray()", "maxTimeMS", 2)]
+    [InlineData("db.getCollection('items').find({}).maxTimeMS(5000).toA|", "toArray", 2)]
     [InlineData("db.getCollection('items').find({}).so|rt({name: 1}).limit(1).toArray()", "sort", 1)]
     public async Task Should_ReturnDocuments_WhenCompletedMethodChainExecuted(string marked, string method, int count)
     {
