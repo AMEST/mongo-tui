@@ -35,6 +35,7 @@ public sealed class DocumentEditDialog : ThemedDialog
         _viewModel = viewModel;
         _application = application;
         _localizer = localizer;
+        Initialized += (_, _) => LocalizeContextMenus();
         Disposing += (_, _) => { _lifetime.Cancel(); _lifetime.Dispose(); };
 
         _filter.TrackContents();
@@ -107,6 +108,17 @@ public sealed class DocumentEditDialog : ThemedDialog
     public bool Saved { get; private set; }
 
     public bool Deleted { get; private set; }
+
+    private void LocalizeContextMenus()
+    {
+        foreach (var view in new[] { _filter, _editor })
+            foreach (var item in view.ContextMenu?.Root?.SubViews.OfType<MenuItem>() ?? [])
+                if (TextContextMenuLabels.GetKey(item.Command) is { } key)
+                {
+                    item.Title = _localizer.Get(key);
+                    item.HelpText = _localizer.Get(TextContextMenuLabels.GetHelpKey(item.Command)!);
+                }
+    }
 
     private Task LoadAsync()
     {

@@ -127,6 +127,7 @@ public sealed class QueryTabsView : View
     private async Task<QueryRunSummary?> RunAsync(IApplication application, QueryTabPane pane, bool refresh = false)
     {
         var cancellationToken = pane.CancellationToken;
+        var script = pane.Editor.SelectedLength > 0 ? pane.Editor.SelectedText : pane.Model.Script;
         Log.Debug("RunActive: executing tab {TabId} ({Title})", pane.Model.Id, pane.Model.Title);
         pane.Editor.CancelCompletion();
         QueryRunSummary? summary = null;
@@ -142,7 +143,7 @@ public sealed class QueryTabsView : View
                 pane.Model.Id, pane.Model.Result.Documents.Count, pane.Model.Result.HasError);
         });
         await (refresh ? pane.Model.RefreshAsync(UpdateAsync, cancellationToken)
-            : pane.Model.ExecuteAsync(UpdateAsync, cancellationToken)).ConfigureAwait(false);
+            : pane.Model.ExecuteAsync(script, UpdateAsync, cancellationToken)).ConfigureAwait(false);
 
         return summary;
     }

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test *.test.js",
     "build": "esbuild editor.js --bundle --minify --format=esm --outfile=../wwwroot/editor.js --legal-comments=linked"
   },
   "devDependencies": {

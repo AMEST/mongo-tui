@@ -435,4 +435,19 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Index.DeleteHint" xml:space="preserve"><value>Delete index “{0}”?</value></data>
   <data name="Index.UniqueBadge" xml:space="preserve"><value>unique</value></data>
   <data name="Common.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Query.Failed" xml:space="preserve"><value>Query execution failed: {0}</value></data>
+  <data name="TextEditing.SelectAll" xml:space="preserve"><value>Select all</value></data>
+  <data name="TextEditing.Clear" xml:space="preserve"><value>Clear all text</value></data>
+  <data name="TextEditing.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="TextEditing.Cut" xml:space="preserve"><value>Cut</value></data>
+  <data name="TextEditing.Paste" xml:space="preserve"><value>Paste</value></data>
+  <data name="TextEditing.Undo" xml:space="preserve"><value>Undo</value></data>
+  <data name="TextEditing.Redo" xml:space="preserve"><value>Redo</value></data>
+  <data name="TextEditing.SelectAll.Help" xml:space="preserve"><value>Select all text</value></data>
+  <data name="TextEditing.Clear.Help" xml:space="preserve"><value>Clear the text in this editor</value></data>
+  <data name="TextEditing.Copy.Help" xml:space="preserve"><value>Copy to clipboard</value></data>
+  <data name="TextEditing.Cut.Help" xml:space="preserve"><value>Cut to clipboard</value></data>
+  <data name="TextEditing.Paste.Help" xml:space="preserve"><value>Paste from clipboard</value></data>
+  <data name="TextEditing.Undo.Help" xml:space="preserve"><value>Undo the last action</value></data>
+  <data name="TextEditing.Redo.Help" xml:space="preserve"><value>Redo the last action</value></data>
 </root>

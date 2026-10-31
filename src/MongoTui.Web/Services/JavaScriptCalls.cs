@@ -22,6 +22,7 @@ public static class JavaScriptCalls
         public const string ModulePath = "./_content/MongoTui.Web/editor.js";
         public const string Create = "create";
         public const string GetValue = "getValue";
+        public const string GetExecution = "getExecution";
         public const string Destroy = "destroy";
         public const string JavaScript = "javascript";
         public const string Json = "json";

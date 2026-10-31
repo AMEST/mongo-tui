@@ -25,6 +25,7 @@ public sealed class QueryTabsExecutionTests : IDisposable
     private readonly Dialog _dialog = new() { Width = Dim.Fill(), Height = Dim.Fill() };
     private readonly ResxLocalizer _localizer = new();
     private readonly IMongoShellSession _session = A.Fake<IMongoShellSession>();
+    private readonly IQueryHistoryRepository _history = A.Fake<IQueryHistoryRepository>();
     private readonly TaskCompletionSource<QueryResult> _response = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly QueryTabsView _tabs;
     private readonly MongoConnectionTarget _target = new("mongodb://localhost");
@@ -41,7 +42,7 @@ public sealed class QueryTabsExecutionTests : IDisposable
         A.CallTo(() => _session.IsRunning).Returns(true);
         A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
             .Invokes((string script, string? database, CancellationToken token) => _token = token).Returns(_response.Task);
-        _tabs = new QueryTabsView(QueryTestServices.Create(sessions, A.Fake<IQueryHistoryRepository>()),
+        _tabs = new QueryTabsView(QueryTestServices.Create(sessions, _history),
             _localizer, new AutocompleteService(A.Fake<IMongoGateway>())) { Width = Dim.Fill(), Height = Dim.Fill() };
         _dialog.Add(_tabs);
         _app = Terminal.Gui.App.Application.Create();
@@ -114,21 +115,34 @@ public sealed class QueryTabsExecutionTests : IDisposable
         else _rendered.Should().BeTrue();
     }
 
-    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails, bool refresh = false)
+    [Theory]
+    [InlineData("en")]
+    [InlineData("ru")]
+    public async Task Should_ExecuteOnlySelectionAndPreserveDraft_WhenFragmentIsSelected(string language)
+    {
+        _localizer.SetLanguage(language);
+        ScheduleExecution(false, false, false, selection: true);
+
+        _app.Run(_parent);
+
+        await _operation!;
+        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+        _original!.Script.Should().StartWith("db.orders.deleteMany({});\n");
+        _original.ResultCollection!.Collection.Value.Should().Be("orders");
+        A.CallTo(() => _history.AddAsync(A<QueryHistoryEntry>.That.Matches(entry =>
+            entry.Script == "db.orders.find({}).limit(50).toArray()"), A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        _rendered.Should().BeTrue();
+    }
+
+    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails, bool refresh = false, bool selection = false)
     {
         _app.AddTimeout(TimeSpan.Zero, () => { _app.Run(_dialog); _app.RequestStop(_parent); return false; });
         _app.AddTimeout(TimeSpan.FromMilliseconds(40), () =>
         {
-            _original = _tabs.AddTab(ConnectionId.New(), _target, "app", "orders",
-                "db.orders.find({}).limit(50).toArray()", "Production");
-            if (refresh)
-            {
-                _tabs.RunActiveAsync(_app).IsCompleted.Should().BeTrue();
-                _original.Script = "db.orders.deleteMany({})";
-                _original.Database = "draft";
-                _operation = _tabs.RefreshAsync(_app, _original);
-            }
-            else { _operation = _tabs.RunActiveAsync(_app); _ = _tabs.RunActiveAsync(_app); }
+            StartExecution(refresh, selection);
             if (switchTab) _tabs.AddTab(ConnectionId.New(), _target, "other", script: "db.unrelated.find({})");
             if (closeTab) _close = _tabs.CloseActiveAsync();
             _ = CompleteAsync(fails);
@@ -143,6 +157,26 @@ public sealed class QueryTabsExecutionTests : IDisposable
             return false;
         });
         _app.AddTimeout(TimeSpan.FromSeconds(3), () => { _app.RequestStop(_dialog); return false; });
+    }
+
+    private void StartExecution(bool refresh, bool selection)
+    {
+        _original = _tabs.AddTab(ConnectionId.New(), _target, "app", "orders",
+            "db.orders.find({}).limit(50).toArray()", "Production");
+        if (selection)
+        {
+            _tabs.ActiveEditorView!.Text = "db.orders.deleteMany({});\n" + _original.Script;
+            _tabs.ActiveEditorView.MoveEnd();
+            _tabs.ActiveEditorView.NewKeyDownEvent(Terminal.Gui.Input.Key.Home.WithShift);
+        }
+        if (refresh)
+        {
+            _tabs.RunActiveAsync(_app).IsCompleted.Should().BeTrue();
+            _original.Script = "db.orders.deleteMany({})";
+            _original.Database = "draft";
+            _operation = _tabs.RefreshAsync(_app, _original);
+        }
+        else { _operation = _tabs.RunActiveAsync(_app); _ = _tabs.RunActiveAsync(_app); }
     }
 
     private async Task CompleteAsync(bool fails)

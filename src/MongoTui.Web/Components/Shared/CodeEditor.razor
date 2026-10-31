@@ -6,7 +6,7 @@
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public string Language { get; set; } = JavaScriptCalls.Editor.JavaScript;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
-    [Parameter] public EventCallback OnRun { get; set; }
+    [Parameter] public EventCallback<EditorExecution> OnRun { get; set; }
     [Parameter] public Func<string, Task<string[]>>? Complete { get; set; }
     private ElementReference _element;
     private IJSObjectReference? _module;
@@ -27,8 +27,10 @@
     }
 
     public async Task<string> GetValueAsync() => _module is null ? _fallback : await _module.InvokeAsync<string>(JavaScriptCalls.Editor.GetValue, _element);
+    public async Task<EditorExecution> GetExecutionAsync() => _module is null ? new(_fallback, null)
+        : await _module.InvokeAsync<EditorExecution>(JavaScriptCalls.Editor.GetExecution, _element);
     [JSInvokable] public Task ChangedAsync(string value) => ValueChanged.InvokeAsync(value);
-    [JSInvokable] public Task RunAsync() => OnRun.InvokeAsync();
+    [JSInvokable] public Task RunAsync(EditorExecution execution) => OnRun.InvokeAsync(execution);
     [JSInvokable] public Task<string[]> CompleteAsync(string prefix) => Complete?.Invoke(prefix) ?? Task.FromResult(Array.Empty<string>());
 
     public async ValueTask DisposeAsync()

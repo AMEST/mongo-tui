@@ -47,6 +47,9 @@ public sealed class QueryWorkspace(
     /// <summary>Executes the editor draft at the requested page, committing the page only when the query succeeds.</summary>
     public Task ExecuteAsync(WebTab tab, int page = 0) => ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
 
+    /// <summary>Executes a captured editor selection without replacing the full draft.</summary>
+    public Task ExecuteScriptAsync(WebTab tab, string script) => ExecuteAsync(tab, new QueryRequest(script, false, tab.Filter, 0));
+
     /// <summary>Reloads the displayed results using their successful query snapshot, preserving the editor draft.</summary>
     public Task RefreshAsync(WebTab tab) => tab.Result is not null && _resultRequests.TryGetValue(tab.Id, out var request)
         ? ExecuteAsync(tab, request) : Task.CompletedTask;
@@ -131,7 +134,7 @@ public sealed class QueryWorkspace(
         catch (OperationCanceledException) { tab.Error = text[LocalizationKeys.Query.Cancelled]; }
         catch (Exception exception)
         {
-            tab.Error = exception is DomainException ? SafeError.Message(exception) : text[LocalizationKeys.Error.Query];
+            tab.Error = QueryErrorDetails.GetMessage(exception, text[LocalizationKeys.Query.Failed]);
         }
     }
 

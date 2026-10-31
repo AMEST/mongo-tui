@@ -1,10 +1,10 @@
 import {EditorView, basicSetup} from 'codemirror';
 import {EditorState, Compartment} from '@codemirror/state';
-import {keymap} from '@codemirror/view';
 import {javascript} from '@codemirror/lang-javascript';
 import {json} from '@codemirror/lang-json';
 import {autocompletion} from '@codemirror/autocomplete';
 import {oneDark} from '@codemirror/theme-one-dark';
+import {executionKeys, readExecution} from './editor-execution.js';
 const editors = new WeakMap();
 const methods = ['find', 'findOne', 'aggregate', 'countDocuments', 'getCollection', 'getSiblingDB', 'getCollectionNames', 'limit', 'skip', 'sort', 'toArray', 'insertOne', 'updateOne', 'deleteOne'];
 export function create(element, value, language, label, dotnet) {
@@ -28,7 +28,7 @@ export function create(element, value, language, label, dotnet) {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({'aria-label': label}),
     EditorView.theme({'&': {height: '100%', fontSize: '13px'}, '.cm-scroller': {fontFamily: 'var(--mono)', overflow: 'auto'}, '.cm-content': {padding: '16px 0'}, '.cm-gutters': {background: 'transparent', border: '0', color: 'var(--muted)'}, '.cm-line': {padding: '0 20px'}}),
-    keymap.of([{key: 'Mod-Enter', run: () => {dotnet.invokeMethodAsync('RunAsync'); return true;}}, {key: 'F5', run: () => {dotnet.invokeMethodAsync('RunAsync'); return true;}}]),
+    executionKeys(run),
     ...(language === 'json' ? [] : [autocompletion({override: [complete]})]),
     EditorView.updateListener.of(update => {
       if (!update.docChanged) return;
@@ -40,8 +40,13 @@ export function create(element, value, language, label, dotnet) {
   const observer = new MutationObserver(() => view.dispatch({effects: theme.reconfigure(currentTheme())}));
   observer.observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
   editors.set(element, {view, observer, cleanup: () => clearTimeout(timer)});
+  function run() {
+    dotnet.invokeMethodAsync('RunAsync', getExecution(element)).catch(() => {});
+    return true;
+  }
 }
 export function getValue(element) {return editors.get(element)?.view.state.doc.toString() ?? element.querySelector('textarea')?.value ?? '';}
+export function getExecution(element) {return readExecution(editors.get(element)?.view.state, element.querySelector('textarea'));}
 export function destroy(element) {
   const editor = editors.get(element);
   if (!editor) return;

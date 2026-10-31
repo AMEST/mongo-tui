@@ -435,4 +435,19 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Index.DeleteHint" xml:space="preserve"><value>Удалить индекс «{0}»?</value></data>
   <data name="Index.UniqueBadge" xml:space="preserve"><value>уникальный</value></data>
   <data name="Common.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Query.Failed" xml:space="preserve"><value>Ошибка выполнения запроса: {0}</value></data>
+  <data name="TextEditing.SelectAll" xml:space="preserve"><value>Выделить всё</value></data>
+  <data name="TextEditing.Clear" xml:space="preserve"><value>Очистить текст</value></data>
+  <data name="TextEditing.Copy" xml:space="preserve"><value>Копировать</value></data>
+  <data name="TextEditing.Cut" xml:space="preserve"><value>Вырезать</value></data>
+  <data name="TextEditing.Paste" xml:space="preserve"><value>Вставить</value></data>
+  <data name="TextEditing.Undo" xml:space="preserve"><value>Отменить</value></data>
+  <data name="TextEditing.Redo" xml:space="preserve"><value>Повторить</value></data>
+  <data name="TextEditing.SelectAll.Help" xml:space="preserve"><value>Выделить весь текст</value></data>
+  <data name="TextEditing.Clear.Help" xml:space="preserve"><value>Очистить текст в этом редакторе</value></data>
+  <data name="TextEditing.Copy.Help" xml:space="preserve"><value>Копировать в буфер обмена</value></data>
+  <data name="TextEditing.Cut.Help" xml:space="preserve"><value>Вырезать в буфер обмена</value></data>
+  <data name="TextEditing.Paste.Help" xml:space="preserve"><value>Вставить из буфера обмена</value></data>
+  <data name="TextEditing.Undo.Help" xml:space="preserve"><value>Отменить последнее действие</value></data>
+  <data name="TextEditing.Redo.Help" xml:space="preserve"><value>Повторить последнее действие</value></data>
 </root>

@@ -283,4 +283,5 @@
   <data name="WebAuth.SignOut" xml:space="preserve"><value>Выйти</value></data>
   <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
   <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
+  <data name="Query.Failed" xml:space="preserve"><value>Ошибка выполнения запроса: {0}</value></data>
 </root>

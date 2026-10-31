@@ -134,6 +134,7 @@ Normal .NET builds use the checked-in CodeMirror bundle. To change the editor:
 ```sh
 cd src/MongoTui.Web/ClientAssets
 npm ci
+npm test
 npm run build
 ```
 

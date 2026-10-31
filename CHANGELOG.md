@@ -6,6 +6,13 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- **Selected query execution** — TUI and Web run the selected fragment, or the whole script
+  when nothing is selected, from the Run action or keyboard shortcut. The full editor draft is
+  preserved; history, document actions and result refresh use the executed fragment.
+- **TUI editor navigation** — Alt/Option arrows move by word, with Shift to extend selection.
+  Terminals that send `Esc+b` / `Esc+f` are also supported. Cmd arrows require terminal mappings
+  to Home/End because Terminal.Gui 2.5 does not expose a Cmd modifier.
+- **TUI result scrolling** — wide results show a horizontal scrollbar alongside keyboard navigation.
 - **TUI query context** — each tab shows its connection profile and database above the editor,
   including the URI/default database when no database was explicitly selected.
 - **TUI query timeout completion** — suggest `maxTimeMS()` in cursor method chains and place
@@ -31,6 +38,12 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Text context menus in TUI query/results and document editors use English/Russian labels and
+  help text; the clear action is named **Clear all text**. Query menus update when the language changes.
+- Web `Cmd/Ctrl+Enter` runs the query instead of inserting a blank line through CodeMirror's
+  default key binding; both this shortcut and `F5` capture the current document and selection.
+- Query errors in TUI and Web include the underlying cause instead of only a generic failure;
+  MongoDB URIs are redacted and diagnostics remain excluded from application logs.
 - Collection names are escaped as JavaScript string literals before generating TUI queries.
 - Pending TUI queries do not run twice or steal focus after switching tabs; delayed results
   are applied through the UI loop and never update a closed tab.
@@ -43,6 +56,14 @@ All notable changes to this project are documented in this file.
   stay out of logs.
 - MongoDB Tools use the selected transfer database in the URI and preserve the original
   authentication source, avoiding conflicting database options and authentication failures.
+
+### Tests
+
+- Added regression coverage for selected query execution, history, result context and refresh,
+  including delayed TUI results inside nested dialogs in English and Russian.
+- Added checks for translated menu help, horizontal scrolling, Option navigation and detailed
+  query errors with redacted MongoDB URIs.
+- Added browser-editor JavaScript tests and CI checks for tests and reproducible asset builds.
 
 ## v0.8.0 — since v0.7.0
 

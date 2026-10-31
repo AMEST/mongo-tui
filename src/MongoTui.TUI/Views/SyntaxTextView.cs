@@ -1,5 +1,6 @@
 using MongoTui.TUI.Editor;
 using Terminal.Gui.Drawing;
+using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 using TuiAttribute = Terminal.Gui.Drawing.Attribute;
 
@@ -14,6 +15,12 @@ internal class SyntaxTextView : TextView
 
     public SyntaxTextView()
     {
+        KeyBindings.Add(Key.CursorLeft.WithAlt, Command.WordLeft);
+        KeyBindings.Add(Key.CursorRight.WithAlt, Command.WordRight);
+        KeyBindings.Add(Key.CursorLeft.WithAlt.WithShift, Command.WordLeftExtend);
+        KeyBindings.Add(Key.CursorRight.WithAlt.WithShift, Command.WordRightExtend);
+        KeyBindings.Add(Key.B.WithAlt, Command.WordLeft);
+        KeyBindings.Add(Key.F.WithAlt, Command.WordRight);
         ContentsChanged += (_, _) => { _tokens.Clear(); SetNeedsDraw(); };
         DrawingContent += (_, _) => _tokens.Clear();
     }

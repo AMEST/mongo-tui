@@ -97,6 +97,7 @@ public static partial class LocalizationKeys
         public const string Empty = "Query.Empty";
         public const string EmptyHint = "Query.EmptyHint";
         public const string ExportResults = "Query.ExportResults";
+        public const string Failed = "Query.Failed";
         public const string Filter = "Query.Filter";
         public const string New = "Query.New";
         public const string Page = "Query.Page";
