@@ -139,8 +139,10 @@ For autocomplete, use **↑/↓** to choose, **Enter** or **Tab** to insert, and
 Database, collection and field names are available through `Ctrl+Space`; method suggestions
 also appear while typing.
 
-Results show scrollbars when their content exceeds the pane; use the horizontal scrollbar
-or Left/Right and Home/End to navigate wide tables.
+Focus Results with Tab or a click. Up/Down scroll one line and Left/Right scroll one column
+immediately, including when the caret is on a short line. PageUp/PageDown scroll a page.
+Scrollbars appear when the content exceeds the pane; the mouse wheel scrolls vertically.
+Shift+arrows select text for copying.
 
 **Navigation on macOS.** In the browser editor, `Cmd+←/→` moves to the line boundaries and
 `Option+←/→` moves by word. In TUI, Option must be sent as Alt (or `Esc+b` / `Esc+f`).

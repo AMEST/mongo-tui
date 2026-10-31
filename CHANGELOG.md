@@ -38,6 +38,8 @@ All notable changes to this project are documented in this file.
 
 ### Fixed
 
+- Plain arrows in TUI Results scroll immediately by one line or column, preserve the other
+  scroll axis and keep focus at content edges, including when the hidden caret is on a short line.
 - Text context menus in TUI query/results and document editors use English/Russian labels and
   help text; the clear action is named **Clear all text**. Query menus update when the language changes.
 - Web `Cmd/Ctrl+Enter` runs the query instead of inserting a blank line through CodeMirror's
