@@ -84,6 +84,23 @@ public sealed class QueryTabViewModelTests
         tab.Result.Error.Should().Be("Превышено время выполнения запроса (90 с).");
     }
 
+    [Theory]
+    [InlineData("en", "Query execution failed:")]
+    [InlineData("ru", "Ошибка выполнения запроса:")]
+    public async Task Should_ShowUnderlyingCause_WhenQueryFailsUnexpectedly(string language, string prefix)
+    {
+        var localizer = new MongoTui.TUI.Localization.ResxLocalizer();
+        localizer.SetLanguage(language);
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+            .Throws(new FormatException("Invalid JSON at line 2."));
+        var tab = new QueryTabViewModel(_queryService, localizer, ConnectionId.New(),
+            new MongoConnectionTarget("mongodb://localhost"), "Query");
+
+        await tab.ExecuteAsync(CancellationToken.None);
+
+        tab.Result.Error.Should().StartWith(prefix).And.Contain("FormatException: Invalid JSON at line 2.");
+    }
+
     private QueryTabViewModel CreateTab() =>
         new(
             _queryService,

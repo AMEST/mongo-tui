@@ -87,10 +87,13 @@ public sealed class QueryTabViewModel : ObservableObject
         ExecuteAsync(action => { action(); return Task.CompletedTask; }, cancellationToken);
 
     internal Task ExecuteAsync(Func<Action, Task> update, CancellationToken cancellationToken) =>
+        ExecuteAsync(Script, update, cancellationToken);
+
+    internal Task ExecuteAsync(string script, Func<Action, Task> update, CancellationToken cancellationToken) =>
         ExecuteAsync(new QueryExecutionContext
         {
             TabId = Id, ConnectionId = ConnectionId, Target = Target,
-            Script = Script, Database = Database, Collection = Collection,
+            Script = script, Database = Database, Collection = Collection,
         }, update, cancellationToken);
 
     // Only verified reads can be replayed after document mutations; the editor may contain a different script.
@@ -146,12 +149,13 @@ public sealed class QueryTabViewModel : ObservableObject
         {
             Log.Warning("Query tab {TabId}: execution failed ({ExceptionType})", Id, failure.GetType().Name);
             Result.LoadError(failure is QueryTimeoutException timeout
-                ? _localizer.Format(LocalizationKeys.Query.TimedOut, timeout.Timeout.TotalSeconds) : failure.Message);
+                ? _localizer.Format(LocalizationKeys.Query.TimedOut, timeout.Timeout.TotalSeconds)
+                : QueryErrorDetails.GetMessage(failure, _localizer.Get(LocalizationKeys.Query.Failed)));
         }
         else
         {
             Log.Error("Query tab {TabId}: unexpected error ({ExceptionType})", Id, failure.GetType().Name);
-            Result.LoadError(failure.Message);
+            Result.LoadError(QueryErrorDetails.GetMessage(failure, _localizer.Get(LocalizationKeys.Query.Failed)));
         }
     }
 

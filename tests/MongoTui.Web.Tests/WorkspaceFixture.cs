@@ -21,6 +21,7 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
     public ICryptoService Crypto { get; } = A.Fake<ICryptoService>();
     public IMongoShellSession Shell { get; } = A.Fake<IMongoShellSession>();
     public ISettingsStore Settings { get; } = A.Fake<ISettingsStore>();
+    public IQueryHistoryRepository History { get; } = A.Fake<IQueryHistoryRepository>();
     public WebText Text { get; } = new();
     public ConnectionProfile Profile { get; }
     public ConnectionService Connections { get; }
@@ -47,7 +48,7 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(Shell);
         A.CallTo(() => Shell.IsRunning).Returns(true);
-        _queries = new(factory, A.Fake<IQueryHistoryRepository>(), Gateway, new SettingsService(Settings), Loggers.CreateLogger<QueryService>());
+        _queries = new(factory, History, Gateway, new SettingsService(Settings), Loggers.CreateLogger<QueryService>());
         Workspace = new(_queries, Catalog, Limiter, Text, Loggers.CreateLogger<QueryWorkspace>());
     }
 

@@ -283,4 +283,5 @@
   <data name="WebAuth.SignOut" xml:space="preserve"><value>Sign out</value></data>
   <data name="WebAuth.StartupLink" xml:space="preserve"><value>Sign-in link: {0}</value></data>
   <data name="WebAuth.StartupHint" xml:space="preserve"><value>The link is single-use and expires in 15 minutes. With master-password protection, you can also sign in at the regular Web address.</value></data>
+  <data name="Query.Failed" xml:space="preserve"><value>Query execution failed: {0}</value></data>
 </root>

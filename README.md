@@ -122,7 +122,9 @@ opens an empty tab bound to that database; on a collection it opens the same tab
 |---|---|
 | `Ctrl+O` | Connection manager |
 | `Ctrl+T` / `Ctrl+W` | New / close query tab |
-| `F5` / `Ctrl+R` | Run query |
+| `F5` / `Ctrl+R` | Run the selection, or the whole script when nothing is selected |
+| `Alt+←` / `Alt+→` | Move by word in the editor; add Shift to select |
+| `Home` / `End` | Move to the start / end of the line |
 | `Ctrl+Space` | Autocomplete in the editor; context menu in the tree |
 | `Ctrl+H` | Query history |
 | `F2` / `F3` | Export / import |
@@ -136,6 +138,17 @@ opens an empty tab bound to that database; on a collection it opens the same tab
 For autocomplete, use **↑/↓** to choose, **Enter** or **Tab** to insert, and **Esc** to dismiss.
 Database, collection and field names are available through `Ctrl+Space`; method suggestions
 also appear while typing.
+
+Focus Results with Tab or a click. Up/Down scroll one line and Left/Right scroll one column
+immediately, including when the caret is on a short line. PageUp/PageDown scroll a page.
+Scrollbars appear when the content exceeds the pane; the mouse wheel scrolls vertically.
+Shift+arrows select text for copying.
+
+**Navigation on macOS.** In the browser editor, `Cmd+←/→` moves to the line boundaries and
+`Option+←/→` moves by word. In TUI, Option must be sent as Alt (or `Esc+b` / `Esc+f`).
+Terminal.Gui 2.5 cannot distinguish a Cmd modifier. If your terminal supports custom key mappings,
+map `Cmd+←` to Home (`ESC[H`) and `Cmd+→` to End (`ESC[F`); these move within the current line.
+The application cannot handle shortcuts intercepted by the terminal.
 
 The full list is always available in the app under **Help → Keyboard shortcuts**. Shortcuts act on
 the focused pane, so the same `Ctrl+C` copies from the editor, the results or a dialog field.

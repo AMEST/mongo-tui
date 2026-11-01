@@ -34,7 +34,7 @@
         }
         else
         {
-            <div class="editor-panel"><CodeEditor @key="tab.Id" @ref="_editor" Value="@tab.Script" ValueChanged="value => tab.Script = value" OnRun="RunAsync" Complete="CompleteAsync" /></div>
+            <div class="editor-panel"><CodeEditor @key="tab.Id" @ref="_editor" Value="@tab.Script" ValueChanged="value => tab.Script = value" OnRun="execution => RunEditorAsync(tab, execution)" Complete="CompleteAsync" /></div>
         }
         @if (tab.Error is not null) { <div class="query-error" role="alert"><Icon Name="@IconNames.Info" Size="16" /><pre>@tab.Error</pre></div> }
         <div class="results-toolbar"><div class="result-title"><strong>@L[LocalizationKeys.Query.Results]</strong>@if (tab.Result is not null) { <span class="badge subtle">@tab.Result.Documents.Count@(tab.HasNext && tab.Browse ? "+" : "")</span><span class="muted">@tab.Result.Elapsed.TotalMilliseconds.ToString("0") ms</span> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="icon-button" title="@L[LocalizationKeys.Transfer.Title]" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => _showTransfer = true"><Icon Name="@IconNames.Upload" Size="16" /></button> }<button class="icon-button" title="@L[LocalizationKeys.Query.ExportResults]" disabled="@(tab.Result is null)" @onclick="ExportResultsAsync"><Icon Name="@IconNames.Download" Size="16" /></button>@if (tab.EditableCollection is not null) { <button class="button secondary compact" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="Insert"><Icon Name="@IconNames.Plus" Size="14" />@L[LocalizationKeys.Document.Add]</button> }<div class="segmented small">@foreach (var view in new[] { (ResultViewMode.Table, IconNames.Grid, LocalizationKeys.View.Table), (ResultViewMode.Tree, IconNames.Tree, LocalizationKeys.View.Tree), (ResultViewMode.Json, IconNames.Code, LocalizationKeys.View.Json) }) { <button class="@(tab.View == view.Item1 ? "active" : "")" title="@L[view.Item3]" @onclick="() => tab.View = view.Item1"><Icon Name="@view.Item2" Size="14" /><span>@L[view.Item3]</span></button> }</div></div></div>
@@ -91,8 +91,15 @@
     }
     private async Task RunAsync()
     {
-        await SaveDraftAsync();
-        if (Workspace.Selected is { } tab) await Workspace.ExecuteAsync(tab);
+        if (Workspace.Selected is not { } tab) return;
+        if (tab.Browse) await Workspace.ExecuteAsync(tab);
+        else if (_editor is { } editor) await RunEditorAsync(tab, await editor.GetExecutionAsync());
+    }
+    private async Task RunEditorAsync(WebTab tab, EditorExecution execution)
+    {
+        if (_disposed || Workspace.Selected != tab || tab.Browse || tab.Busy) return;
+        tab.Script = execution.Script;
+        await Workspace.ExecuteScriptAsync(tab, execution.Selection ?? execution.Script);
     }
     private async Task ImportedAsync() { if (Workspace.Selected is { Browse: true }) await RunAsync(); }
     private void Inspect(BsonDocument document) { if (Workspace.Selected?.Busy == true) return; _insert = false; _document = document; }

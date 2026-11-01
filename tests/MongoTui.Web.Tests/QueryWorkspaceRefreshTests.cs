@@ -10,6 +10,26 @@ namespace MongoTui.Web.Tests;
 public sealed class QueryWorkspaceRefreshTests
 {
     [Fact]
+    public async Task Should_ReplayOnlyExecutedFragment_WhenRefreshingSelectionResult()
+    {
+        await using var fixture = new WorkspaceFixture();
+        await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
+        const string selected = "db.customers.find({}).toArray()";
+        var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", "db.orders.deleteMany({});\n" + selected);
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._)).Returns(Result());
+        await fixture.Workspace.ExecuteScriptAsync(tab, selected);
+        tab.Script = "db.customers.deleteMany({})";
+
+        await fixture.Workspace.RefreshAsync(tab);
+
+        tab.Script.Should().Be("db.customers.deleteMany({})");
+        tab.EditableCollection!.Collection.Value.Should().Be("customers");
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<CancellationToken>._))
+            .MustNotHaveHappened();
+    }
+
+    [Fact]
     public async Task Should_RefreshSubmittedSnapshot_WhenEditorChangesDuringExecution()
     {
         await using var fixture = new WorkspaceFixture();

@@ -18,6 +18,7 @@ internal sealed class QueryTabPane
     private readonly FrameView _editorFrame;
     private readonly FrameView _resultFrame;
     private readonly CancellationTokenSource _lifetime = new();
+    private readonly List<(MenuItem Item, string Key)> _menuLabels = [];
     private bool _menuBuilt;
 
     public QueryTabPane(QueryTabsView owner, QueryTabViewModel model, ILocalizer localizer, AutocompleteService autocomplete)
@@ -38,7 +39,7 @@ internal sealed class QueryTabPane
         };
 
         Editor = new QueryEditorView(autocomplete, model) { Width = Dim.Fill(), Height = Dim.Fill() };
-        _result = new ResultTextView { Multiline = true, ReadOnly = true, WordWrap = false, Width = Dim.Fill(), Height = Dim.Fill() };
+        _result = new ResultTextView { Multiline = true, ReadOnly = true, WordWrap = false, ScrollBars = true, Width = Dim.Fill(), Height = Dim.Fill() };
 
         Editor.TrackContents(() => Model.Script = Editor.Text ?? string.Empty);
         _editorFrame.Add(Editor);
@@ -93,6 +94,11 @@ internal sealed class QueryTabPane
         RefreshContext(localizer);
         _editorFrame.Title = localizer.Get(LocalizationKeys.Query.Pane);
         _resultFrame.Title = localizer.Get(LocalizationKeys.Query.Result);
+        foreach (var (item, key) in _menuLabels)
+        {
+            item.Title = localizer.Get(key);
+            if (TextContextMenuLabels.GetHelpKey(item.Command) is { } help) item.HelpText = localizer.Get(help);
+        }
     }
 
     private void RefreshContext(ILocalizer localizer) => _context.Text =
@@ -108,6 +114,10 @@ internal sealed class QueryTabPane
         _menuBuilt = true;
         BuildEditorContextMenu(localizer);
         BuildResultContextMenu(localizer);
+        foreach (var view in new TextView[] { Editor, _result })
+            foreach (var item in view.ContextMenu?.Root?.SubViews.OfType<MenuItem>() ?? [])
+                if (TextContextMenuLabels.GetKey(item.Command) is { } key) _menuLabels.Add((item, key));
+        RefreshLocalization(localizer);
     }
 
     private void BuildEditorContextMenu(ILocalizer localizer)
@@ -118,7 +128,7 @@ internal sealed class QueryTabPane
         }
 
         root.Add(new Line());
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.QueryRun), string.Empty, _owner.RaiseRunRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.QueryRun, _owner.RaiseRunRequested));
     }
 
     private void BuildResultContextMenu(ILocalizer localizer)
@@ -129,11 +139,18 @@ internal sealed class QueryTabPane
         }
 
         root.Add(new Line());
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.CopyAll), string.Empty, CopyAll));
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.CopyDocument), string.Empty, CopySelectedDocument));
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Result.Export), string.Empty, _owner.RaiseExportRequested));
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.DocumentEdit), string.Empty, _owner.RaiseEditDocumentRequested));
-        root.Add(new MenuItem(localizer.Get(LocalizationKeys.Menu.DocumentDelete), string.Empty, _owner.RaiseDeleteDocumentRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.CopyAll, CopyAll));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.CopyDocument, CopySelectedDocument));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.Export, _owner.RaiseExportRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.DocumentEdit, _owner.RaiseEditDocumentRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.DocumentDelete, _owner.RaiseDeleteDocumentRequested));
+    }
+
+    private MenuItem CreateMenuItem(ILocalizer localizer, string key, Action action)
+    {
+        var item = new MenuItem(localizer.Get(key), string.Empty, action);
+        _menuLabels.Add((item, key));
+        return item;
     }
 
     private void CopyAll() => _result.App?.Clipboard?.SetClipboardData(_result.Text ?? string.Empty);

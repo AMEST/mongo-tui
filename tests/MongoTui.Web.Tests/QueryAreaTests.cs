@@ -252,7 +252,7 @@ public sealed class QueryAreaTests
         return tab;
     }
 
-    private ServiceProvider CreateServices(WorkspaceFixture fixture)
+    internal static ServiceProvider CreateServices(WorkspaceFixture fixture, IJSRuntime? runtime = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -265,9 +265,10 @@ public sealed class QueryAreaTests
         services.AddSingleton(A.Fake<IAiAssistant>());
         services.AddSingleton<CollectionSchemaService>();
         services.AddSingleton<TranslateQueryService>();
-        var js = A.Fake<IJSRuntime>();
-        A.CallTo(() => js.InvokeAsync<IJSObjectReference>("import", A<object?[]>._))
-            .Throws(new JSException("Use the editor fallback in component tests."));
+        var js = runtime ?? A.Fake<IJSRuntime>();
+        if (runtime is null)
+            A.CallTo(() => js.InvokeAsync<IJSObjectReference>("import", A<object?[]>._))
+                .Throws(new JSException("Use the editor fallback in component tests."));
         services.AddSingleton(js);
         return services.BuildServiceProvider();
     }
