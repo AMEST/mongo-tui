@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## v0.9.0 — since v0.8.0
 
 ### Added
 
@@ -405,6 +405,7 @@ All notable changes to this project are documented in this file.
 - macOS install: added `xattr` commands to clear quarantine on `libe_sqlite3.dylib` and
   `libonigwrap.dylib`.
 
+[v0.8.0 to v0.9.0]: https://github.com/AMEST/mongo-tui/compare/v0.8.0...v0.9.0
 [v0.7.0 to v0.8.0]: https://github.com/AMEST/mongo-tui/compare/v0.7.0...v0.8.0
 [v0.6.0 to v0.7.0]: https://github.com/AMEST/mongo-tui/compare/v0.6.0...v0.7.0
 [v0.5.3 to v0.6.0]: https://github.com/AMEST/mongo-tui/compare/v0.5.3...v0.6.0
