@@ -22,6 +22,7 @@ internal sealed class TuiFeatureTestHost : IAsyncDisposable
     public IApplication App { get; }
     public MainWindow Window { get; }
     public QueryTabsView Tabs { get; }
+    public IQueryFileStore QueryFiles { get; } = A.Fake<IQueryFileStore>();
     public IMongoGateway Gateway { get; } = A.Fake<IMongoGateway>();
     public IMongoShellSession Session { get; } = A.Fake<IMongoShellSession>();
     public IConnectionRepository Connections { get; } = A.Fake<IConnectionRepository>();
@@ -40,6 +41,7 @@ internal sealed class TuiFeatureTestHost : IAsyncDisposable
         services.AddSingleton(A.Fake<IMongoUserGateway>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());
+        services.AddSingleton(QueryFiles);
         services.AddSingleton(A.Fake<IAiAssistant>());
         services.AddSingleton(A.Fake<ISettingsStore>());
         services.AddSingleton(A.Fake<IStorageTransaction>());

@@ -43,6 +43,7 @@ public sealed class ClipboardShortcutTests : IAsyncLifetime
         services.AddSingleton(A.Fake<IConnectionRepository>());
         services.AddSingleton(A.Fake<ICryptoService>());
         services.AddSingleton(A.Fake<IQueryHistoryRepository>());
+        services.AddSingleton(A.Fake<IQueryFileStore>());
         services.AddSingleton(A.Fake<IAiAssistant>());
         services.AddSingleton(A.Fake<ISettingsStore>());
         services.AddSingleton(A.Fake<IStorageTransaction>());

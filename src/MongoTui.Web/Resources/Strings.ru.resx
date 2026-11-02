@@ -284,4 +284,23 @@
   <data name="WebAuth.StartupLink" xml:space="preserve"><value>Ссылка для входа: {0}</value></data>
   <data name="WebAuth.StartupHint" xml:space="preserve"><value>Ссылка одноразовая и действует 15 минут. В режиме мастер-пароля можно также войти по обычному адресу Web.</value></data>
   <data name="Query.Failed" xml:space="preserve"><value>Ошибка выполнения запроса: {0}</value></data>
+  <data name="Nav.files" xml:space="preserve"><value>Файлы</value></data>
+  <data name="Menu.Query.OpenFile" xml:space="preserve"><value>Открыть файл запроса</value></data>
+  <data name="Menu.Query.SaveFile" xml:space="preserve"><value>Сохранить запрос в файл</value></data>
+  <data name="QueryFiles.OpenTitle" xml:space="preserve"><value>Открытие файла запроса</value></data>
+  <data name="QueryFiles.SaveTitle" xml:space="preserve"><value>Сохранение запроса в файл</value></data>
+  <data name="QueryFiles.Recent" xml:space="preserve"><value>Недавние запросы</value></data>
+  <data name="QueryFiles.Path" xml:space="preserve"><value>Путь к файлу</value></data>
+  <data name="QueryFiles.Open" xml:space="preserve"><value>Открыть</value></data>
+  <data name="QueryFiles.Save" xml:space="preserve"><value>Сохранить</value></data>
+  <data name="QueryFiles.JavaScript" xml:space="preserve"><value>JavaScript</value></data>
+  <data name="QueryFiles.Empty" xml:space="preserve"><value>Нет недавних файлов запросов</value></data>
+  <data name="QueryFiles.NoTarget" xml:space="preserve"><value>Сначала выберите подключение.</value></data>
+  <data name="QueryFiles.Opened" xml:space="preserve"><value>Открыт {0}</value></data>
+  <data name="QueryFiles.Saved" xml:space="preserve"><value>Сохранён {0}</value></data>
+  <data name="QueryFiles.OpenError" xml:space="preserve"><value>Не удалось открыть файл запроса.</value></data>
+  <data name="QueryFiles.SaveError" xml:space="preserve"><value>Не удалось сохранить запрос в файл.</value></data>
+  <data name="QueryFiles.PathRequired" xml:space="preserve"><value>Введите путь к файлу.</value></data>
+  <data name="QueryFiles.Database" xml:space="preserve"><value>База данных</value></data>
+  <data name="QueryFiles.DatabaseRequired" xml:space="preserve"><value>Укажите корректное имя базы данных.</value></data>
 </root>

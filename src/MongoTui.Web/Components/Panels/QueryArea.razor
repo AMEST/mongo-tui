@@ -27,7 +27,7 @@
             <button class="icon-button" title="@L[LocalizationKeys.Query.New]" @onclick="NewQueryAsync"><Icon Name="@IconNames.Plus" Size="17" /></button>
         </div>
         <div class="workspace-context"><div class="breadcrumbs"><span class="status-dot"></span><span>@Catalog.Get(tab.ConnectionId).Profile.Name</span><Icon Name="@IconNames.Chevron" Size="12" /><span>@tab.Database</span>@if (tab.Collection is not null) { <Icon Name="@IconNames.Chevron" Size="12" /><strong>@tab.Collection</strong> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="text-button" @onclick="() => _showCollection = true"><Icon Name="@IconNames.Settings" Size="15" />@L[LocalizationKeys.Collection.Details]</button> }<button class="text-button" @onclick="() => _showAi = true"><Icon Name="@IconNames.Spark" Size="15" />@L[LocalizationKeys.Ai.Assistant]</button></div></div>
-        <div class="query-toolbar"><div class="segmented">@if (tab.Collection is not null) { <button class="@(tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(true)">@L[LocalizationKeys.Query.Browse]</button> }<button class="@(!tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(false)">@L[LocalizationKeys.Query.Script]</button></div><div class="toolbar-right"><span class="shortcut">@(tab.Browse ? L[LocalizationKeys.Query.PageSize] : "⌘ / Ctrl ↵")</span><div class="query-run-control"><button class="button compact primary" aria-busy="@(tab.Busy ? "true" : "false")" @onclick="RunOrCancelAsync"><Icon Name="@(tab.Busy ? IconNames.Stop : IconNames.Play)" Size="15" /><span class="button-label"><span class="@(!tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(tab.Busy ? "true" : "false")">@L[tab.Browse ? LocalizationKeys.Query.Apply : LocalizationKeys.Query.Run]</span><span class="@(tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(!tab.Busy ? "true" : "false")">@L[LocalizationKeys.Query.Stop]</span></span></button></div></div></div>
+        <div class="query-toolbar"><div class="segmented">@if (tab.Collection is not null) { <button class="@(tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(true)">@L[LocalizationKeys.Query.Browse]</button> }<button class="@(!tab.Browse ? "active" : "")" aria-disabled="@(tab.Busy ? "true" : "false")" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => SetModeAsync(false)">@L[LocalizationKeys.Query.Script]</button></div><div class="toolbar-right">@if (!tab.Browse) { <button class="icon-button" title="@L[LocalizationKeys.QueryFiles.SaveTitle]" @onclick="OpenSaveFileAsync"><Icon Name="@IconNames.Bookmark" Size="16" /></button> }<span class="shortcut">@(tab.Browse ? L[LocalizationKeys.Query.PageSize] : "⌘ / Ctrl ↵")</span><div class="query-run-control"><button class="button compact primary" aria-busy="@(tab.Busy ? "true" : "false")" @onclick="RunOrCancelAsync"><Icon Name="@(tab.Busy ? IconNames.Stop : IconNames.Play)" Size="15" /><span class="button-label"><span class="@(!tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(tab.Busy ? "true" : "false")">@L[tab.Browse ? LocalizationKeys.Query.Apply : LocalizationKeys.Query.Run]</span><span class="@(tab.Busy ? "" : "button-label-reserve")" aria-hidden="@(!tab.Busy ? "true" : "false")">@L[LocalizationKeys.Query.Stop]</span></span></button></div></div></div>
         @if (tab.Browse)
         {
             <form class="filter-bar" @onsubmit="RunAsync" @onsubmit:preventDefault="true"><span class="filter-label">@L[LocalizationKeys.Query.Filter]</span><input class="mono" aria-label="@L[LocalizationKeys.Query.Filter]" @bind="tab.Filter" spellcheck="false" /><span class="badge subtle">JSON</span></form>
@@ -43,6 +43,7 @@
         @if (_document is not null) { <DocumentDialog Document="_document" Tab="tab" Insert="_insert" OnClose="() => _document = null" OnSaved="() => DocumentSavedAsync(tab)" /> }
         @if (_showCollection && tab.Collection is not null) { <CollectionPanel Tab="tab" OnClose="() => _showCollection = false" /> }
         @if (_showTransfer && tab.Collection is not null) { <TransferDialog Tab="tab" OnClose="() => _showTransfer = false" OnImported="ImportedAsync" /> }
+        @if (_showSaveFile && !tab.Browse) { <SaveQueryFileDialog @key="tab.Id" Tab="tab" OnSaved="SaveFileSaved" OnClose="() => _showSaveFile = false" /> }
         @if (_showAi) { <AiPanel Tab="tab" OnClose="() => _showAi = false" OnUse="UseSuggestionAsync" /> }
     }
 </main>
@@ -51,7 +52,7 @@
     private const int MaximumCompletions = 100;
     [Parameter] public EventCallback OnAddConnection { get; set; }
     private CodeEditor? _editor;
-    private bool _disposed, _insert, _showCollection, _showTransfer, _showAi;
+    private bool _disposed, _insert, _showCollection, _showTransfer, _showAi, _showSaveFile;
     private BsonDocument? _document;
     protected override void OnInitialized()
     {
@@ -105,7 +106,13 @@
     private void Inspect(BsonDocument document) { if (Workspace.Selected?.Busy == true) return; _insert = false; _document = document; }
     private void Insert() { if (Workspace.Selected?.Busy == true) return; _insert = true; _document = new BsonDocument(); }
     private async Task DocumentSavedAsync(WebTab tab) { _document = null; await Workspace.RefreshAsync(tab); }
-    private void ResetPanels() { _document = null; _showCollection = _showTransfer = _showAi = false; }
+    private void ResetPanels() { _document = null; _showCollection = _showTransfer = _showAi = _showSaveFile = false; }
+    private void SaveFileSaved() { _showSaveFile = false; }
+    private async Task OpenSaveFileAsync()
+    {
+        await SaveDraftAsync();
+        if (Workspace.Selected is { Browse: false }) _showSaveFile = true;
+    }
     private async Task<string[]> CompleteAsync(string prefix)
     {
         if (Workspace.Selected is not { } tab) return [];

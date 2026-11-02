@@ -41,6 +41,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IStorageTransaction>(provider => provider.GetRequiredService<SqliteDatabase>());
         services.AddSingleton<IConnectionRepository, SqliteConnectionRepository>();
         services.AddSingleton<IQueryHistoryRepository, SqliteQueryHistoryRepository>();
+        services.AddSingleton<IQueryFileStore, FileQueryFileStore>();
         services.AddSingleton<IApplicationLogReader>(_ => new FileApplicationLogReader(AppPaths.LogsDirectory));
         services.AddSingleton<ICryptoService, AesGcmCryptoService>();
         services.AddSingleton(Argon2Parameters.Default);

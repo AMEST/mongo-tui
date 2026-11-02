@@ -30,6 +30,7 @@ with English and Russian interfaces.
 - JavaScript query tabs with syntax highlighting, autocomplete and query history.
   Each TUI tab shows its connection name and database above the query editor.
   History lets you choose a saved connection, inspect query details and reopen a query without running it.
+  Open and save query files on disk, with a native file picker and a list of the ten most recently used files.
 - Table, Tree and JSON result views; document editing as Canonical Extended JSON with BSON type checks.
   After a document is inserted, saved or deleted, TUI reloads the last verified read without changing the editor draft.
 - Collection import and export in JSON.
@@ -85,8 +86,8 @@ one-time link printed in the terminal; `--open` opens that link automatically.
 Web resources are embedded; no `wwwroot` folder is required beside the executable.
 
 Connections and settings are shared with TUI. Features include database and collection browsing,
-JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, application logs,
-JSON import/export and AI assistance. [Details](docs/web-interface.md).
+JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, query files,
+application logs, JSON import/export and AI assistance. [Details](docs/web-interface.md).
 
 Browse mode reads 50 documents per page through the driver; Script mode uses installed `mongosh`.
 The explorer also supports MongoDB user management, and Web history can open a query in a new tab.
@@ -123,6 +124,8 @@ opens an empty tab bound to that database; on a collection it opens the same tab
 | `Ctrl+O` | Connection manager |
 | `Ctrl+T` / `Ctrl+W` | New / close query tab |
 | `F5` / `Ctrl+R` | Run the selection, or the whole script when nothing is selected |
+| `Ctrl+L` | Open query file |
+| `Ctrl+S` | Save query file |
 | `Alt+←` / `Alt+→` | Move by word in the editor; add Shift to select |
 | `Home` / `End` | Move to the start / end of the line |
 | `Ctrl+Space` | Autocomplete in the editor; context menu in the tree |

@@ -30,7 +30,10 @@ public sealed class TextEditingTests
         clear.Title.Should().Be(after);
         clear.HelpText.Should().Be(host.Localizer.Get(LocalizationKeys.TextEditing.ClearHelp));
         clear.TargetView.Should().BeSameAs(editor);
-        editor.ContextMenu.Root.SubViews.OfType<MenuItem>().Last().Title.Should().Be(host.Localizer.Get(LocalizationKeys.Menu.QueryRun));
+        var editorItems = editor.ContextMenu.Root.SubViews.OfType<MenuItem>().Select(item => item.Title).ToList();
+        editorItems.Should().Contain(host.Localizer.Get(LocalizationKeys.Menu.QueryRun));
+        editorItems.Should().Contain(host.Localizer.Get(LocalizationKeys.Menu.QueryOpenFile));
+        editorItems.Should().Contain(host.Localizer.Get(LocalizationKeys.Menu.QuerySaveFile));
         host.Tabs.ActiveResultView!.ContextMenu!.Root!.SubViews.OfType<MenuItem>()
             .Single(item => item.Command == Command.Copy).Title.Should().Be(host.Localizer.Get(LocalizationKeys.TextEditing.Copy));
     }

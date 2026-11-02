@@ -41,6 +41,7 @@ public sealed partial class MainWindow : Window
     private readonly ImportService _import;
     private readonly IAiAssistant _assistant;
     private readonly IQueryHistoryRepository _history;
+    private readonly QueryFileService _queryFiles;
     private readonly CollectionSchemaService _schema;
     private readonly TranslateQueryService _translate;
     private readonly SettingsService _settings;
@@ -75,6 +76,7 @@ public sealed partial class MainWindow : Window
         ImportService import,
         IAiAssistant assistant,
         IQueryHistoryRepository history,
+        QueryFileService queryFiles,
         CollectionSchemaService schema,
         TranslateQueryService translate,
         SettingsService settings,
@@ -96,6 +98,7 @@ public sealed partial class MainWindow : Window
         _import = import;
         _assistant = assistant;
         _history = history;
+        _queryFiles = queryFiles;
         _schema = schema;
         _translate = translate;
         _settings = settings;
@@ -108,6 +111,8 @@ public sealed partial class MainWindow : Window
         _tree = new TreeViewModel(gateway, localizer);
         _queryTabs = queryTabs;
         _queryTabs.RunRequested += (_, _) => Safe(RunActiveQueryAsync);
+        _queryTabs.OpenQueryFileRequested += (_, _) => Safe(OpenQueryFileAsync);
+        _queryTabs.SaveQueryFileRequested += (_, _) => Safe(SaveActiveQueryFileAsync);
         _queryTabs.ExportRequested += (_, _) => OpenExport();
         _queryTabs.EditDocumentRequested += (_, _) => EditDocument();
         _queryTabs.DeleteDocumentRequested += (_, _) => DeleteDocument();
@@ -401,6 +406,8 @@ public sealed partial class MainWindow : Window
             new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Query),
             [
                 Item(localizer.Get(LocalizationKeys.Menu.QueryNew), Ctrl(KeyCode.T), NewTab),
+                Item(localizer.Get(LocalizationKeys.Menu.QueryOpenFile), Ctrl(KeyCode.L), () => Safe(OpenQueryFileAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.QuerySaveFile), Ctrl(KeyCode.S), () => Safe(SaveActiveQueryFileAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryRun), Key.F5, runQuery),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryAutocomplete), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryClose), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),

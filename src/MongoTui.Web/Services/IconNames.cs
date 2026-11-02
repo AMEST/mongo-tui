@@ -32,4 +32,5 @@ public static class IconNames
     public const string Tree = "tree";
     public const string Spark = "spark";
     public const string Copy = "copy";
+    public const string Bookmark = "bookmark";
 }

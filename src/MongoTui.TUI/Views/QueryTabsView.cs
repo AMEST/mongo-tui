@@ -41,6 +41,12 @@ public sealed class QueryTabsView : View
     /// <summary>Raised when the user requests running the active query from its editor context menu.</summary>
     public event EventHandler? RunRequested;
 
+    /// <summary>Raised when the user requests opening a query file from the editor context menu.</summary>
+    public event EventHandler? OpenQueryFileRequested;
+
+    /// <summary>Raised when the user requests saving the active query to a file from its editor context menu.</summary>
+    public event EventHandler? SaveQueryFileRequested;
+
     /// <summary>Raised when the user requests exporting the active result from its context menu.</summary>
     public event EventHandler? ExportRequested;
 
@@ -51,6 +57,8 @@ public sealed class QueryTabsView : View
     public event EventHandler? DeleteDocumentRequested;
 
     public int TabCount => _panes.Count;
+
+    internal bool Contains(QueryTabViewModel tab) => _panes.Values.Any(pane => pane.Model == tab);
 
     public QueryTabViewModel? ActiveTab => CurrentPane()?.Model;
 
@@ -104,6 +112,27 @@ public sealed class QueryTabsView : View
         foreach (var pane in _panes.Values)
         {
             pane.RefreshLocalization(_localizer);
+        }
+    }
+
+    /// <summary>Renames a tab, for example after its script is opened from or saved to a file.</summary>
+    public void SetTitle(QueryTabViewModel tab, string title)
+    {
+        tab.Title = title;
+        if (_panes.Values.FirstOrDefault(pane => pane.Model == tab) is { } pane)
+        {
+            pane.Container.Title = title;
+        }
+    }
+
+    /// <summary>Replaces the active editor content, for example after a query file is opened.</summary>
+    public void SetScript(QueryTabViewModel tab, string script)
+    {
+        tab.Script = script;
+        if (_panes.Values.FirstOrDefault(pane => pane.Model == tab) is { } pane)
+        {
+            pane.Editor.Text = script;
+            pane.Editor.SetNeedsDraw();
         }
     }
 
@@ -188,6 +217,10 @@ public sealed class QueryTabsView : View
     }
 
     internal void RaiseRunRequested() => RunRequested?.Invoke(this, EventArgs.Empty);
+
+    internal void RaiseOpenQueryFileRequested() => OpenQueryFileRequested?.Invoke(this, EventArgs.Empty);
+
+    internal void RaiseSaveQueryFileRequested() => SaveQueryFileRequested?.Invoke(this, EventArgs.Empty);
 
     internal void RaiseExportRequested() => ExportRequested?.Invoke(this, EventArgs.Empty);
 

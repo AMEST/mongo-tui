@@ -129,6 +129,8 @@ internal sealed class QueryTabPane
 
         root.Add(new Line());
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.QueryRun, _owner.RaiseRunRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.QueryOpenFile, _owner.RaiseOpenQueryFileRequested));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.QuerySaveFile, _owner.RaiseSaveQueryFileRequested));
     }
 
     private void BuildResultContextMenu(ILocalizer localizer)
