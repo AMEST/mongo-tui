@@ -19,6 +19,11 @@
         @foreach (var path in _recent) { <button @key="path" class="history-row" @onclick="() => _path = path"><span class="history-status success"><Icon Name="@IconNames.Bookmark" Size="15" /></span><div><code>@System.IO.Path.GetFileName(path)</code><span class="history-meta">@path</span></div><Icon Name="@IconNames.Arrow" Size="16" /></button> }
         @if (_recent.Count == 0) { <div class="empty-section"><Icon Name="@IconNames.Bookmark" Size="32" /><h3>@L[LocalizationKeys.QueryFiles.Empty]</h3></div> }
         <form class="filter-bar" @onsubmit="OpenAsync" @onsubmit:preventDefault="true">
+            <label for="query-file-database">@L[LocalizationKeys.QueryFiles.Database]</label>
+            <input id="query-file-database" list="query-file-databases" aria-label="@L[LocalizationKeys.QueryFiles.Database]" @bind="_database" spellcheck="false" disabled="@_busy" />
+            <datalist id="query-file-databases">
+                @foreach (var database in SelectedConnection?.Databases ?? []) { <option value="@database.Name">@database.Name</option> }
+            </datalist>
             <span class="filter-label">@L[LocalizationKeys.QueryFiles.Path]</span>
             <input class="mono" aria-label="@L[LocalizationKeys.QueryFiles.Path]" @bind="_path" spellcheck="false" />
             <button class="button primary compact" type="submit" disabled="@_busy"><Icon Name="@IconNames.Bookmark" Size="15" />@L[LocalizationKeys.QueryFiles.Open]</button>
@@ -27,21 +32,34 @@
 </main>
 @code {
     [Parameter] public EventCallback<QueryFileOpenRequest> OnOpen { get; set; }
+    [Parameter] public WebTab? CurrentTab { get; set; }
     private IReadOnlyList<string> _recent = [];
     private string _connection = string.Empty;
+    private string _database = string.Empty;
     private string _path = string.Empty;
     private string? _error;
     private readonly CancellationTokenSource _lifetime = new();
     private bool _busy, _disposed;
+    private WebConnection? SelectedConnection => Catalog.Active.FirstOrDefault(connection => connection.Profile.Id.ToString() == _connection);
     protected override async Task OnInitializedAsync()
     {
         await Catalog.RefreshAsync(_lifetime.Token);
         if (_disposed) return;
-        _connection = Catalog.Active.FirstOrDefault()?.Profile.Id.ToString() ?? Catalog.Profiles.FirstOrDefault()?.Id.ToString() ?? "";
+        var current = Catalog.Active.FirstOrDefault(connection => connection.Profile.Id == CurrentTab?.ConnectionId
+            && Catalog.Profiles.Any(profile => profile.Id == connection.Profile.Id));
+        _connection = current?.Profile.Id.ToString() ?? Catalog.Active.FirstOrDefault()?.Profile.Id.ToString()
+            ?? Catalog.Profiles.FirstOrDefault()?.Id.ToString() ?? "";
+        SetDefaultDatabase();
         await LoadAsync();
     }
     public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
-    private void SelectAsync(ChangeEventArgs args) => _connection = args.Value?.ToString() ?? "";
+    private void SelectAsync(ChangeEventArgs args)
+    {
+        _connection = args.Value?.ToString() ?? "";
+        SetDefaultDatabase();
+    }
+    private void SetDefaultDatabase() => _database = CurrentTab is { } tab && SelectedConnection?.Profile.Id == tab.ConnectionId
+        ? tab.Database : string.Empty;
     private async Task LoadAsync()
     {
         if (_disposed) return;
@@ -57,10 +75,16 @@
     }
     private async Task OpenAsync()
     {
+        if (_busy || _disposed) return;
         var path = _path.Trim();
         if (path.Length == 0) { _error = L[LocalizationKeys.QueryFiles.PathRequired]; return; }
         if (_connection.Length == 0) { _error = L[LocalizationKeys.QueryFiles.NoTarget]; return; }
+        var database = _database.Trim();
+        try { DatabaseName.Create(database); }
+        catch (MongoTui.Domain.Exceptions.DomainException) { _error = L[LocalizationKeys.QueryFiles.DatabaseRequired]; return; }
         _error = null;
-        await OnOpen.InvokeAsync(new QueryFileOpenRequest(ConnectionId.Parse(_connection), path));
+        _busy = true;
+        try { await OnOpen.InvokeAsync(new QueryFileOpenRequest(ConnectionId.Parse(_connection), path, database)); }
+        finally { if (!_disposed) _busy = false; }
     }
 }

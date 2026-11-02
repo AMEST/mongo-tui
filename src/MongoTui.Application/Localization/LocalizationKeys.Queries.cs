@@ -88,6 +88,9 @@ public static partial class LocalizationKeys
 
     public static class QueryFiles
     {
+        public const string Database = "QueryFiles.Database";
+        public const string DatabaseRequired = "QueryFiles.DatabaseRequired";
+        public const string Saving = "QueryFiles.Saving";
         public const string Browse = "QueryFiles.Browse";
         public const string Empty = "QueryFiles.Empty";
         public const string JavaScript = "QueryFiles.JavaScript";

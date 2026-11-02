@@ -42,6 +42,8 @@ public sealed class QueryFilesPanelTests
         });
         await renderer.ChangeAsync("mono", "/tmp/active.js");
 
+        await renderer.ChangeAsync("#query-file-database", "demo");
+
         await renderer.SubmitAsync();
 
         opened.Should().NotBeNull();
@@ -57,6 +59,8 @@ public sealed class QueryFilesPanelTests
         using var services = Services(fixture, null);
         await using var renderer = new ComponentTestRenderer(services);
         await renderer.MountAsync<QueryFilesPanel>(new());
+
+        await renderer.ChangeAsync("#query-file-database", "demo");
 
         await renderer.SubmitAsync();
 

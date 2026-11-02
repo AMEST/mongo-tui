@@ -301,4 +301,6 @@
   <data name="QueryFiles.OpenError" xml:space="preserve"><value>Could not open the query file.</value></data>
   <data name="QueryFiles.SaveError" xml:space="preserve"><value>Could not save the query file.</value></data>
   <data name="QueryFiles.PathRequired" xml:space="preserve"><value>Enter a file path.</value></data>
+  <data name="QueryFiles.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="QueryFiles.DatabaseRequired" xml:space="preserve"><value>Enter a valid database name.</value></data>
 </root>

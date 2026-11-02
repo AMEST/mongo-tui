@@ -58,6 +58,8 @@ public sealed class QueryTabsView : View
 
     public int TabCount => _panes.Count;
 
+    internal bool Contains(QueryTabViewModel tab) => _panes.Values.Any(pane => pane.Model == tab);
+
     public QueryTabViewModel? ActiveTab => CurrentPane()?.Model;
 
     /// <summary>Active tab's editor text view (exposed for tests).</summary>

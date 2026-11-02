@@ -26,7 +26,7 @@
             </div>
         }
         else if (_page == MainPage.Connections) { <ConnectionList OnEdit="EditConnection" OnConnect="ConnectAsync" /> }
-        else if (_page == MainPage.Files) { <QueryFilesPanel OnOpen="OpenQueryFileAsync" /> }
+        else if (_page == MainPage.Files) { <QueryFilesPanel CurrentTab="Workspace.Selected" OnOpen="OpenQueryFileAsync" /> }
         else if (_page == MainPage.History) { <HistoryPanel OnOpen="OpenHistoryAsync" /> }
         else if (_page == MainPage.Logs) { <LogsPanel /> }
         else { <SettingsPanel OnChanged="StateHasChanged" /> }
@@ -103,10 +103,11 @@
 
     private async Task OpenQueryFileAsync(QueryFileOpenRequest request) => await SafeAsync(async () =>
     {
+        var database = DatabaseName.Create(request.Database).Value;
         var file = await Files.OpenAsync(request.Path, CancellationToken.None);
         var profile = Catalog.Profiles.First(item => item.Id == request.ConnectionId);
         await Catalog.ConnectAsync(profile, CancellationToken.None);
-        var tab = Workspace.Open(request.ConnectionId, MongoSystemNames.AdminDatabase, null, file.Script);
+        var tab = Workspace.Open(request.ConnectionId, database, null, file.Script);
         tab.QueryFilePath = file.Path;
         _page = MainPage.Workspace;
     });

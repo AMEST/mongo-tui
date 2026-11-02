@@ -12,6 +12,11 @@ namespace MongoTui.TUI.Tests.Views;
 
 public sealed class SaveQueryFileDialogTests
 {
+    public SaveQueryFileDialogTests()
+    {
+        A.CallTo(() => _application.MainThreadId).Returns(Environment.CurrentManagedThreadId);
+    }
+
     private readonly IApplication _application = A.Fake<IApplication>();
     private readonly ResxLocalizer _localizer = new();
 

@@ -469,4 +469,5 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="QueryFiles.OpenError" xml:space="preserve"><value>Не удалось открыть файл запроса.</value></data>
   <data name="QueryFiles.SaveError" xml:space="preserve"><value>Не удалось сохранить запрос в файл.</value></data>
   <data name="QueryFiles.PathRequired" xml:space="preserve"><value>Введите путь к файлу.</value></data>
+  <data name="QueryFiles.Saving" xml:space="preserve"><value>Сохранение…</value></data>
 </root>

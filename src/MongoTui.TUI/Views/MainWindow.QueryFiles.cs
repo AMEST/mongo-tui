@@ -1,7 +1,7 @@
 using System.IO;
 using MongoTui.Application.Localization;
 using MongoTui.Application.Models;
-using MongoTui.Domain.Primitives;
+using MongoTui.TUI.ViewModels;
 
 namespace MongoTui.TUI.Views;
 
@@ -40,10 +40,17 @@ public sealed partial class MainWindow
 
     private async Task OpenQueryFileEntryAsync(string path)
     {
+        var tab = _queryTabs.ActiveTab;
+        var row = tab is null ? SelectedRow() : null;
+        if (tab is null && row?.Owner is null)
+        {
+            SetStatus(_localizer.Get(LocalizationKeys.QueryFiles.NoTarget));
+            return;
+        }
         var file = await _queryFiles.OpenAsync(path, _documentLifetime.Token).ConfigureAwait(false);
         await Application!.InvokeAsync(() =>
         {
-            if (!_documentLifetime.IsCancellationRequested) ApplyQueryFile(file);
+            if (!_documentLifetime.IsCancellationRequested) ApplyQueryFile(file, tab, row);
         }).ConfigureAwait(false);
     }
 
@@ -73,11 +80,12 @@ public sealed partial class MainWindow
         }
     }
 
-    private void ApplyQueryFile(QueryFile file)
+    private void ApplyQueryFile(QueryFile file, QueryTabViewModel? tab, TreeRow? row)
     {
         var title = Path.GetFileName(file.Path);
-        if (_queryTabs.ActiveTab is { } tab)
+        if (tab is not null)
         {
+            if (!_queryTabs.Contains(tab)) return;
             _queryTabs.SetScript(tab, file.Script);
             tab.QueryFilePath = file.Path;
             _queryTabs.SetTitle(tab, title);
@@ -85,7 +93,8 @@ public sealed partial class MainWindow
             return;
         }
 
-        if (SelectedRow() is { Owner: { } connection } row)
+        if (row is { Owner: { } connection }
+            && _tree.Connections.Any(active => active.Profile.Id == row.Profile.Id && active.Target == connection.Target))
         {
             var model = _queryTabs.AddTab(row.Profile.Id, connection.Target, row.Database, row.Collection,
                 file.Script, row.Profile.Name);
