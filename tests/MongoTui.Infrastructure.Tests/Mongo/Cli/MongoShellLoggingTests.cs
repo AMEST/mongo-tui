@@ -15,7 +15,9 @@ public sealed class MongoShellLoggingTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ShouldNot_LogSensitiveOutput_When_ShellReturnsDiagnostics(bool fails)
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task ShouldNot_LogSensitiveOutput_When_ShellReturnsDiagnostics(bool fails, bool raw = false)
     {
         const string sensitive = "sensitive-document-password";
         var sink = new LoggingTestSink();
@@ -26,7 +28,11 @@ public sealed class MongoShellLoggingTests
         await using var session = new MongoShellSession(runner, new MongoToolsLocator(new MongoToolsOptions()),
             new MongoConnectionTarget($"mongodb://user:{sensitive}@localhost"), loggers.CreateLogger<MongoShellSession>());
 
-        try { await session.EvaluateAsync(sensitive, "app", CancellationToken.None); }
+        try
+        {
+            if (raw) await session.EvaluateRawAsync(sensitive, "app", CancellationToken.None);
+            else await session.EvaluateAsync(sensitive, "app", CancellationToken.None);
+        }
         catch (QueryExecutionException) { }
 
         sink.Entries.Should().NotBeEmpty().And.OnlyContain(entry => entry.Category == typeof(MongoShellSession).FullName);

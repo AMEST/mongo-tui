@@ -78,6 +78,9 @@ call the API directly. Do not expose this server through a proxy or port forward
 - Script mode uses installed `mongosh` and supports cancellation.
   Shell stdout/stderr are collected in memory without a size cap.
   Cancelling a write does not undo changes already accepted by MongoDB.
+- Select **Raw (stdout)** before running a script to see native mongosh output, including
+  `console.log` and `print`, without JSON parsing or document pagination. Whitespace is preserved;
+  downloading saves the output as `.txt`. Choose Table/Tree/JSON and rerun for structured documents.
 - **Settings → Queries** configures the query timeout shared with the TUI (default: 30 seconds).
   Set it to `0` to disable the timeout. The value is stored as `query.timeoutSeconds` in SQLite
   and is read for each new query. Running queries retain the value they started with.
@@ -173,7 +176,7 @@ Exercise each scenario at desktop and narrow widths, in English/Russian and ligh
 | Security | Setup/unlock errors, password change, successful save |
 | Connections | Add/edit/test, SSH fields and nested challenge, connect/disconnect, confirmed removal |
 | Explorer | First expansion, cached reopening, collapse, refresh, create database/collection |
-| Queries | Browse/filter, pagination, script run/cancel, scalar results, Table/Tree/JSON |
+| Queries | Browse/filter, pagination, script run/cancel, scalar results, Table/Tree/JSON/Raw |
 | Documents | Invalid JSON, insert/update, copy failure, confirmed delete |
 | Collection details | Initial statistics, invalid index JSON, create/drop index |
 | Users | Empty/populated refresh, permission errors, create/edit/delete, credentials copy |

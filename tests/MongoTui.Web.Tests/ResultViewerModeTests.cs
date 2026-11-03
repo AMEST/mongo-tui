@@ -1,4 +1,5 @@
 using AwesomeAssertions;
+using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +16,31 @@ namespace MongoTui.Web.Tests;
 
 public sealed class ResultViewerModeTests
 {
+    [Theory]
+    [InlineData("en", ResultViewMode.Raw)]
+    [InlineData("ru", ResultViewMode.Raw)]
+    [InlineData("en", ResultViewMode.Table)]
+    public async Task Should_RenderFullEscapedOutput_WhenRawResultHasNoDocuments(string language, ResultViewMode mode)
+    {
+        await using var fixture = new WorkspaceFixture();
+        fixture.Text.SetLanguage(language);
+        using var services = QueryAreaTests.CreateServices(fixture);
+        await using var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+        var output = "  {not JSON}\n<script>alert('text')</script>\n" + string.Join('\n', Enumerable.Range(0, 100));
+        var tab = new WebTab(ConnectionId.New(), "demo", null)
+        {
+            View = mode, Page = 2,
+            Result = new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = output },
+        };
+
+        var root = await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<ResultViewer>(
+            ParameterView.FromDictionary(new Dictionary<string, object?> { [nameof(ResultViewer.Tab)] = tab })));
+
+        var html = await renderer.Dispatcher.InvokeAsync(root.ToHtmlString);
+        html.Should().Contain("raw-result").And.Contain(HtmlEncoder.Default.Encode(output));
+        html.Should().NotContain("<script>").And.NotContain("result-empty");
+    }
+
     [Theory]
     [InlineData("en", ResultViewMode.Table, "data-table")]
     [InlineData("ru", ResultViewMode.Table, "data-table")]

@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Primitives;
+using MongoTui.Domain.Queries;
 using MongoTui.Infrastructure.Mongo.Cli;
 using MongoTui.Infrastructure.Mongo.Driver;
 using MongoTui.Infrastructure.Options;
@@ -13,6 +14,20 @@ namespace MongoTui.IntegrationTests;
 [Trait("Category", "Integration")]
 public sealed class MongoShellSessionTests(MongoFixture fixture) : IClassFixture<MongoFixture>
 {
+    [Fact]
+    public async Task Should_ReturnNativeScriptOutput_WhenRawModeRequested()
+    {
+        var target = new MongoConnectionTarget(fixture.ConnectionString);
+        await using var session = CreateSession(target);
+        const string script = "console.log('  {migration started}'); console.log('[not JSON]'); console.log(db.getName()); console.log('done  ');";
+
+        var result = await session.EvaluateRawAsync(script, "raw_test", CancellationToken.None);
+
+        result.Kind.Should().Be(QueryResultKind.Raw);
+        result.RawOutput.Should().Be("  {migration started}\n[not JSON]\nraw_test\ndone  \n");
+        result.Documents.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData("db.getCollection('items').find({}).toArray()")]
     [InlineData("db.items.find({}).toArray()")]

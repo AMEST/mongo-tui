@@ -42,6 +42,8 @@ public sealed class QueryTabsExecutionTests : IDisposable
         A.CallTo(() => _session.IsRunning).Returns(true);
         A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
             .Invokes((string script, string? database, CancellationToken token) => _token = token).Returns(_response.Task);
+        A.CallTo(() => _session.EvaluateRawAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+            .Invokes((string script, string? database, CancellationToken token) => _token = token).Returns(_response.Task);
         _tabs = new QueryTabsView(QueryTestServices.Create(sessions, _history),
             _localizer, new AutocompleteService(A.Fake<IMongoGateway>())) { Width = Dim.Fill(), Height = Dim.Fill() };
         _dialog.Add(_tabs);
@@ -65,18 +67,30 @@ public sealed class QueryTabsExecutionTests : IDisposable
     [InlineData("ru", false, true, false)]
     [InlineData("en", false, false, true)]
     [InlineData("ru", false, false, true)]
+    [InlineData("en", false, false, false, true)]
+    [InlineData("ru", false, false, false, true)]
+    [InlineData("en", false, false, true, true)]
+    [InlineData("ru", false, false, true, true)]
+    [InlineData("en", false, true, false, true)]
     public async Task Should_ApplyBackgroundResultSafely_WhenQueryRunsInsideNestedLoop(
-        string language, bool switchTab, bool closeTab, bool fails)
+        string language, bool switchTab, bool closeTab, bool fails, bool raw = false)
     {
         _localizer.SetLanguage(language);
-        ScheduleExecution(switchTab, closeTab, fails);
+        if (raw) _tabs.SetResultViewMode(ResultViewMode.Raw);
+        ScheduleExecution(switchTab, closeTab, fails, raw: raw);
 
         _app.Run(_parent);
 
         _operation.Should().NotBeNull();
         _operation!.IsCompleted.Should().BeTrue();
         var summary = await _operation;
-        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app",
+        if (raw)
+        {
+            A.CallTo(() => _session.EvaluateRawAsync("db.orders.find({}).limit(50).toArray()", "app",
+                A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+            _original!.ResultCollection.Should().BeNull();
+        }
+        else A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app",
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         _original!.IsExecuting.Should().BeFalse();
         if (closeTab)
@@ -137,7 +151,7 @@ public sealed class QueryTabsExecutionTests : IDisposable
         _rendered.Should().BeTrue();
     }
 
-    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails, bool refresh = false, bool selection = false)
+    private void ScheduleExecution(bool switchTab, bool closeTab, bool fails, bool refresh = false, bool selection = false, bool raw = false)
     {
         _app.AddTimeout(TimeSpan.Zero, () => { _app.Run(_dialog); _app.RequestStop(_parent); return false; });
         _app.AddTimeout(TimeSpan.FromMilliseconds(40), () =>
@@ -145,7 +159,7 @@ public sealed class QueryTabsExecutionTests : IDisposable
             StartExecution(refresh, selection);
             if (switchTab) _tabs.AddTab(ConnectionId.New(), _target, "other", script: "db.unrelated.find({})");
             if (closeTab) _close = _tabs.CloseActiveAsync();
-            _ = CompleteAsync(fails);
+            _ = CompleteAsync(fails, raw);
             return false;
         });
         _app.AddTimeout(TimeSpan.FromMilliseconds(30), () =>
@@ -179,10 +193,12 @@ public sealed class QueryTabsExecutionTests : IDisposable
         else { _operation = _tabs.RunActiveAsync(_app); _ = _tabs.RunActiveAsync(_app); }
     }
 
-    private async Task CompleteAsync(bool fails)
+    private async Task CompleteAsync(bool fails, bool raw)
     {
         await Task.Delay(80).ConfigureAwait(false);
         if (fails) _response.SetException(new DomainException("Automatic query failed."));
+        else if (raw) _response.SetResult(new QueryResult { Kind = QueryResultKind.Raw, Documents = [],
+            RawOutput = "  {automatically}\n[not JSON]\n" });
         else _response.SetResult(new QueryResult { Kind = QueryResultKind.Documents,
             Documents = [new BsonDocument { { "_id", 1 }, { "loaded", "automatically" } }] });
     }

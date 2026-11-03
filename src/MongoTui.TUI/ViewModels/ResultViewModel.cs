@@ -149,6 +149,8 @@ public sealed class ResultViewModel : ObservableObject
             return Error!;
         }
 
+        if (Kind == QueryResultKind.Raw) return Raw;
+
         return Mode switch
         {
             ResultViewMode.Json => Json,

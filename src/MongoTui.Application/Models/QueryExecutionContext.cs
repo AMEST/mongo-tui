@@ -16,4 +16,7 @@ public sealed record QueryExecutionContext
     public string? Database { get; init; }
 
     public string? Collection { get; init; }
+
+    /// <summary>Runs mongosh without JSON rendering and returns stdout without parsing it.</summary>
+    public bool UseRawOutput { get; init; }
 }

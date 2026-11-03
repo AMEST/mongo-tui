@@ -5,6 +5,7 @@ using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Process;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Exceptions;
+using MongoTui.Domain.Queries;
 using MongoTui.Infrastructure.Mongo.Cli;
 using MongoTui.Infrastructure.Options;
 
@@ -12,6 +13,38 @@ namespace MongoTui.Infrastructure.Tests.Mongo.Cli;
 
 public sealed class MongoShellSessionTests
 {
+    [Theory]
+    [InlineData("  { progress: 1 }\n[not JSON]\nfinished\n\n")]
+    [InlineData("[{\"_id\": 1}]\n")]
+    [InlineData("")]
+    public async Task Should_PreserveUnparsedOutput_WhenRawModeRequested(string output)
+    {
+        const string script = "console.log('{ progress: 1 }'); console.log('[not JSON]');";
+        var captured = new List<ProcessRequest>();
+        var session = CreateSession(new ProcessResult(0, output, string.Empty), captured);
+
+        var result = await session.EvaluateRawAsync(script, "app", CancellationToken.None);
+
+        result.Kind.Should().Be(QueryResultKind.Raw);
+        result.RawOutput.Should().Be(output);
+        result.Documents.Should().BeEmpty();
+        captured.Should().ContainSingle().Subject.Arguments.Should().Equal(
+            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--eval", "db = db.getSiblingDB(\"app\")", "--eval", script);
+    }
+
+    [Fact]
+    public async Task Should_PreserveOutputAndError_WhenRawScriptFails()
+    {
+        const string output = "[migration started]\n";
+        const string error = "Error: migration failed\n";
+        var session = CreateSession(new ProcessResult(1, output, error));
+
+        var act = () => session.EvaluateRawAsync("console.log('[migration started]'); throw Error('migration failed');",
+            null, CancellationToken.None);
+
+        (await act.Should().ThrowAsync<QueryExecutionException>()).Which.Message.Should().Be(output + error);
+    }
+
     [Fact]
     public async Task Should_ParseDocuments_When_MongoshReturnsJsonArray()
     {
@@ -73,7 +106,7 @@ public sealed class MongoShellSessionTests
 
         var result = await session.EvaluateAsync("print('migration complete')", null, CancellationToken.None);
 
-        result.RawOutput.Should().Be("migration complete");
+        result.RawOutput.Should().Be("migration complete\n");
     }
 
     [Fact]

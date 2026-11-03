@@ -45,10 +45,12 @@ public sealed class QueryWorkspace(
     public void Select(WebTab tab) { Selected = tab; Changed?.Invoke(); }
 
     /// <summary>Executes the editor draft at the requested page, committing the page only when the query succeeds.</summary>
-    public Task ExecuteAsync(WebTab tab, int page = 0) => ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
+    public Task ExecuteAsync(WebTab tab, int page = 0) =>
+        ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page, tab.View == ResultViewMode.Raw));
 
     /// <summary>Executes a captured editor selection without replacing the full draft.</summary>
-    public Task ExecuteScriptAsync(WebTab tab, string script) => ExecuteAsync(tab, new QueryRequest(script, false, tab.Filter, 0));
+    public Task ExecuteScriptAsync(WebTab tab, string script) =>
+        ExecuteAsync(tab, new QueryRequest(script, false, tab.Filter, 0, tab.View == ResultViewMode.Raw));
 
     /// <summary>Reloads the displayed results using their successful query snapshot, preserving the editor draft.</summary>
     public Task RefreshAsync(WebTab tab) => tab.Result is not null && _resultRequests.TryGetValue(tab.Id, out var request)
@@ -157,6 +159,7 @@ public sealed class QueryWorkspace(
         {
             TabId = tab.Id, ConnectionId = tab.ConnectionId, Target = connection.Target,
             Database = tab.Database, Collection = tab.Collection, Script = request.Script,
+            UseRawOutput = request.UseRawOutput,
         };
         var scriptResult = await queries.ExecuteAsync(context, cancellationToken);
         var source = DocumentQuerySource.Resolve(context, scriptResult);
@@ -166,5 +169,5 @@ public sealed class QueryWorkspace(
         tab.EditableCollection = source;
     }
 
-    private sealed record QueryRequest(string Script, bool Browse, string Filter, int Page);
+    private sealed record QueryRequest(string Script, bool Browse, string Filter, int Page, bool UseRawOutput);
 }
