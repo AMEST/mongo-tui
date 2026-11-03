@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## v0.10.0
 
 ### Added
 
@@ -10,6 +10,10 @@ All notable changes to this project are documented in this file.
   disk (`Ctrl+L` / `Ctrl+S` in TUI, a toolbar action and the **Files** page in Web). TUI offers a
   native file/folder picker next to the typed path, and both interfaces remember the ten most
   recently opened or saved query files.
+- **Raw mongosh output** — select **Raw (stdout)** before running a script in TUI or Web
+  Script mode to display native shell output, including `console.log` and `print`, without JSON
+  parsing and with spaces and line breaks preserved. Web downloads raw results as `.txt`.
+  Choose Table, Tree or JSON and rerun the script to obtain structured documents again.
 
 ## v0.9.0 — since v0.8.0
 
