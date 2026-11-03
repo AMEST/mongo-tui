@@ -104,7 +104,9 @@ public sealed class QueryService : IAsyncDisposable
 
         try
         {
-            var result = await session.EvaluateAsync(context.Script, context.Database, cancellationToken).ConfigureAwait(false);
+            var result = await (context.UseRawOutput
+                ? session.EvaluateRawAsync(context.Script, context.Database, cancellationToken)
+                : session.EvaluateAsync(context.Script, context.Database, cancellationToken)).ConfigureAwait(false);
             success = true;
 
             return result with { Elapsed = stopwatch.Elapsed };

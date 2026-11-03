@@ -9,4 +9,7 @@ public interface IMongoShellSession : IAsyncDisposable
 
     /// <summary>Evaluates the script with the selected database; null keeps the connection's default database.</summary>
     Task<QueryResult> EvaluateAsync(string script, string? database, CancellationToken cancellationToken);
+
+    /// <summary>Evaluates the script with native shell rendering, preserving stdout verbatim.</summary>
+    Task<QueryResult> EvaluateRawAsync(string script, string? database, CancellationToken cancellationToken);
 }

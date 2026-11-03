@@ -86,7 +86,7 @@ one-time link printed in the terminal; `--open` opens that link automatically.
 Web resources are embedded; no `wwwroot` folder is required beside the executable.
 
 Connections and settings are shared with TUI. Features include database and collection browsing,
-JavaScript queries, Table/Tree/JSON results, document editing, indexes, history, query files,
+JavaScript queries, Table/Tree/JSON/Raw results, document editing, indexes, history, query files,
 application logs, JSON import/export and AI assistance. [Details](docs/web-interface.md).
 
 Browse mode reads 50 documents per page through the driver; Script mode uses installed `mongosh`.
@@ -105,8 +105,13 @@ The query timeout is shared by TUI and web. Configure it under **Settings → Qu
    **Copy URI** copies the selected profile's full connection string, including credentials, to the clipboard.
 3. Expand a database and open a collection with **Enter** or a double-click. A query tab opens
    with a `find` query that runs immediately and loads up to 50 documents.
-4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree or JSON in
+4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree, JSON or Raw in
    **Settings → Result view**.
+
+For scripts with `console.log` or `print`, select **Raw (stdout)** before running.
+It displays native mongosh output without JSON parsing, preserving spaces and line breaks.
+In web Script mode, select **Raw (stdout)** above the results; downloading saves a `.txt` file.
+To obtain structured documents again, choose Table, Tree or JSON and rerun the script.
 
 Queries use the tab's database. For example:
 

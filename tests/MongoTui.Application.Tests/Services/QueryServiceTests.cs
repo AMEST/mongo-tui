@@ -132,6 +132,21 @@ public sealed class QueryServiceTests
         A.CallTo(() => _session.EvaluateAsync(context.Script, "other", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
+    [Fact]
+    public async Task Should_ExecuteRawAndRecordHistory_WhenRawOutputRequested()
+    {
+        var context = CreateContext() with { UseRawOutput = true };
+        A.CallTo(() => _session.EvaluateRawAsync(context.Script, context.Database, A<CancellationToken>._))
+            .Returns(new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = "{not JSON}\n" });
+
+        var result = await _sut.ExecuteAsync(context, CancellationToken.None);
+
+        result.RawOutput.Should().Be("{not JSON}\n");
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => _history.AddAsync(A<QueryHistoryEntry>.That.Matches(entry => entry.Success),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+    }
+
     private static QueryExecutionContext CreateContext() =>
         new()
         {

@@ -97,6 +97,7 @@ public sealed class QueryTabViewModel : ObservableObject
         {
             TabId = Id, ConnectionId = ConnectionId, Target = Target,
             Script = script, Database = Database, Collection = Collection,
+            UseRawOutput = Result.Mode == ResultViewMode.Raw,
         }, update, cancellationToken);
 
     // Only verified reads can be replayed after document mutations; the editor may contain a different script.

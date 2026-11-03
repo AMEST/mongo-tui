@@ -6,4 +6,5 @@ public enum QueryResultKind
     Documents,
     Aggregation,
     Scalar,
+    Raw,
 }
