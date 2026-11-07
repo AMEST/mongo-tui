@@ -1,0 +1,132 @@
+@implements IDisposable
+@inject DiagnosticsServices Services
+@inject WebText L
+@using MongoTui.Domain.Diagnostics
+<div class="settings-card">
+    <h2>@L["Diagnostics.Profiler"]</h2>
+    <p>@L["Diagnostics.ProfilerWarningPersistent"]</p>
+    <fieldset class="profiler-fields" disabled="@_busy">
+    <label>@L["Diagnostics.ProfilerLevel"]<select id="profiler-mode" @bind="_mode" @bind:after="ModeChanged">@foreach (var mode in Enum.GetValues<SlowQueryMode>()) { <option value="@mode">@L["Diagnostics." + mode]</option> }</select></label>
+    <label>@L["Diagnostics.Scope"]<input id="profiler-scope" @bind="_scope" /></label><button @onclick="SelectAll">@L["Diagnostics.ScopeAll"]</button>
+    <label>@L["Diagnostics.Threshold"]<input id="profiler-threshold" type="number" min="0" max="600000" @bind="_threshold" /></label>
+    <label>@L["Diagnostics.SampleRate"]<input id="profiler-sample" type="number" min="0" max="1" step="0.01" @bind="_sample" /></label>
+    <label>@L["Diagnostics.FilterAction"]<select @bind="_filterAction">@foreach (var action in Enum.GetValues<ProfilerFilterAction>()) { <option value="@action">@L["Diagnostics.Filter" + action]</option> }</select></label>
+    <label>@L["Diagnostics.Filter"]<input id="profiler-filter" class="mono" @bind="_filter" /></label>
+    <label><input id="profiler-restore" type="checkbox" @bind="_restore" />@L["Diagnostics.Restore"]</label>
+    <label><input type="checkbox" @bind="_mirror" />@L["Diagnostics.Mirror"]</label>
+    <label>@L["Diagnostics.AutoDisable"]<input id="profiler-minutes" type="number" min="0" max="1440" @bind="_minutes" /></label>
+    </fieldset>
+    <button id="profiler-apply" class="button" disabled="@_busy" @onclick="RequestApplyAsync">@L["Diagnostics.Apply"]</button>
+    <button id="profiler-refresh" class="button" disabled="@_busy" @onclick="LoadAsync">@L["Diagnostics.Refresh"]</button>
+    @if (_confirm) { <p role="alert">@L["Diagnostics.ProfilerWarningAll"] <button id="profiler-confirm" disabled="@_busy" @onclick="() => ApplyAsync(true)">@L["Diagnostics.Confirm"]</button><button @onclick="() => _confirm = false">@L["Common.Cancel"]</button></p> }
+    @if (_error is not null) { <p role="alert">@_error</p> }
+    <pre>@_actual</pre>
+</div>
+@code {
+    [Parameter, EditorRequired] public MongoConnectionTarget Target { get; set; } = null!;
+    [Parameter] public string Database { get; set; } = "admin";
+    [Parameter] public IReadOnlyList<string> Databases { get; set; } = [];
+    private readonly CancellationTokenSource _lifetime = new();
+    private SlowQueryMode _mode;
+    private ProfilerFilterAction _filterAction;
+    private string _scope = "", _filter = "", _actual = "";
+    private string? _error;
+    private int _threshold = 100, _minutes;
+    private double _sample = 1;
+    private bool _restore, _busy, _confirm, _disposed, _mirror, _initialized;
+    private ProfilerPreferences? _preferences;
+    protected override async Task OnInitializedAsync() { _scope = Database; _mirror = Services.Settings.Current.MirrorServerSlowToApplicationLog; await LoadAsync(); }
+    private void SelectAll() => _scope = string.Join(',', Databases.Where(name => name is not ("admin" or "local" or "config")));
+    private string[] Scope() => _scope.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+    private async Task LoadAsync()
+    {
+        if (_busy) return; var scope = Scope(); _busy = true; _error = null;
+        var states = new List<ProfilerState>();
+        try
+        {
+            ProfilerPreferences? preferences = null;
+            try { preferences = await Services.Settings.GetProfilerPreferencesAsync(Target.ConnectionId, _lifetime.Token); }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception) { if (!_disposed) _error = L["Diagnostics.ProfilerPreferencesLoadFailed"]; }
+            if (!_initialized && scope.Length == 1 && preferences?.Databases.Contains(scope[0]) == true) scope = preferences.Databases.ToArray();
+            foreach (var database in scope)
+            {
+                try { states.Add(await Services.Server.GetProfilerStateAsync(Target, database, _lifetime.Token)); }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception exception) { states.Add(new(database, ProfilingLevel.Off, new(), null, false,
+                    exception is MongoTui.Domain.Exceptions.DiagnosticsException diagnostic ? diagnostic.Key : "Diagnostics.Error.Command")); }
+            }
+            if (!_disposed)
+            {
+                _initialized = true; _preferences = preferences; _scope = string.Join(',', scope);
+                _mirror = Services.Settings.Current.MirrorServerSlowToApplicationLog;
+                if (states.FirstOrDefault(state => state.IsAvailable) is { } actual) FillFields(actual);
+                _actual = (ProfilerFormState.IsMixed(states.Where(state => state.IsAvailable).ToArray()) ? L["Diagnostics.ProfilerMixed"] + "\n" : "")
+                    + string.Join('\n', states.Select(state => state.IsAvailable
+                        ? $"{state.Database}: {state.Level} / {state.Options.SlowMs} ms / {state.Options.SampleRate}"
+                        : state.Database + ": " + L[state.ErrorCode ?? "Diagnostics.Error.Command"]));
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { if (!_disposed) _error = L["Diagnostics.Error.Command"]; }
+        finally { _busy = false; }
+    }
+    private void FillFields(ProfilerState actual)
+    {
+        var lease = Services.Server.Leases.FirstOrDefault(item => item.Target == Target && item.Database == actual.Database);
+        var form = ProfilerFormState.From(actual, Services.Settings.Current, _preferences, lease);
+        _mode = form.Mode; _threshold = form.Options.SlowMs; _sample = form.Options.SampleRate;
+        _filter = form.Options.FilterJson ?? ""; _filterAction = ProfilerFilterAction.Preserve;
+        _restore = form.RestoreOnExit; _minutes = form.AutoDisableMinutes;
+    }
+    private void ModeChanged()
+    {
+        var policy = _preferences?.Mode == _mode ? _preferences : ProfilerPreferences.Defaults(_mode);
+        _restore = policy.RestoreOnExit; _minutes = policy.AutoDisableMinutes;
+        if (_preferences?.Mode == _mode) { _threshold = _preferences.SlowMs; _sample = _preferences.SampleRate; }
+        else if (_mode == SlowQueryMode.Client) _threshold = Services.Settings.Current.SlowThresholdMs;
+    }
+    private Task RequestApplyAsync()
+    {
+        if (_mode == SlowQueryMode.ServerAll) { _confirm = true; return Task.CompletedTask; }
+        return ApplyAsync(false);
+    }
+    private async Task ApplyAsync(bool confirmed)
+    {
+        if (_busy) return;
+        var mode = _mode;
+        var request = new ProfilerApplyRequest(Scope(), mode == SlowQueryMode.ServerAll ? ProfilingLevel.All : mode == SlowQueryMode.ServerSlow ? ProfilingLevel.Slow : ProfilingLevel.Off,
+            new ProfilerOptions { SlowMs = _threshold, SampleRate = _sample, FilterJson = _filter }, confirmed, _restore, _minutes, _filterAction);
+        var preferences = new ProfilerPreferences { Mode = mode, Databases = request.Databases, SlowMs = _threshold,
+            SampleRate = _sample, RestoreOnExit = _restore, AutoDisableMinutes = _minutes };
+        var mirror = _mirror;
+        _busy = true; _confirm = false; _error = null;
+        try
+        {
+            IReadOnlyList<ProfilerApplyResult> results = mode == SlowQueryMode.Client ? [] : await Services.Server.ApplyProfilerAsync(Target, request, _lifetime.Token);
+            var applied = mode == SlowQueryMode.Client || results.Any(result => result.Actual is not null && result.Error is null);
+            var saved = !applied || await SavePreferencesAsync(preferences, mirror);
+            if (!_disposed)
+            {
+                if (applied) { _initialized = true; _preferences = preferences; }
+                if (results.FirstOrDefault(result => result.Actual is not null)?.Actual is { } actual) FillFields(actual);
+                _actual = mode == SlowQueryMode.Client ? L["Diagnostics.Client"] + $": {preferences.SlowMs} ms" : string.Join('\n', results.Select(result =>
+                    $"{result.Database}: {result.Requested} → {result.Actual?.Level} {(result.Error is { } error ? L[error] : "✓")}"));
+                if (!saved) _error = L["Diagnostics.ProfilerPreferencesSaveFailed"];
+            }
+        }
+        catch (Exception exception) { if (!_disposed) _error = L[exception is MongoTui.Domain.Exceptions.DiagnosticsException diagnostic ? diagnostic.Key : "Diagnostics.Error.Command"]; }
+        finally { _busy = false; }
+    }
+    private async Task<bool> SavePreferencesAsync(ProfilerPreferences preferences, bool mirror)
+    {
+        try
+        {
+            await Services.Settings.SaveProfilerFormAsync(Target.ConnectionId, preferences, mirror, _lifetime.Token);
+            return true;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception) when (preferences.Mode != SlowQueryMode.Client) { return false; }
+    }
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+}

@@ -23,4 +23,8 @@
     <Compile Include="../LoggingTestSink.cs" Link="Support/LoggingTestSink.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../TestQueryMetrics.cs" Link="Support/TestQueryMetrics.cs" />
+  </ItemGroup>
+
 </Project>

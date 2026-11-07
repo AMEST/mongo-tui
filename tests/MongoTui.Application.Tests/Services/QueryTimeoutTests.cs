@@ -1,3 +1,4 @@
+using MongoTui.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoTui.Application.Abstractions.Diagnostics;
 using System.Globalization;
@@ -32,7 +33,7 @@ public sealed class QueryTimeoutTests : IAsyncLifetime
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_shell);
         A.CallTo(() => _shell.IsRunning).Returns(true);
-        _queries = new(factory, _history, _gateway, new SettingsService(store), NullLogger<QueryService>.Instance);
+        _queries = new(factory, _history, _gateway, new SettingsService(store), NullLogger<QueryService>.Instance, TestQueryMetrics.Create());
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

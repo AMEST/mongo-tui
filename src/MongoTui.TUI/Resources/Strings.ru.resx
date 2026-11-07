@@ -470,4 +470,137 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="QueryFiles.SaveError" xml:space="preserve"><value>Не удалось сохранить запрос в файл.</value></data>
   <data name="QueryFiles.PathRequired" xml:space="preserve"><value>Введите путь к файлу.</value></data>
   <data name="QueryFiles.Saving" xml:space="preserve"><value>Сохранение…</value></data>
+  <data name="Diagnostics.Title" xml:space="preserve"><value>Диагностика</value></data>
+  <data name="Diagnostics.Overview" xml:space="preserve"><value>Обзор</value></data>
+  <data name="Diagnostics.SlowQueries" xml:space="preserve"><value>Медленные запросы</value></data>
+  <data name="Diagnostics.Database" xml:space="preserve"><value>База данных</value></data>
+  <data name="Diagnostics.Server" xml:space="preserve"><value>Сервер</value></data>
+  <data name="Diagnostics.Profiler" xml:space="preserve"><value>Профайлер</value></data>
+  <data name="Diagnostics.Settings" xml:space="preserve"><value>Настройки диагностики</value></data>
+  <data name="Diagnostics.Refresh" xml:space="preserve"><value>Обновить</value></data>
+  <data name="Diagnostics.Empty" xml:space="preserve"><value>Наблюдений пока нет</value></data>
+  <data name="Diagnostics.NoConnection" xml:space="preserve"><value>Нет активного подключения</value></data>
+  <data name="Diagnostics.Error.Command" xml:space="preserve"><value>Ошибка диагностической команды</value></data>
+  <data name="Diagnostics.Error.Unauthorized" xml:space="preserve"><value>Недостаточно прав</value></data>
+  <data name="Diagnostics.ReplicationNotConfigured" xml:space="preserve"><value>Репликация не настроена</value></data>
+  <data name="Diagnostics.Total" xml:space="preserve"><value>Выполнения</value></data>
+  <data name="Diagnostics.Failed" xml:space="preserve"><value>Ошибки</value></data>
+  <data name="Diagnostics.Slow" xml:space="preserve"><value>Медленные</value></data>
+  <data name="Diagnostics.Timeouts" xml:space="preserve"><value>Таймауты</value></data>
+  <data name="Diagnostics.Cancelled" xml:space="preserve"><value>Отменено</value></data>
+  <data name="Diagnostics.Returned" xml:space="preserve"><value>Возвращено документов</value></data>
+  <data name="Diagnostics.Duration" xml:space="preserve"><value>Длительность (мс)</value></data>
+  <data name="Diagnostics.Source" xml:space="preserve"><value>Источник</value></data>
+  <data name="Diagnostics.Operation" xml:space="preserve"><value>Операция</value></data>
+  <data name="Diagnostics.Collection" xml:space="preserve"><value>Коллекция</value></data>
+  <data name="Diagnostics.Period" xml:space="preserve"><value>Период (минуты; 0 = всё)</value></data>
+  <data name="Diagnostics.Minimum" xml:space="preserve"><value>Минимальная длительность (мс)</value></data>
+  <data name="Diagnostics.Follow" xml:space="preserve"><value>Автообновление</value></data>
+  <data name="Diagnostics.All" xml:space="preserve"><value>Все</value></data>
+  <data name="Diagnostics.ClearMemory" xml:space="preserve"><value>Очистить память</value></data>
+  <data name="Diagnostics.ClearHistory" xml:space="preserve"><value>Удалить сохранённые метрики</value></data>
+  <data name="Diagnostics.ClearConfirm" xml:space="preserve"><value>Удалить сохранённые метрики подключения?</value></data>
+  <data name="Diagnostics.MetricsEnabled" xml:space="preserve"><value>Собирать клиентские метрики</value></data>
+  <data name="Diagnostics.LogSlow" xml:space="preserve"><value>Логировать медленные клиентские запросы</value></data>
+  <data name="Diagnostics.Persist" xml:space="preserve"><value>Сохранять метрики в SQLite</value></data>
+  <data name="Diagnostics.Retention" xml:space="preserve"><value>Хранение (дни)</value></data>
+  <data name="Diagnostics.MemoryRetention" xml:space="preserve"><value>Хранение в памяти (минуты)</value></data>
+  <data name="Diagnostics.MaximumRows" xml:space="preserve"><value>Максимум сохранённых наблюдений</value></data>
+  <data name="Diagnostics.Threshold" xml:space="preserve"><value>Порог медленного запроса (мс)</value></data>
+  <data name="Diagnostics.Mirror" xml:space="preserve"><value>Писать серверные медленные запросы в лог приложения</value></data>
+  <data name="Diagnostics.Lost" xml:space="preserve"><value>Потеряно наблюдений</value></data>
+  <data name="Diagnostics.ProfilerLevel" xml:space="preserve"><value>Уровень профайлера</value></data>
+  <data name="Diagnostics.Off" xml:space="preserve"><value>Выключен</value></data>
+  <data name="Diagnostics.Client" xml:space="preserve"><value>Только клиент</value></data>
+  <data name="Diagnostics.ServerSlow" xml:space="preserve"><value>Сервер: медленные</value></data>
+  <data name="Diagnostics.ServerAll" xml:space="preserve"><value>Сервер: все</value></data>
+  <data name="Diagnostics.SampleRate" xml:space="preserve"><value>Доля выборки (0–1)</value></data>
+  <data name="Diagnostics.Scope" xml:space="preserve"><value>Базы (через запятую)</value></data>
+  <data name="Diagnostics.ScopeAll" xml:space="preserve"><value>Все несистемные базы</value></data>
+  <data name="Diagnostics.Filter" xml:space="preserve"><value>Фильтр профайлера (JSON)</value></data>
+  <data name="Diagnostics.FilterAction" xml:space="preserve"><value>Фильтр: сохранить / заменить / очистить</value></data>
+  <data name="Diagnostics.FilterPreserve" xml:space="preserve"><value>Сохранить фильтр</value></data>
+  <data name="Diagnostics.FilterReplace" xml:space="preserve"><value>Заменить фильтр</value></data>
+  <data name="Diagnostics.FilterClear" xml:space="preserve"><value>Очистить фильтр</value></data>
+  <data name="Diagnostics.Restore" xml:space="preserve"><value>Восстановить при выходе</value></data>
+  <data name="Diagnostics.AutoDisable" xml:space="preserve"><value>Восстановить через минут (0 = никогда)</value></data>
+  <data name="Diagnostics.ProfilerWarningAll" xml:space="preserve"><value>Полный профайлер повышает нагрузку и пишет запросы на сервере. Включить?</value></data>
+  <data name="Diagnostics.ProfilerWarningPersistent" xml:space="preserve"><value>slowms/sampleRate влияют на весь сервер и его лог. Фильтр заменяет выборку. Восстановление не гарантировано при сбое.</value></data>
+  <data name="Diagnostics.Apply" xml:space="preserve"><value>Применить</value></data>
+  <data name="Diagnostics.Disable" xml:space="preserve"><value>Выключить профайлер</value></data>
+  <data name="Diagnostics.ProfilerOn" xml:space="preserve"><value>ПРОФАЙЛЕР ВКЛЮЧЁН</value></data>
+  <data name="Diagnostics.Confirm" xml:space="preserve"><value>Подтвердить</value></data>
+  <data name="Diagnostics.Version" xml:space="preserve"><value>Версия</value></data>
+  <data name="Diagnostics.Uptime" xml:space="preserve"><value>Время работы (с)</value></data>
+  <data name="Diagnostics.Connections" xml:space="preserve"><value>Соединения</value></data>
+  <data name="Diagnostics.Memory" xml:space="preserve"><value>Резидентная память (байты)</value></data>
+  <data name="Diagnostics.IndexUsage" xml:space="preserve"><value>Использование индекса после сброса</value></data>
+  <data name="Diagnostics.Unused" xml:space="preserve"><value>Не использовался после сброса</value></data>
+  <data name="Diagnostics.CurrentOperations" xml:space="preserve"><value>Текущие операции</value></data>
+  <data name="Diagnostics.Replication" xml:space="preserve"><value>Репликация</value></data>
+  <data name="Diagnostics.Size" xml:space="preserve"><value>Данные / хранилище / индексы (байты)</value></data>
+  <data name="Explain.Title" xml:space="preserve"><value>План запроса</value></data>
+  <data name="Explain.Unsupported" xml:space="preserve"><value>Этот скрипт не удалось разобрать. Нужен один find, findOne или aggregate без записи.</value></data>
+  <data name="Explain.QueryPlanner" xml:space="preserve"><value>План запроса</value></data>
+  <data name="Explain.ExecutionStats" xml:space="preserve"><value>Статистика выполнения</value></data>
+  <data name="Explain.AllPlansExecution" xml:space="preserve"><value>Выполнение всех планов</value></data>
+  <data name="Explain.CopyJson" xml:space="preserve"><value>Копировать JSON</value></data>
+  <data name="Explain.ReRun" xml:space="preserve"><value>Повторить</value></data>
+  <data name="Explain.Metrics" xml:space="preserve"><value>Время / просмотрено документов / ключей / возвращено</value></data>
+  <data name="Explain.CollectionScan" xml:space="preserve"><value>Полный просмотр коллекции</value></data>
+  <data name="Explain.HighDocumentsExaminedRatio" xml:space="preserve"><value>Много просмотренных документов на результат</value></data>
+  <data name="Explain.HighKeysExaminedRatio" xml:space="preserve"><value>Много просмотренных ключей на результат</value></data>
+  <data name="Explain.InMemorySort" xml:space="preserve"><value>Блокирующая сортировка</value></data>
+  <data name="Explain.BlockingStage" xml:space="preserve"><value>Блокирующая стадия агрегации</value></data>
+  <data name="Explain.RejectedPlans" xml:space="preserve"><value>Есть отклонённые планы</value></data>
+  <data name="Explain.HighLatency" xml:space="preserve"><value>Большое время выполнения</value></data>
+  <data name="Explain.UsedDisk" xml:space="preserve"><value>При выполнении использован диск</value></data>
+  <data name="Explain.RawJson" xml:space="preserve"><value>Исходный JSON (временно)</value></data>
+  <data name="Diagnostics.ProfilerUnavailableMongos" xml:space="preserve"><value>Профайлер недоступен на этом сервере (mongos или ограничения окружения).</value></data>
+  <data name="Diagnostics.Average" xml:space="preserve"><value>Среднее (мс)</value></data>
+  <data name="Diagnostics.Count" xml:space="preserve"><value>Выполнения</value></data>
+  <data name="Diagnostics.P95" xml:space="preserve"><value>p95 (мс)</value></data>
+  <data name="Diagnostics.Source.Driver" xml:space="preserve"><value>Драйвер</value></data>
+  <data name="Diagnostics.Source.Shell" xml:space="preserve"><value>Оболочка</value></data>
+  <data name="Diagnostics.Source.ServerProfiler" xml:space="preserve"><value>Серверный профайлер</value></data>
+  <data name="Diagnostics.Operation.Find" xml:space="preserve"><value>Поиск</value></data>
+  <data name="Diagnostics.Operation.FindOne" xml:space="preserve"><value>Один документ</value></data>
+  <data name="Diagnostics.Operation.Aggregate" xml:space="preserve"><value>Агрегация</value></data>
+  <data name="Diagnostics.Operation.Count" xml:space="preserve"><value>Подсчёт</value></data>
+  <data name="Diagnostics.Operation.Insert" xml:space="preserve"><value>Вставка</value></data>
+  <data name="Diagnostics.Operation.Update" xml:space="preserve"><value>Изменение</value></data>
+  <data name="Diagnostics.Operation.Delete" xml:space="preserve"><value>Удаление</value></data>
+  <data name="Diagnostics.Operation.Command" xml:space="preserve"><value>Команда</value></data>
+  <data name="Diagnostics.Operation.Script" xml:space="preserve"><value>Скрипт</value></data>
+  <data name="Diagnostics.Operation.Other" xml:space="preserve"><value>Прочее</value></data>
+  <data name="Explain.UnknownPlan" xml:space="preserve"><value>Неизвестная форма плана; откройте временный исходный JSON.</value></data>
+  <data name="Diagnostics.Details" xml:space="preserve"><value>Детали наблюдения</value></data>
+  <data name="Diagnostics.Groups" xml:space="preserve"><value>Группы</value></data>
+  <data name="Diagnostics.Timestamp" xml:space="preserve"><value>Время</value></data>
+  <data name="Diagnostics.Process" xml:space="preserve"><value>Процесс</value></data>
+  <data name="Diagnostics.ErrorCode" xml:space="preserve"><value>Код ошибки</value></data>
+  <data name="Diagnostics.DocumentsExamined" xml:space="preserve"><value>Просмотрено документов</value></data>
+  <data name="Diagnostics.KeysExamined" xml:space="preserve"><value>Просмотрено ключей</value></data>
+  <data name="Diagnostics.Plan" xml:space="preserve"><value>План</value></data>
+  <data name="Diagnostics.RowLimit" xml:space="preserve"><value>Строк</value></data>
+  <data name="Diagnostics.SlowOnly" xml:space="preserve"><value>Только медленные</value></data>
+  <data name="Diagnostics.ErrorPercent" xml:space="preserve"><value>Ошибки, %</value></data>
+  <data name="Explain.Spills" xml:space="preserve"><value>Сбросы на диск</value></data>
+  <data name="Explain.Query" xml:space="preserve"><value>Запрос для анализа</value></data>
+  <data name="Explain.Run" xml:space="preserve"><value>Построить план</value></data>
+  <data name="Explain.ShowJson" xml:space="preserve"><value>JSON</value></data>
+  <data name="Explain.Verbosity" xml:space="preserve"><value>Детализация</value></data>
+  <data name="Explain.Plan" xml:space="preserve"><value>План (выберите стадию)</value></data>
+  <data name="Explain.Summary" xml:space="preserve"><value>Сводка (прокрутка)</value></data>
+  <data name="Explain.Stage" xml:space="preserve"><value>Выбранная стадия</value></data>
+  <data name="Explain.Index" xml:space="preserve"><value>Индекс</value></data>
+  <data name="Explain.ExecutionTime" xml:space="preserve"><value>Время выполнения, мс</value></data>
+  <data name="Explain.Warnings" xml:space="preserve"><value>Предупреждения</value></data>
+  <data name="Explain.NoWarnings" xml:space="preserve"><value>Предупреждений нет</value></data>
+  <data name="Explain.Instructions" xml:space="preserve"><value>Измените запрос и нажмите F8 / Ctrl+Enter или «Построить план». F5 не нужен. Статистика выполняет запрос чтения.</value></data>
+  <data name="Explain.Empty" xml:space="preserve"><value>Пример: db.orders.find({}).limit(50). Выберите выражение целиком или исправьте запрос выше.</value></data>
+  <data name="Explain.PlanHelp" xml:space="preserve"><value>COLLSCAN — просмотр коллекции. IXSCAN — чтение по индексу. Сравните число просмотренных и возвращённых документов. Выберите стадию для разбора. Прочерк — нет метрики выполнения; выберите статистику и повторите запуск.</value></data>
+  <data name="Diagnostics.ProfilerMixed" xml:space="preserve"><value>Настройки баз различаются. Поля показывают первую доступную БД; применение изменит всю выбранную область.</value></data>
+  <data name="Diagnostics.ProfilerPreferencesSaveFailed" xml:space="preserve"><value>Настройки применены, но параметры формы сохранить не удалось.</value></data>
+  <data name="Diagnostics.ProfilerPreferencesLoadFailed" xml:space="preserve"><value>Параметры формы прочитать не удалось; поля показывают состояние сервера.</value></data>
 </root>

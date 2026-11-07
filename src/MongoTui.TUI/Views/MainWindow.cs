@@ -85,7 +85,7 @@ public sealed partial class MainWindow : Window
         IMongoGateway gateway,
         ConnectionTunnelService tunnels,
         ILogger<MainWindow> logger,
-        ILoggingSettings loggingSettings)
+        ILoggingSettings loggingSettings, DiagnosticsServices? diagnostics = null)
     {
         _localizer = localizer;
         _connections = connections;
@@ -103,6 +103,7 @@ public sealed partial class MainWindow : Window
         _translate = translate;
         _settings = settings;
         _loggingSettings = loggingSettings;
+        _diagnostics = diagnostics;
         _aiSettings = aiSettings;
         _security = security;
         _gateway = gateway;
@@ -160,6 +161,7 @@ public sealed partial class MainWindow : Window
             Text = localizer.Get(LocalizationKeys.Status.Hint),
         };
         Add(_status);
+        InitializeProfilerIndicator();
 
         RebuildTree();
         SetStatus();
@@ -196,6 +198,10 @@ public sealed partial class MainWindow : Window
     // wins over editor bindings (e.g. Ctrl+W deleting a word in the query editor).
     private void OnApplicationKeyDown(object? sender, Key key)
     {
+        if (Application?.TopRunnableView == this && key == Key.Enter.WithCtrl.WithShift)
+        {
+            key.Handled = true; Safe(OpenExplainAsync); return;
+        }
         if (Application?.TopRunnableView != this)
         {
             return;
@@ -391,6 +397,8 @@ public sealed partial class MainWindow : Window
         [
             new MenuBarItem(localizer.Get(LocalizationKeys.Menu.File),
             [
+                Item(localizer.Get(LocalizationKeys.Menu.QueryOpenFile), Ctrl(KeyCode.L), () => Safe(OpenQueryFileAsync)),
+                Item(localizer.Get(LocalizationKeys.Menu.QuerySaveFile), Ctrl(KeyCode.S), () => Safe(SaveActiveQueryFileAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.FileExit), Ctrl(KeyCode.Q), () => Application?.RequestStop()),
             ]),
             new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Connection),
@@ -398,7 +406,7 @@ public sealed partial class MainWindow : Window
                 Item(localizer.Get(LocalizationKeys.Menu.ConnectionManage), Ctrl(KeyCode.O), () => Safe(ShowManagerAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.ConnectionDisconnect), Key.Empty, () => Safe(DisconnectActiveAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.ConnectionRefresh), Key.F9, () => Safe(RefreshActiveAsync)),
-                Item(localizer.Get(LocalizationKeys.Menu.ConnectionUnlock), Key.F8, UnlockSecrets,
+                Item(localizer.Get(LocalizationKeys.Menu.ConnectionUnlock), Key.F8.WithCtrl, UnlockSecrets,
                     _security.CurrentMode == SecurityMode.Password),
                 Item(localizer.Get(LocalizationKeys.Menu.ConnectionChangePassword), Ctrl(KeyCode.P), OpenChangePassword,
                     _security.CurrentMode == SecurityMode.Password),
@@ -406,8 +414,6 @@ public sealed partial class MainWindow : Window
             new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Query),
             [
                 Item(localizer.Get(LocalizationKeys.Menu.QueryNew), Ctrl(KeyCode.T), NewTab),
-                Item(localizer.Get(LocalizationKeys.Menu.QueryOpenFile), Ctrl(KeyCode.L), () => Safe(OpenQueryFileAsync)),
-                Item(localizer.Get(LocalizationKeys.Menu.QuerySaveFile), Ctrl(KeyCode.S), () => Safe(SaveActiveQueryFileAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryRun), Key.F5, runQuery),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryAutocomplete), Key.Empty, () => Safe(CompleteActiveQueryAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.QueryClose), Ctrl(KeyCode.W), () => Safe(_queryTabs.CloseActiveAsync)),
@@ -426,6 +432,11 @@ public sealed partial class MainWindow : Window
                 Item(localizer.Get(LocalizationKeys.Menu.CollectionIndexes), Ctrl(KeyCode.K), () => Safe(OpenIndexesAsync)),
                 Item(localizer.Get(LocalizationKeys.Menu.CollectionExport), Key.F2, OpenExport),
                 Item(localizer.Get(LocalizationKeys.Menu.CollectionImport), Key.F3, OpenImport),
+            ]),
+            new MenuBarItem(localizer.Get(LocalizationKeys.Diagnostics.Title),
+            [
+                Item(localizer.Get("Explain.Title"), Key.F8, () => Safe(OpenExplainAsync)),
+                Item(localizer.Get(LocalizationKeys.Diagnostics.Title), Key.Empty, () => Safe(OpenDiagnosticsAsync)),
             ]),
             new MenuBarItem(localizer.Get(LocalizationKeys.Menu.Settings),
             [
@@ -659,9 +670,11 @@ public sealed partial class MainWindow : Window
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.Statistics), () => ShowDatabaseStatsAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.ManageUsers), () => OpenUserManagementAsync(connection, row.Database!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.DropDatabase), () => DropDatabaseAsync(connection, row.Database!)));
+                actions.Add((_localizer.Get("Diagnostics.Profiler"), () => OpenProfilerAsync(connection.Target, row.Database!, connection.Databases.Select(db => db.Name).ToArray())));
                 break;
             case TreeRowKind.Collection:
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.NewQuery), () => OpenCollectionTabAsync(row)));
+                actions.Add((_localizer.Get("Explain.Title"), () => OpenSampleExplainAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.Statistics), () => ShowCollectionStatsAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.Indexes), () => OpenCollectionIndexesAsync(connection, row.Database!, row.Collection!)));
                 actions.Add((_localizer.Get(LocalizationKeys.Tree.ClearCollection), () => ClearCollectionAsync(connection, row.Database!, row.Collection!)));
@@ -669,6 +682,7 @@ public sealed partial class MainWindow : Window
                 break;
         }
 
+        actions.Add((_localizer.Get("Diagnostics.Title"), () => OpenDiagnosticsAsync(connection.Target, row.Database ?? "admin", connection.Databases.Select(db => db.Name).ToArray())));
         return actions;
     }
 

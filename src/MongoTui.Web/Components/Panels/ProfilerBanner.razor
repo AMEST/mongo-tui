@@ -1,0 +1,35 @@
+@implements IDisposable
+@inject DiagnosticsService Diagnostics
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@using MongoTui.Domain.Diagnostics
+@foreach (var connection in Catalog.Active)
+{
+    @foreach (var state in Diagnostics.States(connection.Target).Where(state => state.Level != ProfilingLevel.Off))
+    { <div class="profiler-banner">@L["Diagnostics.ProfilerOn"] @connection.Profile.Name / @state.Database: @state.Level, @state.Options.SlowMs ms
+        <button @onclick="OnOpen">@L["Diagnostics.Title"]</button><button @onclick="() => _disable = (connection.Target, state.Database)">@L["Diagnostics.Disable"]</button></div> }
+}
+@if (_disable is { } selected)
+{ <div class="profiler-banner">@L["Diagnostics.Disable"]: @selected.Database <button @onclick="DisableAsync">@L["Diagnostics.Confirm"]</button><button @onclick="() => _disable = null">@L["Common.Cancel"]</button></div> }
+@if (_error) { <p role="alert">@L["Diagnostics.Error.Command"]</p> }
+@code {
+    [Parameter] public EventCallback OnOpen { get; set; }
+    private (MongoConnectionTarget Target, string Database)? _disable;
+    private bool _error, _disposed;
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override void OnInitialized() => _ = RefreshAsync();
+    private async Task RefreshAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try { while (await timer.WaitForNextTickAsync(_lifetime.Token)) await InvokeAsync(() => { if (!_disposed) StateHasChanged(); }); }
+        catch (OperationCanceledException) { }
+    }
+    private async Task DisableAsync()
+    {
+        if (_disable is not { } selected) return; _disable = null;
+        try { var results = await Diagnostics.ApplyProfilerAsync(selected.Target,
+            new ProfilerApplyRequest([selected.Database], ProfilingLevel.Off, new()), _lifetime.Token); _error = results.Any(result => result.Error is not null); }
+        catch (Exception) { if (!_disposed) _error = true; }
+    }
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); }
+}

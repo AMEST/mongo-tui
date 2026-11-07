@@ -470,4 +470,137 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="QueryFiles.SaveError" xml:space="preserve"><value>Could not save the query file.</value></data>
   <data name="QueryFiles.PathRequired" xml:space="preserve"><value>Enter a file path.</value></data>
   <data name="QueryFiles.Saving" xml:space="preserve"><value>Saving…</value></data>
+  <data name="Diagnostics.Title" xml:space="preserve"><value>Diagnostics</value></data>
+  <data name="Diagnostics.Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Diagnostics.SlowQueries" xml:space="preserve"><value>Slow queries</value></data>
+  <data name="Diagnostics.Database" xml:space="preserve"><value>Database</value></data>
+  <data name="Diagnostics.Server" xml:space="preserve"><value>Server</value></data>
+  <data name="Diagnostics.Profiler" xml:space="preserve"><value>Profiler</value></data>
+  <data name="Diagnostics.Settings" xml:space="preserve"><value>Diagnostics settings</value></data>
+  <data name="Diagnostics.Refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="Diagnostics.Empty" xml:space="preserve"><value>No observations yet</value></data>
+  <data name="Diagnostics.NoConnection" xml:space="preserve"><value>No active connection</value></data>
+  <data name="Diagnostics.Error.Command" xml:space="preserve"><value>Diagnostic command failed</value></data>
+  <data name="Diagnostics.Error.Unauthorized" xml:space="preserve"><value>Insufficient permissions</value></data>
+  <data name="Diagnostics.ReplicationNotConfigured" xml:space="preserve"><value>Replication is not configured</value></data>
+  <data name="Diagnostics.Total" xml:space="preserve"><value>Executions</value></data>
+  <data name="Diagnostics.Failed" xml:space="preserve"><value>Errors</value></data>
+  <data name="Diagnostics.Slow" xml:space="preserve"><value>Slow</value></data>
+  <data name="Diagnostics.Timeouts" xml:space="preserve"><value>Timeouts</value></data>
+  <data name="Diagnostics.Cancelled" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="Diagnostics.Returned" xml:space="preserve"><value>Returned documents</value></data>
+  <data name="Diagnostics.Duration" xml:space="preserve"><value>Duration (ms)</value></data>
+  <data name="Diagnostics.Source" xml:space="preserve"><value>Source</value></data>
+  <data name="Diagnostics.Operation" xml:space="preserve"><value>Operation</value></data>
+  <data name="Diagnostics.Collection" xml:space="preserve"><value>Collection</value></data>
+  <data name="Diagnostics.Period" xml:space="preserve"><value>Period (minutes; 0 = all)</value></data>
+  <data name="Diagnostics.Minimum" xml:space="preserve"><value>Minimum duration (ms)</value></data>
+  <data name="Diagnostics.Follow" xml:space="preserve"><value>Follow</value></data>
+  <data name="Diagnostics.All" xml:space="preserve"><value>All</value></data>
+  <data name="Diagnostics.ClearMemory" xml:space="preserve"><value>Clear memory</value></data>
+  <data name="Diagnostics.ClearHistory" xml:space="preserve"><value>Delete saved metrics</value></data>
+  <data name="Diagnostics.ClearConfirm" xml:space="preserve"><value>Delete saved metrics for this connection?</value></data>
+  <data name="Diagnostics.MetricsEnabled" xml:space="preserve"><value>Collect client metrics</value></data>
+  <data name="Diagnostics.LogSlow" xml:space="preserve"><value>Log slow client queries</value></data>
+  <data name="Diagnostics.Persist" xml:space="preserve"><value>Save metrics to SQLite</value></data>
+  <data name="Diagnostics.Retention" xml:space="preserve"><value>Retention (days)</value></data>
+  <data name="Diagnostics.MemoryRetention" xml:space="preserve"><value>Memory retention (minutes)</value></data>
+  <data name="Diagnostics.MaximumRows" xml:space="preserve"><value>Maximum saved observations</value></data>
+  <data name="Diagnostics.Threshold" xml:space="preserve"><value>Slow threshold (ms)</value></data>
+  <data name="Diagnostics.Mirror" xml:space="preserve"><value>Mirror server slow queries to application log</value></data>
+  <data name="Diagnostics.Lost" xml:space="preserve"><value>Lost observations</value></data>
+  <data name="Diagnostics.ProfilerLevel" xml:space="preserve"><value>Profiler level</value></data>
+  <data name="Diagnostics.Off" xml:space="preserve"><value>Off</value></data>
+  <data name="Diagnostics.Client" xml:space="preserve"><value>Client only</value></data>
+  <data name="Diagnostics.ServerSlow" xml:space="preserve"><value>Server slow</value></data>
+  <data name="Diagnostics.ServerAll" xml:space="preserve"><value>Server all</value></data>
+  <data name="Diagnostics.SampleRate" xml:space="preserve"><value>Sample rate (0–1)</value></data>
+  <data name="Diagnostics.Scope" xml:space="preserve"><value>Databases (comma separated)</value></data>
+  <data name="Diagnostics.ScopeAll" xml:space="preserve"><value>All non-system databases</value></data>
+  <data name="Diagnostics.Filter" xml:space="preserve"><value>Advanced profiler filter (JSON)</value></data>
+  <data name="Diagnostics.FilterAction" xml:space="preserve"><value>Filter: preserve / replace / clear</value></data>
+  <data name="Diagnostics.FilterPreserve" xml:space="preserve"><value>Preserve filter</value></data>
+  <data name="Diagnostics.FilterReplace" xml:space="preserve"><value>Replace filter</value></data>
+  <data name="Diagnostics.FilterClear" xml:space="preserve"><value>Clear filter</value></data>
+  <data name="Diagnostics.Restore" xml:space="preserve"><value>Restore on exit</value></data>
+  <data name="Diagnostics.AutoDisable" xml:space="preserve"><value>Restore after minutes (0 = never)</value></data>
+  <data name="Diagnostics.ProfilerWarningAll" xml:space="preserve"><value>Full profiling increases load and writes query data on the server. Enable?</value></data>
+  <data name="Diagnostics.ProfilerWarningPersistent" xml:space="preserve"><value>slowms/sampleRate affect the whole server and its log. Filters override sampling. Restoration is best-effort.</value></data>
+  <data name="Diagnostics.Apply" xml:space="preserve"><value>Apply</value></data>
+  <data name="Diagnostics.Disable" xml:space="preserve"><value>Disable profiler</value></data>
+  <data name="Diagnostics.ProfilerOn" xml:space="preserve"><value>PROFILER ON</value></data>
+  <data name="Diagnostics.Confirm" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Diagnostics.Version" xml:space="preserve"><value>Version</value></data>
+  <data name="Diagnostics.Uptime" xml:space="preserve"><value>Uptime (s)</value></data>
+  <data name="Diagnostics.Connections" xml:space="preserve"><value>Connections</value></data>
+  <data name="Diagnostics.Memory" xml:space="preserve"><value>Resident memory (bytes)</value></data>
+  <data name="Diagnostics.IndexUsage" xml:space="preserve"><value>Index usage since reset</value></data>
+  <data name="Diagnostics.Unused" xml:space="preserve"><value>Unused since reset</value></data>
+  <data name="Diagnostics.CurrentOperations" xml:space="preserve"><value>Current operations</value></data>
+  <data name="Diagnostics.Replication" xml:space="preserve"><value>Replication</value></data>
+  <data name="Diagnostics.Size" xml:space="preserve"><value>Data / storage / indexes (bytes)</value></data>
+  <data name="Explain.Title" xml:space="preserve"><value>Explain query</value></data>
+  <data name="Explain.Unsupported" xml:space="preserve"><value>Cannot explain this script. Use one find, findOne or read-only aggregate expression.</value></data>
+  <data name="Explain.QueryPlanner" xml:space="preserve"><value>Query planner</value></data>
+  <data name="Explain.ExecutionStats" xml:space="preserve"><value>Execution statistics</value></data>
+  <data name="Explain.AllPlansExecution" xml:space="preserve"><value>All plans execution</value></data>
+  <data name="Explain.CopyJson" xml:space="preserve"><value>Copy JSON</value></data>
+  <data name="Explain.ReRun" xml:space="preserve"><value>Re-run</value></data>
+  <data name="Explain.Metrics" xml:space="preserve"><value>Time / docs examined / keys examined / returned</value></data>
+  <data name="Explain.CollectionScan" xml:space="preserve"><value>Collection scan</value></data>
+  <data name="Explain.HighDocumentsExaminedRatio" xml:space="preserve"><value>Many examined documents per result</value></data>
+  <data name="Explain.HighKeysExaminedRatio" xml:space="preserve"><value>Many examined keys per result</value></data>
+  <data name="Explain.InMemorySort" xml:space="preserve"><value>Blocking sort</value></data>
+  <data name="Explain.BlockingStage" xml:space="preserve"><value>Blocking aggregation stage</value></data>
+  <data name="Explain.RejectedPlans" xml:space="preserve"><value>Alternative plans were rejected</value></data>
+  <data name="Explain.HighLatency" xml:space="preserve"><value>High execution latency</value></data>
+  <data name="Explain.UsedDisk" xml:space="preserve"><value>Execution spilled to disk</value></data>
+  <data name="Explain.RawJson" xml:space="preserve"><value>Raw JSON (temporary)</value></data>
+  <data name="Diagnostics.ProfilerUnavailableMongos" xml:space="preserve"><value>Profiling is unavailable on this server (mongos or restricted deployment).</value></data>
+  <data name="Diagnostics.Average" xml:space="preserve"><value>Average (ms)</value></data>
+  <data name="Diagnostics.Count" xml:space="preserve"><value>Executions</value></data>
+  <data name="Diagnostics.P95" xml:space="preserve"><value>p95 (ms)</value></data>
+  <data name="Diagnostics.Source.Driver" xml:space="preserve"><value>Driver</value></data>
+  <data name="Diagnostics.Source.Shell" xml:space="preserve"><value>Shell</value></data>
+  <data name="Diagnostics.Source.ServerProfiler" xml:space="preserve"><value>Server profiler</value></data>
+  <data name="Diagnostics.Operation.Find" xml:space="preserve"><value>Find</value></data>
+  <data name="Diagnostics.Operation.FindOne" xml:space="preserve"><value>FindOne</value></data>
+  <data name="Diagnostics.Operation.Aggregate" xml:space="preserve"><value>Aggregate</value></data>
+  <data name="Diagnostics.Operation.Count" xml:space="preserve"><value>Count</value></data>
+  <data name="Diagnostics.Operation.Insert" xml:space="preserve"><value>Insert</value></data>
+  <data name="Diagnostics.Operation.Update" xml:space="preserve"><value>Update</value></data>
+  <data name="Diagnostics.Operation.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Diagnostics.Operation.Command" xml:space="preserve"><value>Command</value></data>
+  <data name="Diagnostics.Operation.Script" xml:space="preserve"><value>Script</value></data>
+  <data name="Diagnostics.Operation.Other" xml:space="preserve"><value>Other</value></data>
+  <data name="Explain.UnknownPlan" xml:space="preserve"><value>Unknown plan shape; inspect the temporary raw JSON.</value></data>
+  <data name="Diagnostics.Details" xml:space="preserve"><value>Observation details</value></data>
+  <data name="Diagnostics.Groups" xml:space="preserve"><value>Groups</value></data>
+  <data name="Diagnostics.Timestamp" xml:space="preserve"><value>Time</value></data>
+  <data name="Diagnostics.Process" xml:space="preserve"><value>Process</value></data>
+  <data name="Diagnostics.ErrorCode" xml:space="preserve"><value>Error code</value></data>
+  <data name="Diagnostics.DocumentsExamined" xml:space="preserve"><value>Documents examined</value></data>
+  <data name="Diagnostics.KeysExamined" xml:space="preserve"><value>Keys examined</value></data>
+  <data name="Diagnostics.Plan" xml:space="preserve"><value>Plan</value></data>
+  <data name="Diagnostics.RowLimit" xml:space="preserve"><value>Rows</value></data>
+  <data name="Diagnostics.SlowOnly" xml:space="preserve"><value>Slow only</value></data>
+  <data name="Diagnostics.ErrorPercent" xml:space="preserve"><value>Errors, %</value></data>
+  <data name="Explain.Spills" xml:space="preserve"><value>Spills</value></data>
+  <data name="Explain.Query" xml:space="preserve"><value>Query to explain</value></data>
+  <data name="Explain.Run" xml:space="preserve"><value>Explain</value></data>
+  <data name="Explain.ShowJson" xml:space="preserve"><value>JSON</value></data>
+  <data name="Explain.Verbosity" xml:space="preserve"><value>Detail level</value></data>
+  <data name="Explain.Plan" xml:space="preserve"><value>Plan (select a stage)</value></data>
+  <data name="Explain.Summary" xml:space="preserve"><value>Summary (scroll)</value></data>
+  <data name="Explain.Stage" xml:space="preserve"><value>Selected stage</value></data>
+  <data name="Explain.Index" xml:space="preserve"><value>Index</value></data>
+  <data name="Explain.ExecutionTime" xml:space="preserve"><value>Execution time, ms</value></data>
+  <data name="Explain.Warnings" xml:space="preserve"><value>Warnings</value></data>
+  <data name="Explain.NoWarnings" xml:space="preserve"><value>No warnings</value></data>
+  <data name="Explain.Instructions" xml:space="preserve"><value>Edit the query, then F8 / Ctrl+Enter or Explain. F5 is not needed; execution statistics runs the read query.</value></data>
+  <data name="Explain.Empty" xml:space="preserve"><value>Example: db.orders.find({}).limit(50). Use a whole expression, or edit the query above.</value></data>
+  <data name="Explain.PlanHelp" xml:space="preserve"><value>COLLSCAN reads the collection. IXSCAN uses an index. Compare examined documents with returned. Select a stage to inspect it. A dash means no runtime metric; choose Execution statistics and rerun.</value></data>
+  <data name="Diagnostics.ProfilerMixed" xml:space="preserve"><value>Databases have different settings. Fields show the first available database; Apply updates the whole selected scope.</value></data>
+  <data name="Diagnostics.ProfilerPreferencesSaveFailed" xml:space="preserve"><value>Settings were applied, but form preferences could not be saved.</value></data>
+  <data name="Diagnostics.ProfilerPreferencesLoadFailed" xml:space="preserve"><value>Saved form preferences could not be read; fields show server state.</value></data>
 </root>

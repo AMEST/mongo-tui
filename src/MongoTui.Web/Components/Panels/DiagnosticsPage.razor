@@ -1,0 +1,152 @@
+@implements IDisposable
+@inject DiagnosticsServices Services
+@inject ConnectionCatalog Catalog
+@inject WebText L
+@using MongoTui.Domain.Diagnostics
+<section class="settings-page diagnostics-page">
+    <h1>@L["Diagnostics.Title"]</h1>
+    @if (Catalog.Active.Count == 0) { <p>@L["Diagnostics.NoConnection"]</p> }
+    else
+    {
+        <div class="row-actions">
+            <select id="diagnostics-connection" aria-label="@L["Diagnostics.Connections"]" value="@_connection" @onchange="ChangeConnectionAsync">
+                @foreach (var connection in Catalog.Active) { <option value="@connection.Profile.Id">@connection.Profile.Name</option> }
+            </select>
+            <label>@L["Diagnostics.Database"] <input id="diagnostics-database" list="diagnostics-databases" @bind="_database" /></label>
+            <datalist id="diagnostics-databases">@foreach (var database in Current?.Databases ?? []) { <option value="@database.Name" /> }</datalist>
+            <label>@L["Diagnostics.Collection"] <input @bind="_collection" /></label>
+            <label>@L["Diagnostics.Period"] <input type="number" min="0" @bind="_minutes" /></label>
+            @foreach (var minutes in new[] { 5, 60, 1440, 0 }) { <button class="button" @onclick="() => SelectPeriodAsync(minutes)">@(minutes == 0 ? L["Diagnostics.All"] : minutes.ToString())</button> }
+            <label>@L["Diagnostics.Minimum"] <input type="number" min="0" @bind="_minimum" /></label>
+            <label>@L["Diagnostics.RowLimit"] <input type="number" min="1" max="10000" @bind="_limit" /></label>
+            <select id="diagnostics-source" aria-label="@L["Diagnostics.Source"]" @bind="_source"><option value="">@L["Diagnostics.All"]</option>@foreach (var source in Enum.GetValues<QuerySource>()) { <option value="@source">@L["Diagnostics.Source." + source]</option> }</select>
+            <select aria-label="@L["Diagnostics.Operation"]" @bind="_operation"><option value="">@L["Diagnostics.All"]</option>@foreach (var op in Enum.GetNames<QueryOperationKind>()) { <option value="@op">@L["Diagnostics.Operation." + op]</option> }</select>
+            <label><input type="checkbox" @bind="_follow" /> @L["Diagnostics.Follow"]</label>
+            <label><input type="checkbox" @bind="_slowOnly" /> @L["Diagnostics.SlowOnly"]</label>
+            <button id="diagnostics-refresh" class="button" disabled="@_busy" @onclick="RefreshAsync">@L["Diagnostics.Refresh"]</button>
+            <button class="button" @onclick="() => _settings = !_settings">@L["Diagnostics.Settings"]</button>
+        </div>
+        @if (_settings) { <DiagnosticsSettingsPanel /> }
+        <div class="segmented">@foreach (var page in new[] { "Overview", "SlowQueries", "Database", "Server", "Profiler" })
+        { <button id="@("diagnostics-" + page)" class="@(_page == page ? "active" : "")" @onclick="() => SelectPageAsync(page)">@L["Diagnostics." + page]</button> }</div>
+        @if (_error is not null) { <p role="alert">@_error</p> }
+        @if (_page == "Profiler" && Current is { } current) { <ProfilerPanel @key="(_connection, _database)" Target="current.Target" Database="@_database" Databases="current.Databases.Select(db => db.Name).ToArray()" /> }
+        else if (_page == "Overview")
+        {
+            @if (_observations.Count == 0) { <p>@L["Diagnostics.Empty"]</p> }
+            @if (_summary is { } summary)
+            {
+                <div class="diagnostic-cards">@foreach (var card in new[] { ("Diagnostics.Total", summary.Total.ToString()), ("Diagnostics.Failed", summary.Failed.ToString()), ("Diagnostics.Slow", summary.Slow.ToString()), ("p50", summary.Latency.P50Ms.ToString("0.0")), ("p95", summary.Latency.P95Ms.ToString("0.0")), ("p99", summary.Latency.P99Ms.ToString("0.0")), ("Diagnostics.Timeouts", summary.TimedOut.ToString()) })
+                { <div class="diagnostic-card"><span>@(card.Item1.StartsWith("Diagnostics.") ? L[card.Item1] : card.Item1)</span><strong>@card.Item2</strong></div> }</div>
+                <LatencyHistogram Buckets="summary.Histogram" />
+            }
+            <QueryInsightsPanel Observations="_observations" OnSelect="SelectGroupAsync" />
+            <button class="button" @onclick="ClearMemoryAsync">@L["Diagnostics.ClearMemory"]</button>
+            <button class="button danger" @onclick="() => _confirmClear = true">@L["Diagnostics.ClearHistory"]</button>
+            @if (_confirmClear) { <p>@L["Diagnostics.ClearConfirm"] <button @onclick="ClearHistoryAsync">@L["Diagnostics.Confirm"]</button><button @onclick="() => _confirmClear = false">@L["Common.Cancel"]</button></p> }
+        }
+        else if (_page == "SlowQueries") { <QueryObservationTable Rows="_observations" /> }
+        else { <pre class="diagnostic-data">@_text</pre> }
+        <p>@L["Diagnostics.Lost"]: @Services.Queue.Lost</p>
+    }
+</section>
+@code {
+    [Parameter] public WebTab? CurrentTab { get; set; }
+    private string _connection = "", _database = "", _collection = "", _operation = "", _page = "Overview", _text = "";
+    private string? _error;
+    private int _minutes = 60, _minimum, _limit = 1000;
+    private QuerySource? _source;
+    private QueryMetricsSummary? _summary;
+    private IReadOnlyList<QueryObservation> _observations = [];
+    private bool _follow = true, _slowOnly = true, _busy, _disposed, _settings, _confirmClear;
+    private readonly CancellationTokenSource _lifetime = new();
+    private CancellationTokenSource? _request;
+    private int _version;
+    private WebConnection? Current => Catalog.Active.FirstOrDefault(item => item.Profile.Id.ToString() == _connection);
+    private WebConnection? PreferredConnection => Catalog.Active.FirstOrDefault(item => item.Profile.Id == CurrentTab?.ConnectionId)
+        ?? Catalog.Active.FirstOrDefault();
+    protected override async Task OnInitializedAsync()
+    {
+        SelectConnection(PreferredConnection);
+        Catalog.Changed += CatalogChanged;
+        await RefreshAsync(); _ = FollowAsync();
+    }
+    private void CatalogChanged() => _ = InvokeAsync(async () =>
+    {
+        if (_disposed) return;
+        if (Current is null) SelectConnection(PreferredConnection);
+        await RefreshAsync(); StateHasChanged();
+    });
+    private async Task ChangeConnectionAsync(ChangeEventArgs args)
+    {
+        _connection = args.Value?.ToString() ?? ""; _database = DefaultDatabase(Current); await RefreshAsync();
+    }
+    private void SelectConnection(WebConnection? connection)
+    {
+        _connection = connection?.Profile.Id.ToString() ?? ""; _database = DefaultDatabase(connection);
+    }
+    private string DefaultDatabase(WebConnection? connection) => connection is not null && CurrentTab is { } tab
+        && tab.ConnectionId == connection.Profile.Id && !string.IsNullOrWhiteSpace(tab.Database)
+        ? tab.Database : connection?.Databases.FirstOrDefault()?.Name ?? MongoSystemNames.AdminDatabase;
+    private async Task SelectGroupAsync(QueryMetricGroup group)
+    {
+        _database = group.Database ?? ""; _collection = group.Collection ?? ""; _operation = group.Operation.ToString(); _source = group.Source;
+        _page = "SlowQueries"; _slowOnly = false; await RefreshAsync();
+    }
+    private async Task SelectPeriodAsync(int minutes) { _minutes = minutes; await RefreshAsync(); }
+    private async Task SelectPageAsync(string page) { _page = page; await RefreshAsync(); }
+    private async Task RefreshAsync()
+    {
+        _request?.Cancel(); var version = ++_version;
+        if (Current is not { } connection || _disposed) return;
+        using var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); _request = request;
+        request.CancelAfter(TimeSpan.FromSeconds(30)); _busy = true; _error = null;
+        var page = _page; var database = _database;
+        var filter = new QueryMetricsFilter { ConnectionId = connection.Profile.Id, Database = string.IsNullOrWhiteSpace(database) ? null : database,
+            Collection = string.IsNullOrWhiteSpace(_collection) ? null : _collection, Source = _source,
+            Operation = Enum.TryParse<QueryOperationKind>(_operation, out var operation) ? operation : null,
+            Since = _minutes > 0 ? DateTimeOffset.UtcNow.AddMinutes(-Math.Min(_minutes, 525600)) : null,
+            MinimumDuration = TimeSpan.FromMilliseconds(Math.Max(0, _minimum)), SlowOnly = page == "SlowQueries" && _slowOnly };
+        try
+        {
+            var text = await LoadAsync(connection.Target, database, page, filter, Math.Clamp(_limit, 1, 10000), request.Token);
+            if (version == _version && !_disposed) _text = text;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception exception) { if (version == _version && !_disposed) _error = L[exception is MongoTui.Domain.Exceptions.DiagnosticsException diagnostic ? diagnostic.Key : "Diagnostics.Error.Command"]; }
+        finally { if (version == _version) { _busy = false; _request = null; } }
+    }
+    private async Task<string> LoadAsync(MongoConnectionTarget target, string database, string page, QueryMetricsFilter filter, int limit, CancellationToken token)
+    {
+        if (!string.IsNullOrWhiteSpace(database)) await Services.Server.RefreshProfilerStateAsync(target, database, token);
+        if (page == "Database") return DiagnosticsFormatter.Database(await Services.Server.GetDatabaseOverviewAsync(target, database, token), key => L[key]);
+        if (page == "Server") return DiagnosticsFormatter.Server(await Services.Server.GetServerOverviewAsync(target, token), key => L[key]);
+        if (page == "Profiler") return "";
+        IReadOnlyList<QueryObservation> observations;
+        if (filter.Source == QuerySource.ServerProfiler)
+        {
+            var rows = await Services.Server.ReadProfilerAsync(target, database, filter.Since, filter.MinimumDuration ?? TimeSpan.Zero, limit, token);
+            observations = ProfilerObservations.Select(rows, filter.ConnectionId!, filter, Services.Settings.Current.SlowThresholdMs);
+        }
+        else observations = await Services.Insights.ReadAsync(filter, token);
+        if (!token.IsCancellationRequested && !_disposed) { _observations = observations.Take(limit).ToArray(); _summary = Services.Insights.Summarize(observations); }
+        return "";
+    }
+
+    private async Task FollowAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        var elapsed = 0;
+        try { while (await timer.WaitForNextTickAsync(_lifetime.Token)) if (++elapsed >= (_page == "SlowQueries" ? 2 : 5))
+            { elapsed = 0; if (_follow && !_busy) await InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); }); } }
+        catch (OperationCanceledException) { }
+    }
+    private async Task ClearMemoryAsync() { Services.Insights.ClearMemory(); await RefreshAsync(); }
+    private async Task ClearHistoryAsync()
+    {
+        _confirmClear = false; if (Current is not { } connection) return;
+        try { await Services.Insights.ClearHistoryAsync(connection.Profile.Id, _lifetime.Token); await RefreshAsync(); }
+        catch (Exception) { if (!_disposed) _error = L["Diagnostics.Error.Command"]; }
+    }
+    public void Dispose() { _disposed = true; Catalog.Changed -= CatalogChanged; _lifetime.Cancel(); _request?.Cancel(); _lifetime.Dispose(); }
+}

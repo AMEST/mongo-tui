@@ -187,17 +187,20 @@ public sealed class QueryTabsView : View
             pane.Editor.CancelCompletion();
     }
 
-    public async Task CloseForConnectionAsync(ConnectionId connectionId)
+    public async Task CloseForConnectionAsync(ConnectionId connectionId, IApplication? application = null)
     {
         InvalidateCompletions();
-        foreach (var pane in _panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToList())
+        var panes = _panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToList();
+        foreach (var pane in panes) { pane.Cancel(); pane.Editor.CancelCompletion(); }
+        foreach (var pane in panes)
         {
-            pane.Cancel();
-            pane.Editor.CancelCompletion();
-            await pane.Model.CloseAsync(CancellationToken.None);
-            _panes.Remove(pane.Container);
-            _tabs.Remove(pane.Container);
-            pane.Container.Dispose();
+            await pane.Model.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+            void Remove()
+            {
+                _panes.Remove(pane.Container); _tabs.Remove(pane.Container); pane.Container.Dispose();
+            }
+            if (application is not null) await application.InvokeAsync(Remove).ConfigureAwait(false);
+            else Remove();
         }
     }
 

@@ -1,0 +1,62 @@
+@implements IDisposable
+@inject ExplainService Service
+@inject WebText L
+@inject IJSRuntime JS
+@using MongoTui.Domain.Diagnostics
+<Modal Title="@L["Explain.Title"]" OnClose="OnClose" Class="wide-modal">
+    <div class="modal-body">
+        <p>@L["Diagnostics.Database"]: @Context.Database</p>
+        <p>@L["Explain.Instructions"]</p>
+        <label for="explain-query">@L["Explain.Query"]</label>
+        <textarea id="explain-query" class="mono" rows="4" disabled="@_busy" @bind="_script" @bind:event="oninput" @onkeydown="OnQueryKeyDownAsync"></textarea>
+        <select aria-label="@L["Explain.Verbosity"]" disabled="@_busy" @bind="_verbosity">@foreach (var verbosity in Enum.GetValues<ExplainVerbosity>()) { <option value="@verbosity">@L["Explain." + verbosity]</option> }</select>
+        <button id="explain-run" class="button" disabled="@_busy" @onclick="LoadAsync">@L["Explain.Run"]</button>
+        <button class="button" disabled="@(_result is null)" @onclick="CopyAsync">@L["Explain.CopyJson"]</button>
+        @if (_busy) { <p>@L["Common.Loading"]</p> }
+        @if (_error is not null) { <p role="alert">@_error</p> }
+        @if (!_busy && _result is null) { <p>@L["Explain.Empty"]</p> }
+        @if (_result is { } result)
+        {
+            <h3>@result.Namespace</h3>
+            <dl><dt>@L["Explain.ExecutionTime"]</dt><dd>@(result.ExecutionTimeMs?.ToString() ?? "—")</dd>
+                <dt>@L["Diagnostics.DocumentsExamined"]</dt><dd>@(result.DocumentsExamined?.ToString() ?? "—")</dd>
+                <dt>@L["Diagnostics.KeysExamined"]</dt><dd>@(result.KeysExamined?.ToString() ?? "—")</dd>
+                <dt>@L["Diagnostics.Returned"]</dt><dd>@(result.Returned?.ToString() ?? "—")</dd></dl>
+            <ExplainPlanNode Node="result.Plan" />
+            <p class="muted">@L["Explain.PlanHelp"]</p>
+            @foreach (var warning in result.Warnings) { <p class="diagnostic-warning">@L["Explain." + warning.Kind]</p> }
+            <details><summary>@L["Explain.RawJson"]</summary><pre>@BsonTextCodec.Format(result.Raw)</pre></details>
+        }
+    </div>
+</Modal>
+@code {
+    [Parameter, EditorRequired] public QueryExecutionContext Context { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    private ExplainVerbosity _verbosity = ExplainVerbosity.ExecutionStats;
+    private ExplainResult? _result;
+    private string _script = "";
+    private string? _error;
+    private bool _busy, _disposed;
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override Task OnInitializedAsync() { _script = Context.Script; return LoadAsync(); }
+    private Task OnQueryKeyDownAsync(KeyboardEventArgs args) => args.Key == "F8" || args.CtrlKey && args.Key == "Enter" ? LoadAsync() : Task.CompletedTask;
+    private async Task LoadAsync()
+    {
+        if (_busy) return;
+        _result = null; _error = null;
+        var request = Service.TryCreateRequest(Context with { Script = _script }, _verbosity);
+        if (request is null) { _error = L["Explain.Unsupported"]; return; }
+        _busy = true; _error = null;
+        try { var result = await Service.ExplainAsync(Context.Target, request, _lifetime.Token); if (!_disposed) _result = result; }
+        catch (Exception exception) { if (!_disposed) _error = L[exception is MongoTui.Domain.Exceptions.DiagnosticsException diagnostic ? diagnostic.Key
+            : exception is MongoTui.Domain.Exceptions.QueryTimeoutException ? "Query.TimedOut" : "Diagnostics.Error.Command"]; }
+        finally { _busy = false; }
+    }
+    private async Task CopyAsync()
+    {
+        if (_result is null) return;
+        try { await JS.InvokeVoidAsync("navigator.clipboard.writeText", BsonTextCodec.Format(_result.Raw)); }
+        catch (JSException) { _error = L["Diagnostics.Error.Command"]; }
+    }
+    public void Dispose() { _disposed = true; _lifetime.Cancel(); _lifetime.Dispose(); _result = null; }
+}

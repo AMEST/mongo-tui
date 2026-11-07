@@ -79,6 +79,8 @@ public sealed class SecurityGateTests
         services.AddSingleton(A.Fake<IJSRuntime>());
         services.AddScoped<WebText>();
         services.AddApplication();
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway>());
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
         services.AddSingleton<TimeProvider>(new SessionClock());
         services.AddSingleton<WebSessionStore>();
         services.AddSingleton<WebSecurityStamp>();

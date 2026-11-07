@@ -21,12 +21,14 @@ internal static class QueryMethodCatalog
         [
             new("find", "{}", 2, QueryMethodScope.Cursor), new("findOne", "{}", 2),
             new("countDocuments", "{}", 2), new("estimatedDocumentCount", "", 0),
+            new("explain", "\"executionStats\"", 2, QueryMethodScope.Collection),
         ],
         QueryMethodScope.Cursor =>
         [
             new("limit", "", 1, QueryMethodScope.Cursor), new("skip", "", 1, QueryMethodScope.Cursor),
             new("maxTimeMS", "", 1, QueryMethodScope.Cursor),
             new("sort", "{}", 2, QueryMethodScope.Cursor), new("toArray", "", 0), new("count", "", 0),
+            new("explain", "\"executionStats\"", 2),
         ],
         _ => [],
     };

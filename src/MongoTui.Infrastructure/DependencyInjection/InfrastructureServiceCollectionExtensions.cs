@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoTui.Infrastructure.Diagnostics;
+using MongoTui.Application.Diagnostics;
 using MongoTui.Application.Abstractions.Ai;
 using MongoTui.Application.Abstractions.Diagnostics;
 using MongoTui.Application.Abstractions.Mongo;
@@ -38,6 +39,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<ISettingsStore, SqliteSettingsStore>();
         services.AddSingleton<ILoggingSettings, SerilogLoggingSettings>();
         services.AddSingleton<IHostedService, LoggingSettingsMonitor>();
+        services.AddSingleton<IHostedService, DiagnosticsSettingsMonitor>();
+        services.AddSingleton<IHostedService, QueryMetricsFlushService>();
+        services.AddSingleton<IHostedService, ServerProfilerMonitor>();
+        services.AddSingleton<IQueryMetricsRepository, SqliteQueryMetricsRepository>();
         services.AddSingleton<IStorageTransaction>(provider => provider.GetRequiredService<SqliteDatabase>());
         services.AddSingleton<IConnectionRepository, SqliteConnectionRepository>();
         services.AddSingleton<IQueryHistoryRepository, SqliteQueryHistoryRepository>();
@@ -71,10 +76,13 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IMongoShellSessionFactory, MongoShellSessionFactory>();
 
         services.AddSingleton<MongoDatabaseDiscovery>();
-        services.AddSingleton<IDriverMongoGateway, DriverMongoGateway>();
+        services.AddSingleton<DriverMongoGateway>();
+        services.AddSingleton<IDriverMongoGateway>(provider => provider.GetRequiredService<DriverMongoGateway>());
+        services.AddSingleton<IMongoDiagnosticsGateway, DriverMongoDiagnosticsGateway>();
         services.AddSingleton<ICliMongoTransferGateway, CliMongoGateway>();
         services.AddSingleton<CompositeMongoGateway>();
-        services.AddSingleton<IMongoGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
+        services.AddSingleton<IMongoGateway>(provider => new InstrumentedMongoGateway(
+            provider.GetRequiredService<CompositeMongoGateway>(), provider.GetRequiredService<IQueryMetricsRecorder>()));
         services.AddSingleton<IMongoTransferGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
         services.AddSingleton<IMongoUserGateway>(provider => provider.GetRequiredService<CompositeMongoGateway>());
 

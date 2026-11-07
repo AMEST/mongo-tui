@@ -5,6 +5,8 @@ public static class Snippets
 {
     public static IReadOnlyList<Snippet> All { get; } =
     [
+        new Snippet("explain execution stats", "db.collection.find({}).explain(\"executionStats\")"),
+        new Snippet("explain aggregate", "db.collection.explain(\"executionStats\").aggregate([{ $match: {} }])"),
         new Snippet("find", "db.collection.find({})"),
         new Snippet("find one", "db.collection.findOne({})"),
         new Snippet("count", "db.collection.countDocuments({})"),

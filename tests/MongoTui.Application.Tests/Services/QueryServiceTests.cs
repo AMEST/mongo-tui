@@ -1,3 +1,4 @@
+using MongoTui.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoTui.Application.Abstractions.Diagnostics;
 using AwesomeAssertions;
@@ -28,7 +29,7 @@ public sealed class QueryServiceTests
             .Returns(_session);
 
         _sut = new QueryService(_sessionFactory, _history, A.Fake<IMongoGateway>(),
-            new SettingsService(A.Fake<ISettingsStore>()), NullLogger<QueryService>.Instance);
+            new SettingsService(A.Fake<ISettingsStore>()), NullLogger<QueryService>.Instance, TestQueryMetrics.Create());
     }
 
     [Fact]

@@ -213,3 +213,12 @@ Klabukov Erik (AMEST) · Co-author: Medvedev Denis (medved91).
 ## License
 
 [MIT](LICENSE). Dependency notices: [Third-party licenses](THIRD-PARTY-LICENSES.md).
+
+### Diagnostics
+
+Diagnostics in TUI and Web provides client query metrics, optional SQLite history, server/database health and a per-database profiler. Explain (F8 or Ctrl+Shift+Enter) supports simple find/findOne/read-only aggregate expressions. Unlock secrets uses Ctrl+F8. Query payloads are excluded from metrics; explain JSON is temporary. Profiler restoration on exit/expiry is best-effort and cannot survive a process crash.
+
+
+To inspect a query with Explain, press **F8** in the query editor; running it with F5 first is unnecessary. The dialog shows the selected expression or the entire editor text in an editable query field. Correct it there and choose **Explain**, **F8**, or **Ctrl+Enter** to run again. Execution statistics executes the read query. Select a plan stage on the left and scroll the summary for labeled metrics and warnings. `COLLSCAN` reads the collection; `IXSCAN` uses an index. Comments and a terminal `.toArray()` are supported; scripts containing multiple commands must be reduced to one read expression.
+
+Profiler form preferences are remembered per connection, while mode, threshold, sample rate and filter are read from MongoDB when opened. Server slow mode defaults to no exit restoration and no timer; full profiling defaults to restoration and 15 minutes. Explicit restoration returns the previous state on disconnect/exit or expiry. Loading preferences never enables server profiling.

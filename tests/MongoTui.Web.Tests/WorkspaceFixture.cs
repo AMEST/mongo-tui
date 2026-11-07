@@ -1,3 +1,4 @@
+using MongoTui.Testing;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using FakeItEasy;
@@ -48,7 +49,7 @@ internal sealed class WorkspaceFixture : IAsyncDisposable
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(Shell);
         A.CallTo(() => Shell.IsRunning).Returns(true);
-        _queries = new(factory, History, Gateway, new SettingsService(Settings), Loggers.CreateLogger<QueryService>());
+        _queries = new(factory, History, Gateway, new SettingsService(Settings), Loggers.CreateLogger<QueryService>(), TestQueryMetrics.Create());
         Workspace = new(_queries, Catalog, Limiter, Text, Loggers.CreateLogger<QueryWorkspace>());
     }
 

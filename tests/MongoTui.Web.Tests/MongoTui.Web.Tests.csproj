@@ -26,4 +26,8 @@
     <Compile Include="../MemorySettingsStore.cs" Link="Support/MemorySettingsStore.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../TestQueryMetrics.cs" Link="Support/TestQueryMetrics.cs" />
+  </ItemGroup>
+
 </Project>

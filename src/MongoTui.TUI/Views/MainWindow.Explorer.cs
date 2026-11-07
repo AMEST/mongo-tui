@@ -49,6 +49,8 @@ public sealed partial class MainWindow
             actions.Add((_localizer.Get(LocalizationKeys.Tree.CreateDatabase), () => CreateDatabaseAsync(connection)));
             actions.Add((_localizer.Get(LocalizationKeys.Tree.Refresh), () => RefreshConnectionAsync(connection)));
             actions.Add((_localizer.Get(LocalizationKeys.Tree.ManageUsersAdmin), () => OpenUserManagementAsync(connection, MongoSystemNames.AdminDatabase)));
+            actions.Add((_localizer.Get("Diagnostics.Title"), () => OpenDiagnosticsAsync(connection.Target, "admin", connection.Databases.Select(db => db.Name).ToArray())));
+
         }
         else actions.Add((_localizer.Get(LocalizationKeys.Connection.Connect), () => ConnectProfileAsync(row.Profile)));
         actions.Add((_localizer.Get(LocalizationKeys.Connection.Edit), () => EditProfileAsync(row.Profile)));

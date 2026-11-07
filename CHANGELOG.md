@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- Prefill Web diagnostics and profiler scope from the active query tab's connection and database.
+
+- Restore profiler form fields from MongoDB and remember per-connection preferences; keep server slow profiling active by default, and restore all owned scopes after threshold changes.
+
+- Move query file actions to the top of File and Explain/Diagnostics to a dedicated Diagnostics menu between Collection and Settings.
+
+- Fix Explain for generated queries with comments and `.toArray()`; allow editing and running the query directly in TUI/Web Explain dialogs.
+
+### Added
+
+- Diagnostics in TUI/Web: bounded client metrics, percentile/histogram views, optional SQLite history,
+  database/server health, safe profiler reads, profiling controls with confirmation and best-effort restoration.
+- Explain for simple find/findOne/read-only aggregate expressions: plan tree, execution metrics,
+  warnings, temporary raw JSON, copy, and completion snippets in both editors.
+- F8 / Ctrl+Shift+Enter opens Explain; unlock secrets moves to Ctrl+F8.
+
 ## v0.10.0
 
 ### Added

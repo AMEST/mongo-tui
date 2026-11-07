@@ -38,7 +38,8 @@ public sealed class ShortcutsDialog : ThemedDialog
         (LocalizationKeys.Shortcuts.Copy, "Ctrl+C"),
         (LocalizationKeys.Shortcuts.Paste, "Ctrl+V / Cmd+V"),
         (LocalizationKeys.Shortcuts.Cut, "Ctrl+X"),
-        (LocalizationKeys.Shortcuts.Unlock, "F8"),
+        (LocalizationKeys.Shortcuts.Unlock, "Ctrl+F8"),
+        ("Explain.Title", "F8 / Ctrl+Shift+Enter"),
         (LocalizationKeys.Shortcuts.ChangePassword, "Ctrl+P"),
         (LocalizationKeys.Shortcuts.Quit, "Ctrl+Q"),
     ];
@@ -47,7 +48,7 @@ public sealed class ShortcutsDialog : ThemedDialog
     {
         Title = localizer.Get(LocalizationKeys.Shortcuts.Title);
         Width = 80;
-        Height = Dim.Percent(90);
+        Height = Dim.Percent(95);
 
         var text = new TextView
         {

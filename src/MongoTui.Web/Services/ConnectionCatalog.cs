@@ -9,7 +9,7 @@ using MongoTui.Domain.Primitives;
 namespace MongoTui.Web.Services;
 
 public sealed class ConnectionCatalog(
-    ConnectionService profiles, ConnectionTunnelService tunnels, IMongoGateway gateway, ILogger<ConnectionCatalog> logger) : IAsyncDisposable
+    ConnectionService profiles, ConnectionTunnelService tunnels, IMongoGateway gateway, ILogger<ConnectionCatalog> logger, DiagnosticsService? diagnostics = null) : IAsyncDisposable
 {
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -108,6 +108,11 @@ public sealed class ConnectionCatalog(
         var connection = _active.FirstOrDefault(item => item.Profile.Id == id);
         if (connection is null) return;
         _active.Remove(connection);
+        if (diagnostics is not null)
+        {
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try { await diagnostics.DisconnectAsync(connection.Target, deadline.Token).ConfigureAwait(false); } catch (Exception) { }
+        }
         await connection.Tunnel.DisposeAsync();
         logger.LogInformation("Connection {ConnectionId} closed", id.Value);
         Changed?.Invoke();
@@ -121,6 +126,11 @@ public sealed class ConnectionCatalog(
         {
             foreach (var connection in _active)
             {
+                if (diagnostics is not null)
+                {
+                    using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    try { await diagnostics.DisconnectAsync(connection.Target, deadline.Token); } catch (Exception) { }
+                }
                 await connection.Tunnel.DisposeAsync();
                 logger.LogDebug("Connection {ConnectionId} disposed", connection.Profile.Id.Value);
             }

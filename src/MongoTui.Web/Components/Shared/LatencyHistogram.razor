@@ -1,0 +1,4 @@
+@using MongoTui.Domain.Diagnostics
+<div class="latency-histogram">@foreach (var bucket in Buckets)
+{ <div><span>@(bucket.UpperBound == TimeSpan.MaxValue ? ">10000" : bucket.UpperBound.TotalMilliseconds.ToString()) ms</span><meter min="0" max="@Math.Max(1, Buckets.Max(item => item.Count))" value="@bucket.Count">@bucket.Count</meter><span>@bucket.Count</span></div> }</div>
+@code { [Parameter] public IReadOnlyList<LatencyBucket> Buckets { get; set; } = []; }

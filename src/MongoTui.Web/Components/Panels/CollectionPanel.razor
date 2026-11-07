@@ -5,6 +5,7 @@
 @inject ILogger<CollectionPanel> Logger
 <Modal Title="@L[LocalizationKeys.Collection.Details]" OnClose="OnClose" Class="wide-modal collection-dialog">
     <div class="modal-body">
+        <button class="button" @onclick="OnExplain">@L["Explain.Title"]</button>
         <div class="collection-heading"><BusyIcon Name="@IconNames.Database" Size="26" Busy="@(_operation == CollectionOperation.Load)" /><div><span class="eyebrow">@Tab.Database</span><h2>@Tab.Collection</h2></div></div>
         <div class="stats-grid"><div><span>@L[LocalizationKeys.Collection.Documents]</span><strong>@(_stats?.DocumentCount.ToString("N0") ?? "—")</strong></div><div><span>@L[LocalizationKeys.Collection.Indexes]</span><strong>@(_stats?.IndexCount.ToString() ?? "—")</strong></div></div>
         <h3>@L[LocalizationKeys.Collection.Indexes]</h3>
@@ -28,6 +29,7 @@
     </div>
 </Modal>
 @code {
+    [Parameter] public EventCallback OnExplain { get; set; }
     [Parameter, EditorRequired] public WebTab Tab { get; set; } = null!;
     [Parameter] public EventCallback OnClose { get; set; }
     private readonly CancellationTokenSource _lifetime = new();

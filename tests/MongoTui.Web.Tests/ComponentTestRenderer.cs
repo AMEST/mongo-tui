@@ -25,6 +25,9 @@ internal sealed class ComponentTestRenderer(IServiceProvider services)
     public Task ChangeAsync(string selector, object? value) => Dispatcher.InvokeAsync(() =>
         DispatchEventAsync(ElementAttributes(_root, selector)!.Single(frame => frame.AttributeName == "onchange").AttributeEventHandlerId,
             null, new ChangeEventArgs { Value = value }));
+    public Task InputAsync(string selector, string value) => Dispatcher.InvokeAsync(() =>
+        DispatchEventAsync(ElementAttributes(_root, selector)!.Single(frame => frame.AttributeName == "oninput").AttributeEventHandlerId,
+            null, new ChangeEventArgs { Value = value }));
     public Task ClickAsync(string cssClass) => Dispatcher.InvokeAsync(() =>
         DispatchEventAsync(ElementAttributes(_root, cssClass)!.Single(frame => frame.AttributeName == "onclick").AttributeEventHandlerId,
             null, new MouseEventArgs()));
