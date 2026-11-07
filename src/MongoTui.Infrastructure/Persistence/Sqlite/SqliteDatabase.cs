@@ -76,6 +76,29 @@ public sealed class SqliteDatabase : IStorageTransaction
             elapsed_ms    INTEGER
         );
 
+        CREATE TABLE IF NOT EXISTS query_observations (
+            observation_id TEXT PRIMARY KEY,
+            process_id TEXT NOT NULL,
+            connection_id TEXT NOT NULL,
+            database TEXT,
+            collection TEXT,
+            operation INTEGER NOT NULL,
+            source INTEGER NOT NULL,
+            started_at INTEGER NOT NULL,
+            duration_ticks INTEGER NOT NULL,
+            success INTEGER NOT NULL,
+            error_code INTEGER,
+            returned_count INTEGER,
+            affected_count INTEGER,
+            docs_examined INTEGER,
+            keys_examined INTEGER,
+            slow INTEGER NOT NULL,
+            timed_out INTEGER NOT NULL,
+            cancelled INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ix_observations_started ON query_observations(started_at);
+        CREATE INDEX IF NOT EXISTS ix_observations_scope ON query_observations(connection_id, database, collection, started_at);
+
         CREATE TABLE IF NOT EXISTS settings (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL

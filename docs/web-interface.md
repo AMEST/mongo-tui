@@ -188,3 +188,11 @@ Include both fast responses and responses delayed by 500–1000 ms. During refre
 rectangles before, during and after the request; unchanged content should move by no more than 1 px.
 Also check that existing tree rows and selectors remain connected to the DOM, the initiating button
 keeps focus, and scroll positions stay unchanged. Inject delays/errors only into the disposable server.
+
+## Diagnostics and Explain
+
+Diagnostics is inside the existing SecurityGate, with source/time/namespace filters, metrics, retention settings, profiler and server/database sections. F8 or Ctrl+Shift+Enter opens temporary Explain from the editor; browse uses the current filter. Closing a dialog or page cancels its pending requests. Profiler state is shown in a persistent banner with a confirmed Disable action.
+
+Diagnostics starts with the active query tab's connection and database, matching the Files page.
+The database initializes the profiler scope. Manual database and scope edits survive diagnostics
+refreshes; if the tab's connection is inactive, an available active connection is selected instead.

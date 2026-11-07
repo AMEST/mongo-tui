@@ -8,6 +8,8 @@ using MongoTui.Application.Models;
 using MongoTui.Domain.Collections;
 using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Queries;
+using MongoTui.Domain.Diagnostics;
+using MongoTui.Application.Abstractions.Diagnostics;
 
 namespace MongoTui.Application.Services;
 
@@ -22,16 +24,18 @@ public sealed class QueryService : IAsyncDisposable
     private readonly IMongoGateway _gateway;
     private readonly SettingsService _settings;
     private readonly ILogger<QueryService> _logger;
+    private readonly IQueryMetricsRecorder _metrics;
     private readonly ConcurrentDictionary<Guid, IMongoShellSession> _sessions = new();
 
     public QueryService(IMongoShellSessionFactory sessionFactory, IQueryHistoryRepository history,
-        IMongoGateway gateway, SettingsService settings, ILogger<QueryService> logger)
+        IMongoGateway gateway, SettingsService settings, ILogger<QueryService> logger, IQueryMetricsRecorder metrics)
     {
         _sessionFactory = sessionFactory;
         _history = history;
         _gateway = gateway;
         _settings = settings;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<QueryResult> ExecuteAsync(QueryExecutionContext context, CancellationToken cancellationToken)
@@ -42,8 +46,10 @@ public sealed class QueryService : IAsyncDisposable
             [LogPropertyNames.Database] = context.Database, [LogPropertyNames.Collection] = context.Collection,
         });
         _logger.LogDebug("Executing shell query ({ScriptLength} characters)", context.Script.Length);
-        return await ExecuteWithTimeoutAsync((_, token) => ExecuteScriptAsync(context, cancellationToken, token),
-            cancellationToken).ConfigureAwait(false);
+        return await _metrics.ObserveAsync(context.ConnectionId, context.Database, context.Collection,
+            QueryOperationKind.Script, QuerySource.Shell, QueryPurpose.User,
+            () => ExecuteWithTimeoutAsync((_, token) => ExecuteScriptAsync(context, cancellationToken, token),
+                cancellationToken), result => context.UseRawOutput ? null : result.Documents.Count).ConfigureAwait(false);
     }
 
     /// <summary>Uses the same configured deadline as shell queries, including the driver's server timeout.</summary>
@@ -55,8 +61,11 @@ public sealed class QueryService : IAsyncDisposable
             [LogPropertyNames.Database] = collection.Database.Value, [LogPropertyNames.Collection] = collection.Collection.Value,
         });
         _logger.LogDebug("Reading documents (skip {Skip}, limit {Limit})", options.Skip, options.Limit);
-        return await ExecuteWithTimeoutAsync((timeout, token) => _gateway.FindAsync(target, collection, filterJson,
-            options with { Timeout = timeout }, token), cancellationToken).ConfigureAwait(false);
+        return await _metrics.ObserveAsync(target.ConnectionId, collection.Database.Value, collection.Collection.Value,
+            QueryOperationKind.Find, QuerySource.Driver, options.Purpose,
+            () => ExecuteWithTimeoutAsync((timeout, token) => _gateway.FindAsync(target, collection, filterJson,
+                options with { Timeout = timeout, Purpose = QueryPurpose.Internal }, token), cancellationToken),
+            result => result.Documents.Count).ConfigureAwait(false);
     }
 
     private async Task<QueryResult> ExecuteWithTimeoutAsync(

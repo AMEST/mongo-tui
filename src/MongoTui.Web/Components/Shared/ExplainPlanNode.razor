@@ -1,0 +1,8 @@
+@using MongoTui.Domain.Diagnostics
+@inject WebText L
+<details open class="explain-node"><summary>@Node.Stage @Node.IndexName <span class="muted">@(Node.Returned?.ToString() ?? "—") / @(Node.DocumentsExamined?.ToString() ?? "—") / @(Node.KeysExamined?.ToString() ?? "—")
+    @L["Diagnostics.Duration"]: @(Node.ExecutionTimeMs?.ToString() ?? "—")
+    @L["Explain.UsedDisk"]: @(Node.UsedDisk?.ToString() ?? "—") @L["Explain.Spills"]: @(Node.Spills?.ToString() ?? "—")</span></summary>
+    @foreach (var child in Node.Children) { <ExplainPlanNode Node="child" /> }
+</details>
+@code { [Parameter, EditorRequired] public ExplainNode Node { get; set; } = null!; }

@@ -3,6 +3,7 @@ namespace MongoTui.Web.Services;
 /// <summary>Names supported by the shared SVG icon component.</summary>
 public static class IconNames
 {
+    public const string Activity = "activity";
     public const string Info = "info";
     public const string Database = "database";
     public const string Grid = "grid";

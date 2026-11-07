@@ -1,0 +1,40 @@
+@implements IDisposable
+@inject DiagnosticsSettingsService Settings
+@inject WebText L
+@using MongoTui.Domain.Diagnostics
+<div class="settings-card">
+    <h2>@L["Diagnostics.Settings"]</h2>
+    <label><input type="checkbox" @bind="_enabled" />@L["Diagnostics.MetricsEnabled"]</label>
+    <label><input type="checkbox" @bind="_log" />@L["Diagnostics.LogSlow"]</label>
+    <label><input type="checkbox" @bind="_persist" />@L["Diagnostics.Persist"]</label>
+    <label><input type="checkbox" @bind="_mirror" />@L["Diagnostics.Mirror"]</label>
+    <label>@L["Diagnostics.Threshold"]<input type="number" min="0" max="600000" @bind="_threshold" /></label>
+    <label>@L["Diagnostics.MemoryRetention"]<input type="number" min="1" max="1440" @bind="_memory" /></label>
+    <label>@L["Diagnostics.Retention"]<input type="number" min="1" max="365" @bind="_days" /></label>
+    <label>@L["Diagnostics.MaximumRows"]<input type="number" min="1000" max="1000000" @bind="_rows" /></label>
+    <button class="button" disabled="@_busy" @onclick="SaveAsync">@L["Common.Save"]</button>
+    @if (_error is not null) { <p role="alert">@_error</p> }
+</div>
+@code {
+    private bool _enabled, _log, _persist, _mirror, _busy;
+    private int _threshold, _memory, _days, _rows;
+    private string? _error;
+    private readonly CancellationTokenSource _lifetime = new();
+    protected override void OnInitialized()
+    {
+        var value = Settings.Current; _enabled = value.MetricsEnabled; _log = value.LogSlowQueries; _persist = value.PersistMetrics;
+        _mirror = value.MirrorServerSlowToApplicationLog; _threshold = value.SlowThresholdMs; _memory = value.MemoryRetentionMinutes;
+        _days = value.PersistentRetentionDays; _rows = value.MaximumPersistentRows;
+    }
+    private async Task SaveAsync()
+    {
+        if (_busy) return; _busy = true; _error = null;
+        var value = new ClientDiagnosticsSettings { MetricsEnabled = _enabled, LogSlowQueries = _log, PersistMetrics = _persist,
+            MirrorServerSlowToApplicationLog = _mirror, SlowThresholdMs = _threshold, MemoryRetentionMinutes = _memory,
+            PersistentRetentionDays = _days, MaximumPersistentRows = _rows };
+        try { await Settings.SaveAsync(value, _lifetime.Token); }
+        catch (Exception) { if (!_lifetime.IsCancellationRequested) _error = L["Diagnostics.Error.Command"]; }
+        finally { _busy = false; }
+    }
+    public void Dispose() { _lifetime.Cancel(); _lifetime.Dispose(); }
+}

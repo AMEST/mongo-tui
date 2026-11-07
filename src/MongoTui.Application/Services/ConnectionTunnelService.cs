@@ -62,7 +62,7 @@ public sealed class ConnectionTunnelService : IAsyncDisposable
         try
         {
             lifetime.Token.ThrowIfCancellationRequested();
-            var targetWithProxy = new MongoConnectionTarget(WithProxy(target.ConnectionString, tunnel.LocalPort));
+            var targetWithProxy = target with { ConnectionString = WithProxy(target.ConnectionString, tunnel.LocalPort) };
             var tracked = new TrackedSshTunnelSession(tunnel, session => Release(session, targetWithProxy));
             lock (_sync) { _sessions.Add(tracked); }
             return new TunnelConnection(targetWithProxy, tracked);

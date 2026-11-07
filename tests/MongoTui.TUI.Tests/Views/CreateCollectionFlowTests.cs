@@ -60,6 +60,8 @@ public sealed class CreateCollectionFlowTests : IDisposable
         services.AddLogging();
         services.AddSingleton(A.Fake<MongoTui.Application.Abstractions.Diagnostics.ILoggingSettings>());
         services.AddApplication();
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway>());
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
         services.AddTui();
         _provider = services.BuildServiceProvider();
 

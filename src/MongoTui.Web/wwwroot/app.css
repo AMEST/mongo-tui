@@ -175,3 +175,20 @@ button[data-pending=true]{opacity:1;cursor:progress}
 .results-toolbar>.row-actions{min-width:0;flex-wrap:wrap;justify-content:flex-end}
 .query-area{overflow-y:auto;scrollbar-gutter:stable}
 @media(max-width:540px){.modal-actions{flex-wrap:wrap}.modal-actions>.spacer{display:none}}
+
+.diagnostics-page { padding: 24px; overflow: auto; }
+.diagnostics-page .row-actions { flex-wrap: wrap; gap: 12px; }
+.diagnostic-cards { display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0; }
+.diagnostic-card { display: grid; padding: 16px; border: 1px solid var(--border); border-radius: 8px; min-width: 100px; }
+.diagnostic-card strong { font-size: 24px; }
+.latency-histogram > div { display: flex; align-items: center; gap: 12px; }
+.latency-histogram span { min-width: 80px; }
+.latency-histogram meter { width: min(400px, 50vw); }
+.profiler-banner { padding: 8px 20px; background: #633c10; color: #fff0cf; }
+.profiler-banner button { margin-left: 12px; }
+.explain-node { margin-left: 16px; padding: 4px; font-family: var(--mono); }
+.diagnostic-warning { color: #ba710d; }
+.diagnostic-data { overflow: auto; }
+.diagnostics-page .settings-card label { display: block; margin: 8px 0; }
+
+.profiler-fields{border:0;padding:0;margin:0;min-width:0}

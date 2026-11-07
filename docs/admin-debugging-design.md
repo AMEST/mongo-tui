@@ -1,8 +1,10 @@
 # Администрирование и отладка MongoDB — дизайн
 
-**Статус:** предложение (draft), не реализовано  
+**Статус:** реализация и автоматические проверки завершены (см. раздел 23)
+
 **Дата:** 2026-10-31  
-**Ветка:** `master` (`ace96a0`, версия 0.8.0)  
+**Исходная база дизайна:** `master` (`ace96a0`, версия 0.8.0)
+
 **Область:** Domain, Application, Infrastructure, TUI, Web, SQLite, локализация
 
 ## 1. Цель
@@ -54,8 +56,8 @@
 
 ## 3. Принципы
 
-- **Без изменения поведения по умолчанию.** Серверный профайлер выключен, пока
-  пользователь явно его не включил. Сбор клиентских метрик по умолчанию включён,
+- **Без изменения поведения по умолчанию.** Приложение не меняет серверный
+  профайлер до явного действия пользователя; он может уже быть включён администратором. Сбор клиентских метрик по умолчанию включён,
   но хранится только в памяти.
 - **Никакого текста запросов в логах и метриках.** Не сохраняются filter, pipeline,
   документы, `$comment`, значения полей и `command` из `system.profile`.
@@ -251,6 +253,7 @@ public enum ExplainVerbosity { QueryPlanner, ExecutionStats, AllPlansExecution }
 
 public sealed record QueryObservation
 {
+    public Guid ObservationId { get; init; } = Guid.NewGuid();
     public required Guid ProcessId { get; init; }
     public required ConnectionId ConnectionId { get; init; }
     public string? Database { get; init; }
@@ -450,9 +453,9 @@ public interface IQueryMetricsRepository
 }
 ```
 
-`QueryMetricsStore` (Application) объединяет кольцевой буфер и репозиторий:
-сначала отдаёт свежие наблюдения из памяти, затем — сохранённые, без дублей по
-`(ProcessId, StartedAt, ...)`.
+`QueryMetricsStore` (Application) обслуживает только память. Отдельный асинхронный
+сервис выборки объединяет её снимок с репозиторием, без дублей по `ObservationId`.
+Синхронные методы store не выполняют SQLite I/O.
 
 ### 9.3. `QueryMetricsRecorder`
 
@@ -722,7 +725,7 @@ public interface IMongoDiagnosticsGateway
 ```csharp
 new BsonDocument
 {
-    { "ts", 1 }, { "op", 1 }, { "ns", 1 }, { "millis", 1 },
+    { "_id", 0 }, { "ts", 1 }, { "op", 1 }, { "ns", 1 }, { "millis", 1 },
     { "docsExamined", 1 }, { "keysExamined", 1 }, { "nreturned", 1 },
     { "planSummary", 1 }, { "errCode", 1 }, { "responseLength", 1 },
 }
@@ -740,14 +743,15 @@ new BsonDocument
 |---|---|
 | `query` | `Find` |
 | `getmore` | `Find` |
-| `command` | `Command` или `Aggregate` по `planSummary`/`command` (без сохранения текста) |
+| `command` | `Command`; без чтения `command` и без угадывания по плану |
 | `insert` | `Insert` |
 | `update` | `Update` |
 | `remove` | `Delete` |
 
 Если тип операции определить нельзя, используется `Other`.
-`planSummary` сохраняется как короткая строка (`IXSCAN { status: 1 }`), потому что
-она описывает план, а не данные.
+`planSummary` отображается только после ограничения известным названием стадии
+(`IXSCAN`, `COLLSCAN` и т. п.). Произвольная серверная строка не считается
+безопасной и не пишется в SQLite или лог.
 
 ### 10.4. SQLite
 
@@ -755,32 +759,27 @@ new BsonDocument
 
 ```sql
 CREATE TABLE IF NOT EXISTS query_observations (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    process_id    TEXT NOT NULL,
+    observation_id TEXT PRIMARY KEY,
+    process_id TEXT NOT NULL,
     connection_id TEXT NOT NULL,
-    database      TEXT,
-    collection    TEXT,
-    operation     TEXT NOT NULL,
-    source        TEXT NOT NULL,
-    started_at    TEXT NOT NULL,
-    duration_ms   REAL NOT NULL,
-    success       INTEGER NOT NULL,
-    error_code    INTEGER,
+    database TEXT,
+    collection TEXT,
+    operation INTEGER NOT NULL,
+    source INTEGER NOT NULL,
+    started_at INTEGER NOT NULL,
+    duration_ticks INTEGER NOT NULL,
+    success INTEGER NOT NULL,
+    error_code INTEGER,
     returned_count INTEGER,
+    affected_count INTEGER,
     docs_examined INTEGER,
     keys_examined INTEGER,
-    plan_summary  TEXT,
-    slow          INTEGER NOT NULL,
-    timed_out     INTEGER NOT NULL,
-    cancelled     INTEGER NOT NULL
+    slow INTEGER NOT NULL,
+    timed_out INTEGER NOT NULL,
+    cancelled INTEGER NOT NULL
 );
-
-CREATE INDEX IF NOT EXISTS ix_query_observations_started
-    ON query_observations(started_at);
-CREATE INDEX IF NOT EXISTS ix_query_observations_namespace
-    ON query_observations(connection_id, database, collection, started_at);
-CREATE INDEX IF NOT EXISTS ix_query_observations_slow
-    ON query_observations(slow, started_at);
+CREATE INDEX IF NOT EXISTS ix_observations_started ON query_observations(started_at);
+CREATE INDEX IF NOT EXISTS ix_observations_scope ON query_observations(connection_id, database, collection, started_at);
 ```
 
 Новые классы:
@@ -828,7 +827,8 @@ TUI-ветка запускает и останавливает его так ж
 - гистограмма по фиксированным границам:
   `1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, >10000` мс.
 
-Для сохранённой истории процентили считаются по тем же наблюдениям SQL-запросом.
+Для сохранённой истории SQL выбирает отфильтрованные наблюдения, после чего
+процентили вычисляются тем же nearest-rank алгоритмом в Application.
 Ограничение в 50 000 строк не даёт памяти и БД расти бесконечно.
 
 ### 11.2. Производные показатели
@@ -903,7 +903,8 @@ DocumentsExamined, KeysExamined, PlanSummary, ErrorCode
 
 ### 12.5. Ограничения MongoDB
 
-- Профайлер настраивается **на каждой базе отдельно**. На `mongos` команда
+- Уровень профайлера настраивается **на каждой базе отдельно**; `slowms` и
+  `sampleRate` глобальны для процесса сервера и влияют на его diagnostic log. На `mongos` команда
   `setProfilingLevel` недоступна; приложение показывает пояснение и предлагает
   выполнить настройку на `mongod`/шардах.
 - `system.profile` — capped-коллекция. Старые записи исчезают автоматически.
@@ -922,17 +923,23 @@ DocumentsExamined, KeysExamined, PlanSummary, ErrorCode
 
 | Меню | Пункт | Действие |
 |---|---|---|
-| Query | `Explain current query` | `F8`, открыть `ExplainDialog` |
-| Query | `Query insights...` | открыть `QueryInsightsDialog` |
-| Settings | `Diagnostics...` | открыть `DiagnosticsDialog` |
+| File | `Open query file...` | первый пункт, `Ctrl+L` |
+| File | `Save query file...` | второй пункт, `Ctrl+S` |
+| Diagnostics | `Explain current query` | `F8`, открыть `ExplainDialog` |
+| Diagnostics | `Diagnostics...` | открыть `DiagnosticsDialog`, группы доступны внутри |
 | Settings | `Logging...` | оставить существующий |
 | Connection context | `Diagnostics...` | сводка по подключению |
 | Database context | `Query insights...` | статистика по БД |
 | Database context | `Profiler...` | настройка профайлера для БД |
 | Collection context | `Explain sample query...` | открыть explain для `find({}).limit(50)` |
 
-`F8` не занят существующими действиями (`F5` — run, `F6` — AI, `F7` — translate,
-`F9` — refresh, `F10` — menu). В Web `F8` добавляется как альтернатива кнопке.
+Меню Diagnostics расположено между Collection и Settings. Пункты открытия и
+сохранения запросов находятся в начале File; дубли Diagnostics в Query/Settings
+удалены. Горячие клавиши этих действий сохраняются.
+
+`F8` ранее использовался для Unlock: это действие перенесено на `Ctrl+F8`.
+`F5` — run, `F6` — AI, `F7` — translate, `F9` — refresh, `F10` — menu.
+В Web `F8` добавляется как альтернатива кнопке.
 
 ### 13.2. `DiagnosticsDialog`
 
@@ -1626,3 +1633,185 @@ PR 4 и PR 5 при превышении 400 строк дробить на «о
   `src/MongoTui.Infrastructure/DependencyInjection/InfrastructureServiceCollectionExtensions.cs`.
 - Существующий дизайн-документ как образец структуры:
   `docs/user-management-design.md`.
+
+
+## 23. Валидация и уточнения (2026-11-06)
+
+Уточнения ниже имеют приоритет над черновыми сигнатурами выше.
+
+1. **Область профайлера.** Уровень задаётся для БД, но `slowms` и `sampleRate`
+   глобальны для процесса `mongod` и влияют также на его diagnostic log.
+   UI обязан явно показывать эту область изменения. `Off` меняет только уровень,
+   без отправки порога, sample rate или фильтра. `Client` вообще не меняет сервер.
+   При установленном фильтре порог/sample rate не определяют отбор профайлера;
+   различаем «сохранить», «заменить» и `filter: "unset"`.
+   Источник: [MongoDB 8.0 Database Profiler](https://www.mongodb.com/docs/v8.0/tutorial/manage-the-database-profiler/),
+   [profile](https://www.mongodb.com/docs/manual/reference/command/profile/).
+2. **Auto-disable.** Сохраняем исходное состояние в памяти и восстанавливаем только
+   изменения текущего процесса, если фактическое состояние всё ещё совпадает с
+   применённым нами. Это best-effort, а не гарантия при аварии/kill или сетевом сбое.
+   Проверка и восстановление не атомарны: MongoDB не предоставляет CAS для profile.
+   Значение по умолчанию — текущая БД, 15 минут, восстановление при штатном выходе.
+3. **Метрики.** Синхронный `IQueryMetricsStore` обслуживает только память.
+   SQLite читается отдельным async-путём; никакого скрытого I/O в Summarize/Record.
+   Каждое клиентское наблюдение имеет `ObservationId` (Guid), уникальный в SQLite;
+   ProcessId/StartedAt не являются уникальным ключом. Дедупликация памяти/SQLite
+   выполняется по ObservationId. Нельзя суммировать Driver/Shell/ServerProfiler
+   как число уникальных запросов; агрегаты имеют явно выбранный источник.
+4. **Идентичность подключения.** `MongoConnectionTarget` получает необязательный
+   ConnectionId из профиля, сохраняемый при SSH-преобразовании. URI и его хеш не
+   используются как идентификаторы и не попадают в observations. Вызовы без ID
+   пропускаются recorder. Shell использует ID из контекста запроса.
+5. **Счётчики.** CountAsync возвращает число совпадений, а не число возвращённых
+   документов; у write отдельно AffectedCount. Отмена и таймаут различаются.
+   Процентиль — nearest-rank, пустая выборка даёт нули; отсутствие серверных
+   счётчиков остаётся null. Гистограмма имеет непересекающиеся интервалы (a, b],
+   первый включает 0. Slow означает Duration > threshold, не >=.
+6. **Внутренние чтения.** Метаданные/list/stats не инструментируются; sampling для
+   автодополнения и схемы помечается Internal. Пользовательские find/aggregate/count
+   и изменения документов инструментируются ровно один раз. Shell учитывается
+   вокруг всего исполнения с timeout, включая ошибку создания сессии.
+7. **Приватность.** `system.profile` проецируется с `_id: 0`; `command` не читается
+   даже для классификации aggregate. Не выводим сырые exception.Message и Raw
+   explain. PlanSummary нельзя считать доверенным: в постоянном медленном логе
+   его не будет. CurrentOp исключает command/query/client/user; разрешены только
+   идентификатор, namespace, тип, продолжительность и ожидания.
+8. **Explain.** Отказываем для `$out`/`$merge`, неизвестных модификаторов, JS,
+   повторных/неподдерживаемых опций, отрицательных/переполненных чисел. Нельзя молча
+   терять projection, collation, hint или readConcern. Парсер должен понимать
+   вложенные скобки и строковые литералы, не полагаться на `.*?`.
+   Mapper обрабатывает classic, SBE queryPlan, aggregate stages и shards; неизвестная
+   форма остаётся доступной в Raw с предупреждением, без выдуманных метрик.
+9. **Права.** Проверяются действия MongoDB, а не названия ролей: для чтения
+   system.profile отдельно требуется find, explain aggregate требует прав всех
+   используемых коллекций. Ошибка одной секции не должна ломать остальные.
+10. **Поставка.** Сохраняется последовательность этапов раздела 20. До появления
+    gateway/UI нельзя отмечать серверную диагностику реализованной. Сборка и
+    тестовые команды запускаются после подготовки реализации и тестов этапа.
+
+
+### Состояние реализации
+
+- Реализован клиентский фундамент: Domain DTO, ограниченный memory store, фильтры,
+  nearest-rank процентили и гистограмма, recorder, безопасный slow logger,
+  инструментирование document driver-операций и shell, Purpose.Internal,
+  идентичность подключения через SSH, кеш настроек с обновлением каждые 3 секунды.
+- Клиентские настройки выделены в ClientDiagnosticsSettings: MetricsEnabled,
+  LogSlowQueries, SlowThresholdMs, MemoryRetentionMinutes. На первом этапе персистентность и
+  серверные режимы не предоставлялись UI; они добавлены вторым проходом.
+- Добавлены тесты агрегатов, retention/capacity, конкуренции, ошибок, отмены,
+  таймаутов, приватности, настроек и instrumented/query service взаимодействия.
+- Второй проход: добавлены SQLite, диагностический driver gateway, профайлер и его
+  монитор восстановления, Explain, меню и экраны TUI/Web. Реализация объединяет
+  небольшие вкладки в DiagnosticsDialog/DiagnosticsPage, сохраняя отдельные
+  окна профайлера, настроек и Explain.
+
+### Проверка клиентского этапа
+
+2026-11-06: сборка всех проектов при `dotnet test --no-restore` без warnings.
+После исправления тестовой обвязки все проекты зелёные: Domain 72,
+Application 368, Infrastructure 221, TUI 607, Web 280, Integration 74;
+итого 1622 теста, без пропусков. Application и Integration повторно проверены
+отдельными запусками после исправлений. Новые экраны/серверные команды этим
+результатом первого этапа не подтверждались; их проверки приведены ниже.
+
+
+### Завершение реализации
+
+- `DriverMongoDiagnosticsGateway` отдельно использует кеш клиента DriverMongoGateway;
+  диагностика не маршрутизируется в CLI и не проходит через metrics decorator.
+- F8 был занят Unlock: Unlock перенесён на Ctrl+F8, Explain — F8/Ctrl+Shift+Enter.
+- Explain включает дерево classic/SBE/aggregate/shards, временный Raw, предупреждения,
+  выбор verbosity, повтор, копирование; источник — редактор/выделение или browse filter.
+- Settings управляют memory window, slow log, SQLite retention и зеркалированием.
+  Server profiler имеет отдельные Off/Slow/All; Client меняет только локальный лог.
+- Таблица system.profile читает безопасную проекцию. PlanSummary ограничен известным
+  названием стадии; произвольная строка сервера не сохраняется в SQLite/лог.
+- Restore — best-effort с проверкой фактического уровня, фильтра и глобальных параметров.
+  После crash/kill гарантии отключения нет. Это явно отображено в форме.
+- Автоматические тесты покрывают парсер, mapper, storage, очередь, profiler service,
+  MongoDB-команды, реальные вложенные ANSI-диалоги и Web lifecycle.
+- Ручная матрица MongoDB 6/8, replica set, mongos и Atlas остаётся проверкой релиза;
+  автоматическая integration fixture использует MongoDB 7 standalone.
+
+### Дополнение интерфейсов (2026-11-07)
+
+- В TUI добавлены группировка и переход к наблюдениям, детали по Enter, фильтр
+  операции, выбор источника/всех источников, числа строк и slow-only.
+- Серверные наблюдения фильтруются общим projector в Application для TUI/Web.
+- Фактическое состояние посещённых областей профайлера перечитывается монитором;
+  внешнее изменение отражается в постоянном индикаторе.
+- Ошибка `$indexStats` не стирает доступные `collStats`; восстановление при
+  отключении пытается обработать все БД при частичном отказе.
+
+### Итоговая автоматическая проверка (2026-11-07)
+
+После завершения реализации и подготовки тестов выполнен
+`dotnet test --no-restore --verbosity minimal --logger trx` для всего решения.
+Сборка без предупреждений; все 1684 теста прошли, без пропусков:
+
+| Проект | Passed |
+|---|---:|
+| Domain | 72 |
+| Application | 398 |
+| Infrastructure | 230 |
+| TUI | 619 |
+| Web | 290 |
+| Integration | 75 |
+
+Результаты TRX: `/private/tmp/mongotui-diagnostics-complete`.
+Ранее после подготовки Web-кода выполнены `npm run build` и `npm test`:
+сборка editor.js успешна, 5 JavaScript-тестов прошли.
+Restore не потребовался: использованы уже восстановленные зависимости.
+
+Проверены en/ru, размеры новых TUI-форм на 80×24, асинхронное завершение Explain
+во вложенном ANSI-диалоге, переход из группы ко всем её наблюдениям, подтверждение
+ServerAll в Web, серверный slow-only фильтр и восстановление при частичном отказе.
+Ручная матрица из раздела 18.5 этим прогоном не покрывается.
+
+
+### Исправление сценария F8 (2026-11-07)
+
+Explain в TUI/Web показывает редактируемый снимок запроса и явную кнопку запуска.
+F8 переносит выделение или текст редактора; F5 перед этим не требуется. Внутри
+окна F8/Ctrl+Enter запускают запрос из его поля, не меняя исходную вкладку.
+Поддержаны комментарии и завершающий `toArray()` для find/aggregate, включая
+запросы, создаваемые самим приложением. Дополнительные команды и модификаторы
+после `toArray()` по-прежнему отклоняются. Ошибка разбора видна в окне вместе
+с примером и полем для исправления. Сводка подписывает метрики, поясняет стадии
+и обновляется при выборе узла; JSON доступен отдельно. До получения результата
+кнопки просмотра/копирования JSON заблокированы.
+
+Проверка исправления: Application 411, TUI 627, Web 292 — все 1330 тестов прошли,
+сборка без предупреждений. Регрессии включают реальный F8/Ctrl+Shift+Enter из
+главного окна с вложенным ANSI-диалогом, завершение фонового запроса без нажатий,
+исправление запроса в TUI/Web, en/ru и раскладку 80×24. TRX:
+`/private/tmp/mongotui-explain-editor`, `/private/tmp/mongotui-explain-tui-final`.
+
+
+### Исправление сохранения параметров профайлера (2026-11-07)
+
+- При открытии и Refresh формы TUI/Web заполняют режим, slowms, sampleRate и
+  фильтр фактическим состоянием MongoDB. Сохранённый режим не подменяет серверный.
+- В settings хранится `diagnostics.profiler.last.{connectionId}`: область, последний
+  режим, порог/sample rate и политика восстановления. Фильтр, URI и пароль туда
+  не попадают. Параметры записываются после успешного применения; загрузка формы
+  не выполняет команд изменения профайлера. Ошибка SQLite не скрывает успешное
+  применение на сервере и отображается отдельным сообщением.
+- ServerSlow по умолчанию не восстанавливается при отключении/выходе и не имеет
+  таймера. ServerAll по умолчанию использует восстановление и 15 минут. Явный
+  выбор пользователя сохраняется; во время текущей сессии учитывается её lease.
+- Если разные области приложения меняли глобальный порог, восстановление учитывает
+  последнее подтверждённое изменение самого приложения. Внешние изменения уровня,
+  фильтра или глобальных параметров по-прежнему не перезаписываются.
+- При разных состояниях БД форма предупреждает об этом и показывает первую
+  доступную БД в общих полях; фактические результаты остаются построчными.
+
+Проверка исправления: полный `dotnet test --no-restore` — 1735 тестов прошли,
+без предупреждений сборки и пропусков: Domain 72, Application 424,
+Infrastructure 231, TUI 634, Web 298, Integration 76. Проверены сохранение
+в SQLite с повторным созданием сервисов, повторное открытие форм en/ru,
+асинхронная загрузка вложенного ANSI-диалога, отсутствие повторной команды
+при открытии, сохранение ServerSlow после отключения на MongoDB 7,
+восстановление нескольких областей после собственных изменений глобального порога.
+TRX: `/private/tmp/mongotui-profiler-settings`.
