@@ -30,7 +30,7 @@ public sealed class QueryTabViewModelTests
     [Fact]
     public async Task Should_LoadResult_When_ExecuteSucceeds()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult
             {
                 Kind = QueryResultKind.Scalar,
@@ -42,13 +42,13 @@ public sealed class QueryTabViewModelTests
 
         tab.Result.HasError.Should().BeFalse();
         tab.Result.Documents.Should().ContainSingle();
-        A.CallTo(() => _session.EvaluateAsync(tab.Script, tab.Database, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(tab.Script, tab.Database, A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
     public async Task Should_LoadError_When_ExecutionThrows()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new InvalidOperationException("boom"));
         var tab = CreateTab();
 
@@ -60,7 +60,7 @@ public sealed class QueryTabViewModelTests
     [Fact]
     public async Task Should_ResetIsExecuting_When_Finished()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(QueryResult.Empty(QueryResultKind.Documents));
         var tab = CreateTab();
 
@@ -74,7 +74,7 @@ public sealed class QueryTabViewModelTests
     {
         var localizer = new MongoTui.TUI.Localization.ResxLocalizer();
         localizer.SetLanguage("ru");
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new QueryTimeoutException(TimeSpan.FromSeconds(90), new OperationCanceledException()));
         var tab = new QueryTabViewModel(_queryService, localizer, ConnectionId.New(),
             new MongoConnectionTarget("mongodb://localhost:27017"), "Query");
@@ -91,7 +91,7 @@ public sealed class QueryTabViewModelTests
     {
         var localizer = new MongoTui.TUI.Localization.ResxLocalizer();
         localizer.SetLanguage(language);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new FormatException("Invalid JSON at line 2."));
         var tab = new QueryTabViewModel(_queryService, localizer, ConnectionId.New(),
             new MongoConnectionTarget("mongodb://localhost"), "Query");

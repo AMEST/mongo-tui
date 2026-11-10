@@ -40,7 +40,7 @@ public sealed class MainWindowHistoryTests
         host.Tabs.ActiveTab.Database.Should().Be("history_db");
         host.Tabs.ActiveTab.Collection.Should().Be("orders");
         host.Tabs.ActiveEditorView!.Text.Should().Be(entry.Script);
-        A.CallTo(() => host.Session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => host.Session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
         tree.Connections.Should().ContainSingle();
     }
 

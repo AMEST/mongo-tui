@@ -97,7 +97,6 @@ public sealed class QueryTabViewModel : ObservableObject
         {
             TabId = Id, ConnectionId = ConnectionId, Target = Target,
             Script = script, Database = Database, Collection = Collection,
-            UseRawOutput = Result.Mode == ResultViewMode.Raw,
         }, update, cancellationToken);
 
     // Only verified reads can be replayed after document mutations; the editor may contain a different script.
@@ -107,6 +106,9 @@ public sealed class QueryTabViewModel : ObservableObject
 
     private async Task ExecuteAsync(QueryExecutionContext context, Func<Action, Task> update, CancellationToken cancellationToken)
     {
+        var previous = Result.Output;
+        var output = new ScriptOutput();
+        Result.BeginOutput(output);
         IsExecuting = true;
         ResultCollection = null;
         _resultContext = null;
@@ -118,7 +120,8 @@ public sealed class QueryTabViewModel : ObservableObject
             Exception? failure = null;
             try
             {
-                result = await _queryService.ExecuteAsync(context, cancellationToken).ConfigureAwait(false);
+                if (previous is not null) await previous.DisposeAsync().ConfigureAwait(false);
+                result = await _queryService.ExecuteAsync(context, output, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -163,5 +166,16 @@ public sealed class QueryTabViewModel : ObservableObject
         }
     }
 
-    public Task CloseAsync(CancellationToken cancellationToken) => _queryService.CloseTabAsync(Id, cancellationToken);
+    public async Task CloseAsync(CancellationToken cancellationToken)
+    {
+        await DisposeOutputAsync().ConfigureAwait(false);
+        await _queryService.CloseTabAsync(Id, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal ValueTask DisposeOutputAsync()
+    {
+        var output = Result.Output;
+        Result.Output = null;
+        return output?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 }

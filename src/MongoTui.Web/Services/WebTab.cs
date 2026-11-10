@@ -18,6 +18,7 @@ public sealed class WebTab(ConnectionId connectionId, string database, string? c
     public int Page { get; set; }
     public bool HasNext { get; set; }
     public QueryResult? Result { get; set; }
+    public ScriptOutput? Output { get; internal set; }
     public CollectionRef? EditableCollection { get; set; }
     public string? Error { get; set; }
     public string? QueryFilePath { get; set; }

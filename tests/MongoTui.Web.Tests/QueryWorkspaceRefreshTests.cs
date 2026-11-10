@@ -16,7 +16,7 @@ public sealed class QueryWorkspaceRefreshTests
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
         const string selected = "db.customers.find({}).toArray()";
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", "db.orders.deleteMany({});\n" + selected);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._)).Returns(Result());
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).Returns(Result());
         await fixture.Workspace.ExecuteScriptAsync(tab, selected);
         tab.Script = "db.customers.deleteMany({})";
 
@@ -24,8 +24,8 @@ public sealed class QueryWorkspaceRefreshTests
 
         tab.Script.Should().Be("db.customers.deleteMany({})");
         tab.EditableCollection!.Collection.Value.Should().Be("customers");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
     }
 
@@ -37,7 +37,7 @@ public sealed class QueryWorkspaceRefreshTests
         const string script = "db.orders.find({}).toArray()";
         const string draft = "db.orders.deleteMany({})";
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .Invokes(() => tab.Script = draft).Returns(Result());
         await fixture.Workspace.ExecuteAsync(tab);
 
@@ -45,8 +45,8 @@ public sealed class QueryWorkspaceRefreshTests
 
         tab.Script.Should().Be(draft);
         tab.EditableCollection!.Collection.Value.Should().Be("orders");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(draft, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(draft, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Theory]
@@ -59,8 +59,8 @@ public sealed class QueryWorkspaceRefreshTests
         const string script = "db.orders.find({}).toArray()";
         const string failedScript = "db.customers.find({}).toArray()";
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).Returns(Result());
-        A.CallTo(() => fixture.Shell.EvaluateAsync(failedScript, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).Returns(Result());
+        A.CallTo(() => fixture.Shell.EvaluateAsync(failedScript, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(cancelled ? new OperationCanceledException() : new InvalidOperationException("Query failed."));
         await fixture.Workspace.ExecuteAsync(tab);
         tab.Script = failedScript;
@@ -72,8 +72,8 @@ public sealed class QueryWorkspaceRefreshTests
         tab.Error.Should().BeNull();
         tab.Script.Should().Be(failedScript);
         tab.Result!.Documents.Should().Equal(previous!.Documents);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(failedScript, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(failedScript, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class QueryWorkspaceRefreshTests
         const string firstScript = "db.orders.find({}).toArray()";
         const string latestScript = "db.orders.find({status: 'paid'}).toArray()";
         const string otherScript = "db.customers.find({}).toArray()";
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(Result());
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(Result());
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", firstScript);
         await fixture.Workspace.ExecuteAsync(tab);
         tab.Script = latestScript;
@@ -96,10 +96,10 @@ public sealed class QueryWorkspaceRefreshTests
         await fixture.Workspace.RefreshAsync(tab);
 
         fixture.Workspace.Selected.Should().BeSameAs(other);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(firstScript, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(latestScript, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(otherScript, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(tab.Script, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(firstScript, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(latestScript, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(otherScript, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(tab.Script, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class QueryWorkspaceRefreshTests
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, filter,
             A<QueryExecutionOptions>.That.Matches(options => options.Skip == 100 && options.Limit == 51),
             A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public sealed class QueryWorkspaceRefreshTests
         await fixture.Workspace.RefreshAsync(tab);
 
         tab.Result.Should().BeNull();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();
     }

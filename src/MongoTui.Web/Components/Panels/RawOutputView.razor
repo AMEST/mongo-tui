@@ -1,0 +1,67 @@
+@implements IAsyncDisposable
+@inject WebText L
+@inject IJSRuntime JS
+<div class="raw-output-scroll" tabindex="0" @ref="_scroll">
+    @if (_hasEarlierOutput) { <div class="raw-output-notice">@L[LocalizationKeys.Result.OutputPreview]</div> }
+    <pre class="json-result mono raw-result">@_text</pre>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ScriptOutput Output { get; set; } = null!;
+    [Parameter] public bool Busy { get; set; }
+    private readonly CancellationTokenSource _lifetime = new();
+    private ElementReference _scroll;
+    private Task? _refresh;
+    private string _text = string.Empty;
+    private bool _hasEarlierOutput;
+    private long _length = -1;
+
+    protected override void OnParametersSet()
+    {
+        ReadPreview();
+        if (Busy) _refresh ??= RefreshAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { await JS.InvokeVoidAsync(JavaScriptCalls.FollowOutput, _scroll); }
+        catch (JSDisconnectedException) { }
+    }
+
+    private bool ReadPreview()
+    {
+        var length = Output.Length;
+        if (_length == length) return false;
+        _length = length;
+        (_text, _hasEarlierOutput) = Output.ReadPreview();
+        return true;
+    }
+
+    private async Task RefreshAsync()
+    {
+        using var timer = new PeriodicTimer(ScriptOutput.RefreshInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_lifetime.Token))
+            {
+                var busy = false;
+                await InvokeAsync(() =>
+                {
+                    if (_lifetime.IsCancellationRequested) return;
+                    busy = Busy;
+                    if (ReadPreview()) StateHasChanged();
+                });
+                if (!busy) return;
+            }
+        }
+        catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _lifetime.CancelAsync();
+        if (_refresh is not null) await _refresh;
+        _lifetime.Dispose();
+    }
+}

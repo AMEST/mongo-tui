@@ -21,7 +21,7 @@ public sealed class QueryResultSourceTests
         A.CallTo(() => _session.IsRunning).Returns(true);
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_session);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(Result());
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(Result());
         _tab = new QueryTabViewModel(QueryTestServices.Create(factory, A.Fake<IQueryHistoryRepository>()),
             new MongoTui.TUI.Localization.ResxLocalizer(),
             ConnectionId.New(), new MongoConnectionTarget("mongodb://localhost"), "Query", "app", "users");
@@ -57,7 +57,7 @@ public sealed class QueryResultSourceTests
     public async Task ShouldNot_EnableDocumentWrites_When_ResultHasNoId()
     {
         _tab.Script = "db.users.find({})";
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Scalar, Documents = [new BsonDocument("output", "null")] });
 
         await _tab.ExecuteAsync(CancellationToken.None);
@@ -69,7 +69,7 @@ public sealed class QueryResultSourceTests
     public async Task Should_RetainExecutedSource_When_EditorChangesDuringExecution()
     {
         var pending = new TaskCompletionSource<QueryResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(pending.Task);
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(pending.Task);
         _tab.Script = "db.orders.find({})";
 
         await ExecuteWhileEditingAsync(pending);
@@ -82,7 +82,7 @@ public sealed class QueryResultSourceTests
     {
         _tab.Script = "db.users.find({})";
         await _tab.ExecuteAsync(CancellationToken.None);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new InvalidOperationException("failure"));
 
         await _tab.ExecuteAsync(CancellationToken.None);
@@ -109,9 +109,9 @@ public sealed class QueryResultSourceTests
 
         await _tab.RefreshAsync(action => { action(); return Task.CompletedTask; }, CancellationToken.None);
 
-        A.CallTo(() => _session.EvaluateAsync("db.getSiblingDB('other').orders.find({})", "app", A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync("db.getSiblingDB('other').orders.find({})", "app", A<ScriptOutput?>._, A<CancellationToken>._))
             .MustHaveHappenedTwiceExactly();
-        A.CallTo(() => _session.EvaluateAsync("db.users.deleteMany({})", A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync("db.users.deleteMany({})", A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
         _tab.Script.Should().Be("db.users.deleteMany({})");
         _tab.Database.Should().Be("draft");
@@ -129,7 +129,7 @@ public sealed class QueryResultSourceTests
 
         await _tab.RefreshAsync(action => { action(); return Task.CompletedTask; }, CancellationToken.None);
 
-        A.CallTo(() => _session.EvaluateAsync(script, "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(script, "app", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     private static QueryResult Result() => new() { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] };

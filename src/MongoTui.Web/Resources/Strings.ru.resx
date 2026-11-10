@@ -110,7 +110,9 @@
   <data name="View.table" xml:space="preserve"><value>Таблица</value></data>
   <data name="View.tree" xml:space="preserve"><value>Дерево</value></data>
   <data name="View.json" xml:space="preserve"><value>JSON</value></data>
-  <data name="Result.Raw" xml:space="preserve"><value>Raw (stdout)</value></data>
+  <data name="Result.Raw" xml:space="preserve"><value>Вывод (stdout/stderr)</value></data>
+  <data name="Result.OpenOutput" xml:space="preserve"><value>Открыть вывод</value></data>
+  <data name="Result.OutputPreview" xml:space="preserve"><value>Показан конец вывода. Сохраните вывод, чтобы получить весь лог.</value></data>
   <data name="Document.Title" xml:space="preserve"><value>Документ</value></data>
   <data name="Document.Add" xml:space="preserve"><value>Добавить документ</value></data>
   <data name="Document.Open" xml:space="preserve"><value>Открыть документ</value></data>

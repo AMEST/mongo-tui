@@ -108,8 +108,8 @@ public sealed class QueryAreaTests
         var result = new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] };
         var refreshed = new QueryResult { Kind = QueryResultKind.Documents,
             Documents = delete ? [] : [new BsonDocument { { "_id", 1 }, { "saved", true } }] };
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(result);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).ReturnsNextFromSequence(result, refreshed);
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(result);
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).ReturnsNextFromSequence(result, refreshed);
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).Returns(result);
         A.CallTo(() => fixture.Gateway.ReplaceOneAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
@@ -128,11 +128,11 @@ public sealed class QueryAreaTests
         if (delete) { await renderer.ClickAsync<DocumentDialog>("danger"); await renderer.ClickAsync<DocumentDialog>("danger"); }
         else await renderer.ClickAsync<DocumentDialog>("primary");
 
-        A.CallTo(() => fixture.Shell.EvaluateAsync(draft, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(draft, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
         tab.Error.Should().BeNull();
         tab.Script.Should().Be(draft);
         tab.Result!.Documents.Should().Equal(refreshed.Documents);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public sealed class QueryAreaTests
         opened.Error.Should().BeNull();
         tab.Script.Should().Be(draft);
         (await renderer.TextAsync()).Should().NotContain(fixture.Text[LocalizationKeys.Ai.Use]);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     private async Task<WebTab> OpenBrowseAsync(WorkspaceFixture fixture)

@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using MongoTui.Application.Localization;
 using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Localization;
+using MongoTui.Application.Models;
 using MongoTui.Application.Services;
 using MongoTui.TUI.ViewModels;
 using Terminal.Gui.ViewBase;
@@ -13,20 +15,32 @@ namespace MongoTui.TUI.Views;
 internal sealed class QueryTabPane
 {
     private readonly QueryTabsView _owner;
+    private readonly ILocalizer _localizer;
     private readonly ResultTextView _result;
+    private readonly Button _openOutput = new() { X = 1, Y = Pos.AnchorEnd(1), Visible = false };
     private readonly Label _context = new() { X = 1, Y = 0, Width = Dim.Fill(1), Height = 1 };
     private readonly FrameView _editorFrame;
     private readonly FrameView _resultFrame;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly List<(MenuItem Item, string Key)> _menuLabels = [];
     private bool _menuBuilt;
+    private ScriptOutput? _shownOutput;
+    private long _shownLength;
+    private long _lastOutputDraw;
+    private bool _showingRaw;
 
     public QueryTabPane(QueryTabsView owner, QueryTabViewModel model, ILocalizer localizer, AutocompleteService autocomplete)
     {
         _owner = owner;
+        _localizer = localizer;
         Model = model;
         Container = new View { Title = model.Title, Width = Dim.Fill(), Height = Dim.Fill() };
-        Container.Disposing += (_, _) => { _lifetime.Cancel(); _lifetime.Dispose(); };
+        Container.Disposing += (_, _) =>
+        {
+            _lifetime.Cancel();
+            _lifetime.Dispose();
+            _ = Model.DisposeOutputAsync();
+        };
         RefreshContext(localizer);
 
         _editorFrame = new FrameView
@@ -52,7 +66,8 @@ internal sealed class QueryTabPane
             Width = Dim.Fill(),
             Height = Dim.Fill(),
         };
-        _resultFrame.Add(_result);
+        _openOutput.OnAccept(OpenOutput);
+        _resultFrame.Add(_result, _openOutput);
 
         Container.Add(_context, _editorFrame, _resultFrame);
 
@@ -74,7 +89,48 @@ internal sealed class QueryTabPane
     /// <summary>Result text view (exposed for tests).</summary>
     internal TextView ResultView => _result;
 
-    public void ShowResult() => _result.Text = Model.Result.Render();
+    public void ShowResult()
+    {
+        var raw = Model.Result.Mode == ResultViewMode.Raw;
+        var showShortcut = !raw && Model.Result is { HasError: true, Output.Length: > 0 };
+        if (_openOutput.Visible != showShortcut)
+        {
+            _openOutput.Visible = showShortcut;
+            _result.Height = Dim.Fill(showShortcut ? 1 : 0);
+        }
+        if (raw) ShowRawOutput();
+        else
+        {
+            if (_showingRaw) _resultFrame.Title = _localizer.Get(LocalizationKeys.Query.Result);
+            _showingRaw = false;
+            _shownOutput = null;
+            _result.Text = Model.Result.Render();
+        }
+    }
+
+    public void RefreshLiveOutput(CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested || Model.Result.Mode != ResultViewMode.Raw
+            || Stopwatch.GetElapsedTime(_lastOutputDraw) < ScriptOutput.RefreshInterval) return;
+        _lastOutputDraw = Stopwatch.GetTimestamp();
+        ShowRawOutput();
+    }
+
+    private void ShowRawOutput()
+    {
+        var output = Model.Result.Output;
+        var length = output?.Length ?? 0;
+        var reset = !_showingRaw || output != _shownOutput;
+        if (!reset && length == _shownLength && length > 0) return;
+        _shownOutput = output;
+        _shownLength = length;
+        _showingRaw = true;
+        var (text, hasEarlierOutput) = output?.ReadPreview() ?? (string.Empty, false);
+        var title = _localizer.Get(LocalizationKeys.Query.Result);
+        _resultFrame.Title = hasEarlierOutput ? $"{title} · {_localizer.Get(LocalizationKeys.Result.OutputPreview)}" : title;
+        if (text.Length == 0) text = Model.Result.Error ?? string.Empty;
+        _result.ShowOutput(text, reset);
+    }
 
     public void FocusResult() => _result.SetFocus();
 
@@ -94,6 +150,8 @@ internal sealed class QueryTabPane
         RefreshContext(localizer);
         _editorFrame.Title = localizer.Get(LocalizationKeys.Query.Pane);
         _resultFrame.Title = localizer.Get(LocalizationKeys.Query.Result);
+        _openOutput.Text = localizer.Get(LocalizationKeys.Result.OpenOutput);
+        if (_showingRaw) { _shownLength = -1; ShowRawOutput(); }
         foreach (var (item, key) in _menuLabels)
         {
             item.Title = localizer.Get(key);
@@ -143,6 +201,8 @@ internal sealed class QueryTabPane
         root.Add(new Line());
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.CopyAll, CopyAll));
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.CopyDocument, CopySelectedDocument));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.OpenOutput, OpenOutput));
+        root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.SaveOutput, _owner.RaiseSaveOutputRequested));
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Result.Export, _owner.RaiseExportRequested));
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.DocumentEdit, _owner.RaiseEditDocumentRequested));
         root.Add(CreateMenuItem(localizer, LocalizationKeys.Menu.DocumentDelete, _owner.RaiseDeleteDocumentRequested));
@@ -156,6 +216,13 @@ internal sealed class QueryTabPane
     }
 
     private void CopyAll() => _result.App?.Clipboard?.SetClipboardData(_result.Text ?? string.Empty);
+
+    private void OpenOutput()
+    {
+        Model.Result.Mode = ResultViewMode.Raw;
+        ShowResult();
+        FocusResult();
+    }
 
     private void CopySelectedDocument()
     {

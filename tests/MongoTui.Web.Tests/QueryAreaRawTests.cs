@@ -1,6 +1,8 @@
 using AwesomeAssertions;
 using FakeItEasy;
+using MongoDB.Bson;
 using MongoTui.Application.Models;
+using MongoTui.Domain.Exceptions;
 using MongoTui.Domain.Queries;
 using MongoTui.Web.Components.Panels;
 
@@ -9,58 +11,68 @@ namespace MongoTui.Web.Tests;
 public sealed class QueryAreaRawTests
 {
     [Theory]
-    [InlineData("en")]
-    [InlineData("ru")]
-    public async Task Should_ShowNativeOutput_WhenRawSelectedBeforeRunningScript(string language)
+    [InlineData("en", false)]
+    [InlineData("ru", true)]
+    public async Task Should_ShowLiveOutputAndAllowSwitching_WhenScriptRunsOnce(string language, bool fails)
     {
         await using var fixture = new WorkspaceFixture();
         fixture.Text.SetLanguage(language);
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        const string script = "console.log('{not JSON}'); console.log('[finished]');";
-        const string output = "  {not JSON}\n[finished]\n\n";
+        const string script = "db.orders.find({}).toArray()";
+        const string log = "  live-progress\n";
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
-        A.CallTo(() => fixture.Shell.EvaluateRawAsync(script, "demo", A<CancellationToken>._))
-            .ReturnsLazily(async () =>
+        var started = new TaskCompletionSource<ScriptOutput>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var response = new TaskCompletionSource<QueryResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var result = new QueryResult { Kind = QueryResultKind.Documents,
+            Documents = [new BsonDocument { { "_id", 1 }, { "name", "result-document" } }] };
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
+            .ReturnsLazily(call =>
             {
-                await Task.Delay(30).ConfigureAwait(false);
-                return new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = output };
+                started.SetResult(call.GetArgument<ScriptOutput>(2)!);
+                return response.Task.WaitAsync(call.GetArgument<CancellationToken>(3));
             });
         using var services = QueryAreaTests.CreateServices(fixture);
         await using var renderer = new ComponentTestRenderer(services);
         await renderer.MountAsync<QueryArea>(new());
-        await renderer.ClickAsync("#result-raw");
 
-        await renderer.ClickAsync("primary").WaitAsync(TimeSpan.FromSeconds(5));
+        var pending = renderer.ClickAsync("primary");
+        try
+        {
+            var output = await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await renderer.ClickAsync("#result-raw");
+            await output.AppendAsync(new(log, false));
+            await WaitForOutputAsync(renderer, log);
+            tab.Busy.Should().BeTrue();
+            await renderer.ClickAsync("#result-table");
+            if (fails) response.SetException(new QueryExecutionException("migration failed"));
+        }
+        finally
+        {
+            response.TrySetResult(result);
+            await pending.WaitAsync(TimeSpan.FromSeconds(5));
+        }
 
-        tab.View.Should().Be(ResultViewMode.Raw);
-        tab.Error.Should().BeNull();
-        tab.Busy.Should().BeFalse();
-        tab.HasNext.Should().BeFalse();
-        tab.EditableCollection.Should().BeNull();
-        (await renderer.TextAsync()).Should().Contain(output);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        tab.View.Should().Be(ResultViewMode.Table);
+        if (fails)
+        {
+            (await renderer.TextAsync()).Should().Contain("migration failed");
+            await renderer.ClickAsync("#open-query-output");
+            (await renderer.AttributeAsync("#export-query-results", "disabled")).Should().BeNull();
+        }
+        else
+        {
+            (await renderer.TextAsync()).Should().Contain("result-document");
+            await renderer.ClickAsync("#result-raw");
+        }
+        (await renderer.TextAsync()).Should().Contain(log);
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
     }
 
-    [Fact]
-    public async Task Should_KeepSubmittedOutputMode_WhenViewChangesWhileQueued()
+    private static async Task WaitForOutputAsync(ComponentTestRenderer renderer, string output)
     {
-        await using var fixture = new WorkspaceFixture();
-        await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", null, "console.log('done')");
-        tab.View = ResultViewMode.Raw;
-        A.CallTo(() => fixture.Shell.EvaluateRawAsync(tab.Script, "demo", A<CancellationToken>._))
-            .Returns(new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = "done\n" });
-        await fixture.Limiter.EnterAsync(CancellationToken.None);
-        await fixture.Limiter.EnterAsync(CancellationToken.None);
-
-        var pending = fixture.Workspace.ExecuteScriptAsync(tab, tab.Script);
-        tab.View = ResultViewMode.Json;
-        fixture.Limiter.Exit();
-        try { await pending.WaitAsync(TimeSpan.FromSeconds(5)); }
-        finally { fixture.Limiter.Exit(); }
-
-        tab.Error.Should().BeNull();
-        tab.Result!.RawOutput.Should().Be("done\n");
-        A.CallTo(() => fixture.Shell.EvaluateRawAsync(tab.Script, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!(await renderer.TextAsync()).Contains(output, StringComparison.Ordinal))
+            await Task.Delay(20, timeout.Token);
     }
 }

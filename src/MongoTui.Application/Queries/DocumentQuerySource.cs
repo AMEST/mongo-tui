@@ -17,7 +17,7 @@ public static class DocumentQuerySource
 
     /// <summary>Verifies document identities against the submitted query snapshot, including empty reads.</summary>
     public static CollectionRef? Resolve(QueryExecutionContext context, QueryResult result) =>
-        result.Kind != QueryResultKind.Raw && result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
+        result.Documents.All(document => document.Contains(MongoSystemNames.IdField))
             ? Resolve(context.Script, context.Database) : null;
 
     public static CollectionRef? Resolve(string script, string? database)

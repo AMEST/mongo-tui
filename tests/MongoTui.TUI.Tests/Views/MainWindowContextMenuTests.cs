@@ -44,7 +44,7 @@ public sealed class MainWindowContextMenuTests
         host.Tabs.TabCount.Should().Be(1);
         host.Tabs.ActiveTab!.Database.Should().Be("app");
         host.Tabs.ActiveTab.Collection.Should().BeNull();
-        A.CallTo(() => host.Session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => host.Session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     private static void SelectDatabase(TuiFeatureTestHost host)
