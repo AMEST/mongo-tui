@@ -29,7 +29,7 @@ public sealed class QueryLoggingTests
         Log.Logger = logger;
         var session = A.Fake<IMongoShellSession>();
         A.CallTo(() => session.IsRunning).Returns(true);
-        A.CallTo(() => session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new QueryExecutionException(sensitive));
         var factory = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => factory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(session);

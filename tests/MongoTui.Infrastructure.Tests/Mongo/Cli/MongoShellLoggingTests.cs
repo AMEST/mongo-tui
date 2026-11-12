@@ -17,7 +17,7 @@ public sealed class MongoShellLoggingTests
     [InlineData(true)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public async Task ShouldNot_LogSensitiveOutput_When_ShellReturnsDiagnostics(bool fails, bool raw = false)
+    public async Task ShouldNot_LogSensitiveOutput_When_ShellReturnsDiagnostics(bool fails, bool capture = false)
     {
         const string sensitive = "sensitive-document-password";
         var sink = new LoggingTestSink();
@@ -27,11 +27,11 @@ public sealed class MongoShellLoggingTests
             .Returns(new ProcessResult(fails ? 1 : 0, fails ? $"{{\"message\":\"{sensitive}\"}}" : "[]", sensitive));
         await using var session = new MongoShellSession(runner, new MongoToolsLocator(new MongoToolsOptions()),
             new MongoConnectionTarget($"mongodb://user:{sensitive}@localhost"), loggers.CreateLogger<MongoShellSession>());
+        await using var output = capture ? new ScriptOutput() : null;
 
         try
         {
-            if (raw) await session.EvaluateRawAsync(sensitive, "app", CancellationToken.None);
-            else await session.EvaluateAsync(sensitive, "app", CancellationToken.None);
+            await session.EvaluateAsync(sensitive, "app", output, CancellationToken.None);
         }
         catch (QueryExecutionException) { }
 

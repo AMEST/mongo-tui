@@ -108,10 +108,10 @@ The query timeout is shared by TUI and web. Configure it under **Settings → Qu
 4. Edit the query and press **F5** or **Ctrl+R**. Choose Table, Tree, JSON or Raw in
    **Settings → Result view**.
 
-For scripts with `console.log` or `print`, select **Raw (stdout)** before running.
-It displays native mongosh output without JSON parsing, preserving spaces and line breaks.
-In web Script mode, select **Raw (stdout)** above the results; downloading saves a `.txt` file.
-To obtain structured documents again, choose Table, Tree or JSON and rerun the script.
+Switch to **Raw (stdout/stderr)** at any point to see output from the current script run.
+The log updates as `mongosh` writes and remains available after an error. Returned values use
+Extended JSON. To save the full transcript, choose **Save output…** in the TUI result context
+menu or use the download button in Web Script mode.
 
 Queries use the tab's database. For example:
 

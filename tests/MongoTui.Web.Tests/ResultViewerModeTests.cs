@@ -17,20 +17,20 @@ namespace MongoTui.Web.Tests;
 public sealed class ResultViewerModeTests
 {
     [Theory]
-    [InlineData("en", ResultViewMode.Raw)]
-    [InlineData("ru", ResultViewMode.Raw)]
-    [InlineData("en", ResultViewMode.Table)]
-    public async Task Should_RenderFullEscapedOutput_WhenRawResultHasNoDocuments(string language, ResultViewMode mode)
+    [InlineData("en")]
+    [InlineData("ru")]
+    public async Task Should_RenderEscapedOutput_WhenRawViewHasNoDocuments(string language)
     {
         await using var fixture = new WorkspaceFixture();
         fixture.Text.SetLanguage(language);
         using var services = QueryAreaTests.CreateServices(fixture);
         await using var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
         var output = "  {not JSON}\n<script>alert('text')</script>\n" + string.Join('\n', Enumerable.Range(0, 100));
+        await using var transcript = new ScriptOutput();
+        await transcript.AppendAsync(new(output, false));
         var tab = new WebTab(ConnectionId.New(), "demo", null)
         {
-            View = mode, Page = 2,
-            Result = new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = output },
+            View = ResultViewMode.Raw, Page = 2, Output = transcript,
         };
 
         var root = await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<ResultViewer>(

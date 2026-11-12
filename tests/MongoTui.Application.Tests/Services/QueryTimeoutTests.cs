@@ -62,8 +62,8 @@ public sealed class QueryTimeoutTests : IAsyncLifetime
     {
         _seconds = 0;
         var executionToken = new CancellationToken(true);
-        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .Invokes(call => executionToken = call.GetArgument<CancellationToken>(2))
+        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .Invokes(call => executionToken = call.GetArgument<CancellationToken>(3))
             .Returns(QueryResult.Empty(QueryResultKind.Documents));
         A.CallTo(() => _gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, A<string>._,
             A<QueryExecutionOptions>._, A<CancellationToken>._))
@@ -123,8 +123,8 @@ public sealed class QueryTimeoutTests : IAsyncLifetime
 
     private void ArrangeWaitingQueries()
     {
-        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .ReturnsLazily((string _, string? _, CancellationToken token) => WaitForCancellationAsync(token));
+        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .ReturnsLazily((string _, string? _, ScriptOutput? _, CancellationToken token) => WaitForCancellationAsync(token));
         A.CallTo(() => _gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, A<string>._,
             A<QueryExecutionOptions>._, A<CancellationToken>._))
             .ReturnsLazily((MongoConnectionTarget _, CollectionRef _, string _, QueryExecutionOptions _,

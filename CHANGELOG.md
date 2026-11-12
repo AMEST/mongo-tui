@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+- **Live script output** — switch to Raw during a run or open it from an error in TUI and Web.
+  Both shell streams are available for the same execution, with full transcript downloads
+  and file saving for long logs.
+
 ## v0.10.0
 
 ### Added

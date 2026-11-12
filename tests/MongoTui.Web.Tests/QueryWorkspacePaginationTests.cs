@@ -202,7 +202,7 @@ public sealed class QueryWorkspacePaginationTests
     {
         await using var fixture = new WorkspaceFixture();
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(Result(0, 75));
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(Result(0, 75));
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", "db.orders.find({}).toArray()");
         await fixture.Workspace.ExecuteAsync(tab);
         if (page > 0) await fixture.Workspace.PageAsync(tab, page);
@@ -213,7 +213,7 @@ public sealed class QueryWorkspacePaginationTests
         tab.Page.Should().Be(page + direction);
         tab.Result.Should().BeSameAs(previous);
         tab.HasNext.Should().Be(tab.Page == 0);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._,
             A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).MustNotHaveHappened();

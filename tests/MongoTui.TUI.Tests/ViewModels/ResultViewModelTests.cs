@@ -99,14 +99,13 @@ public sealed class ResultViewModelTests
     }
 
     [Fact]
-    public void Should_RenderRawOutput_When_RawMode()
+    public async Task Should_RenderRawOutput_WhenFailedResultIsSwitchedToRaw()
     {
-        _sut.Load(new QueryResult
-        {
-            Kind = QueryResultKind.Scalar,
-            Documents = [],
-            RawOutput = "migration complete\n42 documents updated",
-        });
+        await using var output = new ScriptOutput();
+        await output.AppendAsync(new("migration complete\n42 documents updated", false));
+        _sut.Output = output;
+        _sut.LoadError("boom");
+
         _sut.Mode = ResultViewMode.Raw;
 
         _sut.Render().Should().Be("migration complete\n42 documents updated");
