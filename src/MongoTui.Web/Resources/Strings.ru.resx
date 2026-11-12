@@ -3,6 +3,7 @@
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Cli.Usage" xml:space="preserve"><value>Использование: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Cli.WebStartupFailed" xml:space="preserve"><value>Ошибка веб-интерфейса ({0}). Логи: {1}</value></data>
   <data name="App.Navigation" xml:space="preserve"><value>Основная навигация</value></data>
   <data name="App.Theme" xml:space="preserve"><value>Тема</value></data>
   <data name="App.Connections" xml:space="preserve"><value>Подключений: {0}</value></data>

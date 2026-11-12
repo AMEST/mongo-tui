@@ -3,6 +3,7 @@
   <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
   <resheader name="version"><value>2.0</value></resheader>
   <data name="Cli.Usage" xml:space="preserve"><value>Usage: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Cli.WebStartupFailed" xml:space="preserve"><value>Web interface failed ({0}). See logs in: {1}</value></data>
   <data name="App.Navigation" xml:space="preserve"><value>Main navigation</value></data>
   <data name="App.Theme" xml:space="preserve"><value>Theme</value></data>
   <data name="App.Connections" xml:space="preserve"><value>{0} connected</value></data>

@@ -25,6 +25,7 @@ public static partial class LocalizationKeys
     public static class Cli
     {
         public const string Usage = "Cli.Usage";
+        public const string WebStartupFailed = "Cli.WebStartupFailed";
     }
 
     public static class Common

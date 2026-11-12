@@ -389,6 +389,7 @@ SRV/TXT-записи DNS должны разрешаться локально.</
   <data name="Create.DatabaseHint" xml:space="preserve"><value>База будет создана вместе с первой пустой коллекцией.</value></data>
   <data name="Tree.ConnectionActions" xml:space="preserve"><value>Действия для {0}</value></data>
   <data name="Cli.Usage" xml:space="preserve"><value>Использование: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Cli.WebStartupFailed" xml:space="preserve"><value>Ошибка веб-интерфейса ({0}). Логи: {1}</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Отмена</value></data>
   <data name="Connection.Connect" xml:space="preserve"><value>Подключиться</value></data>
   <data name="Connection.DeleteHint" xml:space="preserve"><value>Удалить «{0}» из сохранённых подключений? Его вкладки запросов закроются. База MongoDB сохранится.</value></data>

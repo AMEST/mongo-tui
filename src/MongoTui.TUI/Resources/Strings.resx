@@ -389,6 +389,7 @@ SRV/TXT DNS records must resolve locally.</value>
   <data name="Create.DatabaseHint" xml:space="preserve"><value>The database will be created with its first empty collection.</value></data>
   <data name="Tree.ConnectionActions" xml:space="preserve"><value>Actions for {0}</value></data>
   <data name="Cli.Usage" xml:space="preserve"><value>Usage: mongo-tui web [--port 8765] [--open]</value></data>
+  <data name="Cli.WebStartupFailed" xml:space="preserve"><value>Web interface failed ({0}). See logs in: {1}</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Connection.Connect" xml:space="preserve"><value>Connect</value></data>
   <data name="Connection.DeleteHint" xml:space="preserve"><value>Remove “{0}” from saved connections? Its open query tabs will close. The MongoDB database is not deleted.</value></data>

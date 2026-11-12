@@ -1,5 +1,6 @@
 using MongoTui.Application.Localization;
 using MongoTui.Application.DependencyInjection;
+using MongoTui.Application.Diagnostics;
 using MongoTui.Infrastructure.DependencyInjection;
 using MongoTui.Infrastructure.FileSystem;
 using MongoTui.Infrastructure.Ssh;
@@ -63,11 +64,12 @@ if (logLevels.InvalidEnvironmentOverride)
     Log.Warning("Ignoring invalid logging level in the environment");
 
 AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-    Log.Fatal("Unhandled exception ({ExceptionType})", args.ExceptionObject.GetType().Name);
+    Log.Fatal("Unhandled exception: {Failure}", args.ExceptionObject is Exception exception
+        ? ExceptionDiagnostics.Describe(exception) : args.ExceptionObject.GetType().Name);
 
 TaskScheduler.UnobservedTaskException += (_, args) =>
 {
-    Log.Error("Unobserved task exception ({ExceptionType})", args.Exception.GetType().Name);
+    Log.Error("Unobserved task exception: {Failure}", ExceptionDiagnostics.Describe(args.Exception));
     args.SetObserved();
 };
 
@@ -84,7 +86,10 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal("Application terminated unexpectedly ({ExceptionType})", ex.GetType().Name);
+    Log.Fatal("Application terminated unexpectedly: {Failure}", ExceptionDiagnostics.Describe(ex));
+    if (webOptions is not null)
+        await Console.Error.WriteLineAsync(new ResxLocalizer().Format(
+            LocalizationKeys.Cli.WebStartupFailed, ex.GetType().Name, AppPaths.LogsDirectory));
     return 1;
 }
 finally

@@ -41,4 +41,16 @@ public sealed class ResxLocalizerTests
     {
         _sut.Get("does.not.exist").Should().Be("does.not.exist");
     }
+
+    [Theory]
+    [InlineData("en", "Web interface failed (InvalidOperationException). See logs in: logs")]
+    [InlineData("ru", "Ошибка веб-интерфейса (InvalidOperationException). Логи: logs")]
+    public void Should_FormatWebFailure_WhenLanguageSelected(string language, string expected)
+    {
+        _sut.SetLanguage(language);
+
+        var text = _sut.Format(LocalizationKeys.Cli.WebStartupFailed, nameof(InvalidOperationException), "logs");
+
+        text.Should().Be(expected);
+    }
 }
