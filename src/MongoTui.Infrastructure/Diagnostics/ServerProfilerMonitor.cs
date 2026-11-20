@@ -1,12 +1,11 @@
 using Microsoft.Extensions.Hosting;
 using MongoTui.Application.Diagnostics;
-using MongoTui.Application.Abstractions.Diagnostics;
 using MongoTui.Application.Services;
 
 namespace MongoTui.Infrastructure.Diagnostics;
 
 public sealed class ServerProfilerMonitor(DiagnosticsService diagnostics, DiagnosticsSettingsService settings,
-    SlowQueryLogger logger, TimeProvider clock, IQueryMetricsStore metrics) : BackgroundService
+    SlowQueryLogger logger, TimeProvider clock) : BackgroundService
 {
     private readonly Guid _processId = Guid.NewGuid();
     private readonly Dictionary<ProfilerLease, DateTimeOffset> _watermarks = new();
@@ -33,8 +32,8 @@ public sealed class ServerProfilerMonitor(DiagnosticsService diagnostics, Diagno
         if (lease.ExpiresAt <= clock.GetUtcNow()) { await diagnostics.RestoreAsync(lease, cancellationToken).ConfigureAwait(false); return; }
         if (!settings.Current.MirrorServerSlowToApplicationLog || lease.Target.ConnectionId is not { } id) return;
         var since = _watermarks.GetValueOrDefault(lease, clock.GetUtcNow().AddSeconds(-2));
-        var entries = await diagnostics.ReadProfilerAsync(lease.Target, lease.Database, since,
-            TimeSpan.FromMilliseconds(settings.Current.SlowThresholdMs), 10000, cancellationToken).ConfigureAwait(false);
+        var filter = new MongoTui.Domain.Diagnostics.ProfilerReadFilter(since, SlowThresholdMs: settings.Current.SlowThresholdMs);
+        var entries = await diagnostics.ReadProfilerAsync(lease.Target, lease.Database, filter, 10000, cancellationToken).ConfigureAwait(false);
         foreach (var entry in entries.Where(entry => entry.Timestamp > since))
         {
             var observation = new MongoTui.Domain.Diagnostics.QueryObservation
@@ -45,7 +44,6 @@ public sealed class ServerProfilerMonitor(DiagnosticsService diagnostics, Diagno
                 ReturnedCount = entry.ReturnedCount, DocumentsExamined = entry.DocumentsExamined, KeysExamined = entry.KeysExamined, IsSlow = true,
             };
             logger.Write(observation);
-            if (settings.Current.MetricsEnabled) metrics.Record(observation);
         }
         if (entries.Count > 0) _watermarks[lease] = entries.Max(entry => entry.Timestamp);
     }

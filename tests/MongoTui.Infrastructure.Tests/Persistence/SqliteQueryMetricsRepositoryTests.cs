@@ -11,7 +11,7 @@ public sealed class SqliteQueryMetricsRepositoryTests : IDisposable
     private readonly SqliteQueryMetricsRepository _repository;
     public SqliteQueryMetricsRepositoryTests()
     {
-        var database = new SqliteDatabase(_path); database.Migrate(); _repository = new(database);
+        var database = new SqliteDatabase(_path); database.Migrate(); _repository = new(database, TimeProvider.System);
     }
     [Fact]
     public async Task Should_DeduplicateAndFilter_WhenBatchIsRetried()
@@ -46,6 +46,23 @@ public sealed class SqliteQueryMetricsRepositoryTests : IDisposable
         await _repository.ClearAsync(first.ConnectionId, CancellationToken.None);
 
         (await _repository.QueryAsync(new(), 10, CancellationToken.None)).Should().Equal(second);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_RejectDelayedBatchesWithinScope_WhenHistoryWasCleared(bool clearAll)
+    {
+        var pending = Observation(DateTimeOffset.UtcNow.AddSeconds(-1));
+        var other = Observation(pending.StartedAt);
+        var newer = pending with { ObservationId = Guid.NewGuid(), StartedAt = pending.StartedAt.AddDays(1) };
+        await _repository.ClearAsync(clearAll ? null : pending.ConnectionId, CancellationToken.None);
+        var writer = new SqliteQueryMetricsRepository(new SqliteDatabase(_path), TimeProvider.System);
+
+        await writer.AddBatchAsync([pending, other, newer], CancellationToken.None);
+
+        var remaining = await _repository.QueryAsync(new(), 10, CancellationToken.None);
+        remaining.Should().Equal(clearAll ? [newer] : [newer, other]);
     }
     private static QueryObservation Observation(DateTimeOffset time) => new()
     {

@@ -29,11 +29,17 @@ public sealed partial class DriverMongoDiagnosticsGateway(DriverMongoGateway dri
         }
     }
 
-    public async Task RestoreProfilerAsync(MongoConnectionTarget target, ProfilerState original, CancellationToken cancellationToken)
+    public async Task RestoreProfilerAsync(MongoConnectionTarget target, ProfilerState original, ProfilerOptions? globalOptions,
+        CancellationToken cancellationToken)
     {
-        var command = new BsonDocument { { WireProfile, (int)original.Level }, { WireSlowms, original.Options.SlowMs },
-            { WireSampleRate, original.Options.SampleRate }, { WireFilter, original.Options.FilterJson is { } filter
+        var command = new BsonDocument { { WireProfile, (int)original.Level },
+            { WireFilter, original.Options.FilterJson is { } filter
                 ? BsonTextCodec.ParseDocument(filter) : (BsonValue)WireUnset } };
+        if (globalOptions is not null)
+        {
+            command[WireSlowms] = globalOptions.SlowMs;
+            command[WireSampleRate] = globalOptions.SampleRate;
+        }
         await CommandAsync(target, original.Database, command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -63,15 +69,14 @@ public sealed partial class DriverMongoDiagnosticsGateway(DriverMongoGateway dri
     }
 
     public async Task<IReadOnlyList<ProfilerEntry>> ReadProfilerAsync(MongoConnectionTarget target, string database,
-        DateTimeOffset? since, TimeSpan minimumDuration, int limit, CancellationToken cancellationToken)
+        ProfilerReadFilter filter, int limit, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, 10000);
-        var filter = new BsonDocument(WireMillis, new BsonDocument(WireDollargte, minimumDuration.TotalMilliseconds));
-        if (since is { } timestamp) filter[WireTs] = new BsonDocument(WireDollargte, timestamp.UtcDateTime);
         try
         {
-            var rows = await Database(target, database).GetCollection<BsonDocument>(WireSystemProfile).Find(filter)
+            var rows = await Database(target, database).GetCollection<BsonDocument>(WireSystemProfile)
+                .Find(MongoProfilerReader.Filter(database, filter))
                 .Project(MongoProfilerReader.Projection()).Sort(new BsonDocument(WireTs, -1)).Limit(limit)
                 .ToListAsync(cancellationToken).ConfigureAwait(false);
             return rows.Select(MongoProfilerReader.Map).ToArray();

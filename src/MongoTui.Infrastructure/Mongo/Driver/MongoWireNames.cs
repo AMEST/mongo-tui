@@ -38,9 +38,12 @@ internal static class MongoWireNames
     }
     internal static class Diagnostics
     {
+        public const string WireDollargt = "$gt";
         public const string WireDollargte = "$gte";
+        public const string WireDollarin = "$in";
         public const string WireDollarindexStats = "$indexStats";
         public const string WireDollarmerge = "$merge";
+        public const string WireDollarnin = "$nin";
         public const string WireDollarout = "$out";
         public const string WireCLUSTEREDIXSCAN = "CLUSTERED_IXSCAN";
         public const string WireCOLLSCAN = "COLLSCAN";

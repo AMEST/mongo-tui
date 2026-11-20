@@ -79,9 +79,10 @@ try
     await using var provider = BuildServiceProvider();
     var monitors = provider.GetServices<IHostedService>().ToArray();
     foreach (var monitor in monitors) await monitor.StartAsync(CancellationToken.None);
-    try { return await provider.GetRequiredService<AppHost>().RunAsync(); }
+    try { return provider.GetRequiredService<AppHost>().Run(); }
     finally
     {
+        // Profiler restoration uses the SSH tunnels owned by the service provider.
         foreach (var monitor in monitors.Reverse()) await monitor.StopAsync(CancellationToken.None);
     }
 }

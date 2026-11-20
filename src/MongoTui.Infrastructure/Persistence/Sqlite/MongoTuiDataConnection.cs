@@ -17,5 +17,7 @@ public sealed class MongoTuiDataConnection : DataConnection
 
     public ITable<QueryObservationRow> QueryObservations => this.GetTable<QueryObservationRow>();
 
+    internal ITable<QueryObservationClearRow> QueryObservationClears => this.GetTable<QueryObservationClearRow>();
+
     public ITable<SettingRow> Settings => this.GetTable<SettingRow>();
 }

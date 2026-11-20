@@ -252,7 +252,8 @@ public sealed class QueryAreaTests
         return tab;
     }
 
-    internal static ServiceProvider CreateServices(WorkspaceFixture fixture, IJSRuntime? runtime = null)
+    internal static ServiceProvider CreateServices(WorkspaceFixture fixture, IJSRuntime? runtime = null,
+        MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway? diagnostics = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -260,6 +261,9 @@ public sealed class QueryAreaTests
         services.AddSingleton(fixture.Catalog);
         services.AddSingleton(fixture.Text);
         services.AddSingleton(fixture.Gateway);
+        services.AddSingleton<IndexService>();
+        if (diagnostics is not null)
+            services.AddSingleton(new ExplainService(diagnostics, new SettingsService(fixture.Settings), new DiagnosticsSettingsService(fixture.Settings)));
         services.AddSingleton(new AutocompleteService(fixture.Gateway));
         services.AddSingleton(new DocumentService(fixture.Gateway, fixture.Loggers.CreateLogger<DocumentService>()));
         services.AddSingleton(A.Fake<IAiAssistant>());

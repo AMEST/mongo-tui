@@ -36,4 +36,22 @@ public sealed class ExplainMapperTests
         result.ExecutionTimeMs.Should().BeNull();
         result.Returned.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("COLLSCAN", "scan", true)]
+    [InlineData("IXSCAN", "ixseek", false)]
+    public void Should_UseLogicalStagesAndKeepExecutionMetrics_WhenExplainingSbe(string winningStage, string executionStage, bool warns)
+    {
+        var request = ExplainQuerySource.TryCreate(ExplainQuerySourceTests.Context("db.orders.find({})"), ExplainVerbosity.ExecutionStats)!;
+        var raw = BsonDocument.Parse($$$$"""
+            {queryPlanner:{winningPlan:{queryPlan:{stage:'{{{{winningStage}}}}'},slotBasedPlan:{stages:'plan'}}},
+            executionStats:{nReturned:2,totalDocsExamined:10,executionStages:{stage:'{{{{executionStage}}}}',nReturned:2}}}
+            """);
+
+        var result = ExplainMapper.Map(raw, request, 100);
+
+        ExplainMapper.Flatten(result.Plan).Select(node => node.Stage).Should().Contain([winningStage, executionStage]);
+        result.DocumentsExamined.Should().Be(10);
+        result.Warnings.Any(warning => warning.Kind == ExplainWarningKind.CollectionScan).Should().Be(warns);
+    }
 }

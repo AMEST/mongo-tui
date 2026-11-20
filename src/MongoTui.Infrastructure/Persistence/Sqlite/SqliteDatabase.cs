@@ -99,6 +99,11 @@ public sealed class SqliteDatabase : IStorageTransaction
         CREATE INDEX IF NOT EXISTS ix_observations_started ON query_observations(started_at);
         CREATE INDEX IF NOT EXISTS ix_observations_scope ON query_observations(connection_id, database, collection, started_at);
 
+        CREATE TABLE IF NOT EXISTS query_observation_clears (
+            scope TEXT NOT NULL PRIMARY KEY,
+            cleared_at INTEGER NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS settings (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL

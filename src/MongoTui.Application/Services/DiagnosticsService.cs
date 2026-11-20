@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using MongoDB.Bson;
 using MongoTui.Application.Abstractions.Mongo;
+using MongoTui.Application.Diagnostics;
 using MongoTui.Application.Models;
 using MongoTui.Domain.Diagnostics;
 using MongoTui.Domain.Exceptions;
@@ -9,9 +10,7 @@ namespace MongoTui.Application.Services;
 
 public sealed class DiagnosticsService(IMongoDiagnosticsGateway gateway, TimeProvider clock)
 {
-    private readonly ConcurrentDictionary<MongoConnectionTarget, ProfilerOptions> _baselines = new();
-    private readonly ConcurrentDictionary<MongoConnectionTarget, ProfilerOptions> _restored = new();
-    private readonly ConcurrentDictionary<MongoConnectionTarget, ProfilerOptions> _appliedGlobals = new();
+    private readonly Dictionary<MongoConnectionTarget, ProfilerGlobalSettings> _globalSettings = new();
     private readonly SemaphoreSlim _changes = new(1, 1);
     private readonly ConcurrentDictionary<(MongoConnectionTarget, string), ProfilerLease> _leases = new();
     private readonly ConcurrentDictionary<(MongoConnectionTarget, string), ProfilerState> _states = new();
@@ -69,10 +68,11 @@ public sealed class DiagnosticsService(IMongoDiagnosticsGateway gateway, TimePro
     {
         var before = await GetProfilerStateAsync(target, database, cancellationToken).ConfigureAwait(false);
         var key = (target, database);
-        var baseline = _baselines.GetOrAdd(target, before.Options);
-        var original = _leases.TryGetValue(key, out var previous) ? previous.Original
-            : before with { Options = before.Options with { SlowMs = baseline.SlowMs, SampleRate = baseline.SampleRate } };
-        if (request.Level != ProfilingLevel.Off)
+        var globals = GetGlobalSettings(target, before.Options);
+        var original = _leases.TryGetValue(key, out var previous)
+            && (previous.RestoreOnExit || previous.ExpiresAt is not null)
+            && MatchesDatabaseState(before, previous.Applied) ? previous.Original : before;
+        if (request.Level != ProfilingLevel.Off && previous is null)
         {
             var tentative = before with { Level = request.Level, Options = request.Options with
                 { FilterJson = request.FilterAction == ProfilerFilterAction.Preserve ? before.Options.FilterJson
@@ -83,48 +83,75 @@ public sealed class DiagnosticsService(IMongoDiagnosticsGateway gateway, TimePro
         var actual = await gateway.SetProfilerLevelAsync(target, database, request.Level, request.Options,
             request.FilterAction, cancellationToken).ConfigureAwait(false);
         _states[key] = actual;
-        if (request.Level != ProfilingLevel.Off && actual.Level != ProfilingLevel.Off) _appliedGlobals[target] = actual.Options;
-        if (actual.Level == ProfilingLevel.Off) { _leases.TryRemove(key, out _); ForgetBaselineIfUnused(target); }
-        else _leases[key] = new ProfilerLease(target, database, original, actual, request.RestoreOnExit,
-            request.AutoDisableMinutes > 0 ? clock.GetUtcNow().AddMinutes(request.AutoDisableMinutes) : null, request.AutoDisableMinutes);
+        if (actual.Level == ProfilingLevel.Off)
+        {
+            globals.Keep(database);
+            _leases.TryRemove(key, out _);
+            ForgetGlobalSettingsIfUnused(target);
+        }
+        else
+        {
+            var expiresAt = request.AutoDisableMinutes > 0 ? clock.GetUtcNow().AddMinutes(request.AutoDisableMinutes) : (DateTimeOffset?)null;
+            _leases[key] = new ProfilerLease(target, database, original, actual, request.RestoreOnExit, expiresAt, request.AutoDisableMinutes);
+            globals.Apply(request.RestoreOnExit || expiresAt is not null ? database : null, actual.Options);
+        }
         return new(database, request.Level, actual, null);
     }
 
     public async Task RestoreAsync(ProfilerLease lease, CancellationToken cancellationToken)
     {
         await _changes.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var key = (lease.Target, lease.Database);
-            if (!_leases.TryGetValue(key, out var current) || current != lease) return;
-            var actual = await GetProfilerStateAsync(lease.Target, lease.Database, cancellationToken).ConfigureAwait(false);
-            if (actual.Level == lease.Applied.Level && actual.Options.FilterJson == lease.Applied.Options.FilterJson
-                && (SameGlobal(actual.Options, lease.Applied.Options)
-                    || _appliedGlobals.TryGetValue(lease.Target, out var applied) && SameGlobal(actual.Options, applied)
-                    || _restored.TryGetValue(lease.Target, out var restored) && SameGlobal(actual.Options, restored)))
-            {
-                await gateway.RestoreProfilerAsync(lease.Target, lease.Original, cancellationToken).ConfigureAwait(false);
-                _restored[lease.Target] = lease.Original.Options;
-                await GetProfilerStateAsync(lease.Target, lease.Database, cancellationToken).ConfigureAwait(false);
-            }
-            _leases.TryRemove(key, out _);
-            ForgetBaselineIfUnused(lease.Target);
-        }
+        try { await RestoreCoreAsync(lease, cancellationToken).ConfigureAwait(false); }
         finally { _changes.Release(); }
+    }
+
+    private async Task RestoreCoreAsync(ProfilerLease lease, CancellationToken cancellationToken)
+    {
+        var key = (lease.Target, lease.Database);
+        if (!_leases.TryGetValue(key, out var current) || current != lease) return;
+        var actual = await GetProfilerStateAsync(lease.Target, lease.Database, cancellationToken).ConfigureAwait(false);
+        var globals = GetGlobalSettings(lease.Target, actual.Options);
+        if (MatchesDatabaseState(actual, lease.Applied))
+        {
+            var globalOptions = globals.RestorationFor(lease.Database);
+            await gateway.RestoreProfilerAsync(lease.Target, lease.Original, globalOptions, cancellationToken).ConfigureAwait(false);
+            globals.Remove(lease.Database);
+            await GetProfilerStateAsync(lease.Target, lease.Database, cancellationToken).ConfigureAwait(false);
+        }
+        else globals.Keep(lease.Database);
+        _leases.TryRemove(key, out _);
+        ForgetGlobalSettingsIfUnused(lease.Target);
     }
 
     public async Task DisconnectAsync(MongoConnectionTarget target, CancellationToken cancellationToken)
     {
+        await _changes.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { await DisconnectCoreAsync(target, cancellationToken).ConfigureAwait(false); }
+        finally { _changes.Release(); }
+    }
+
+    private async Task DisconnectCoreAsync(MongoConnectionTarget target, CancellationToken cancellationToken)
+    {
         var failed = false;
-        foreach (var lease in Leases.Where(item => item.Target == target))
+        var leases = Leases.Where(item => item.Target == target).ToArray();
+        foreach (var lease in leases.Where(item => !item.RestoreOnExit))
         {
-            try { if (lease.RestoreOnExit) await RestoreAsync(lease, cancellationToken).ConfigureAwait(false); }
+            if (_globalSettings.TryGetValue(target, out var globals)) globals.Keep(lease.Database);
+            _leases.TryRemove((target, lease.Database), out _);
+        }
+        foreach (var lease in leases.Where(item => item.RestoreOnExit))
+        {
+            try { await RestoreCoreAsync(lease, cancellationToken).ConfigureAwait(false); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-            catch (Exception) { failed = true; }
-            finally { _leases.TryRemove((target, lease.Database), out _); }
+            catch (Exception)
+            {
+                if (_globalSettings.TryGetValue(target, out var globals)) globals.Keep(lease.Database);
+                _leases.TryRemove((target, lease.Database), out _);
+                failed = true;
+            }
         }
         foreach (var key in _states.Keys.Where(key => key.Item1 == target)) _states.TryRemove(key, out _);
-        ForgetBaselineIfUnused(target);
+        ForgetGlobalSettingsIfUnused(target);
         if (failed) throw new DiagnosticsException("Diagnostics.Error.Command");
     }
 
@@ -133,16 +160,24 @@ public sealed class DiagnosticsService(IMongoDiagnosticsGateway gateway, TimePro
     public Task<DatabaseOverview> GetDatabaseOverviewAsync(MongoConnectionTarget target, string database, CancellationToken cancellationToken) =>
         gateway.GetDatabaseOverviewAsync(target, database, cancellationToken);
     public Task<IReadOnlyList<ProfilerEntry>> ReadProfilerAsync(MongoConnectionTarget target, string database,
-        DateTimeOffset? since, TimeSpan minimumDuration, int limit, CancellationToken cancellationToken) =>
-        gateway.ReadProfilerAsync(target, database, since, minimumDuration, limit, cancellationToken);
+        ProfilerReadFilter filter, int limit, CancellationToken cancellationToken) =>
+        gateway.ReadProfilerAsync(target, database, filter, limit, cancellationToken);
 
-    private void ForgetBaselineIfUnused(MongoConnectionTarget target)
+    private ProfilerGlobalSettings GetGlobalSettings(MongoConnectionTarget target, ProfilerOptions actual)
     {
-        if (_leases.Keys.Any(key => key.Item1 == target)) return;
-        _baselines.TryRemove(target, out _); _restored.TryRemove(target, out _); _appliedGlobals.TryRemove(target, out _);
+        if (!_globalSettings.TryGetValue(target, out var globals))
+            _globalSettings[target] = globals = new ProfilerGlobalSettings(actual);
+        else globals.Observe(actual);
+        return globals;
     }
 
-    private static bool SameGlobal(ProfilerOptions left, ProfilerOptions right) => left.SlowMs == right.SlowMs && left.SampleRate == right.SampleRate;
+    private void ForgetGlobalSettingsIfUnused(MongoConnectionTarget target)
+    {
+        if (!_leases.Keys.Any(key => key.Item1 == target)) _globalSettings.Remove(target);
+    }
+
+    private static bool MatchesDatabaseState(ProfilerState actual, ProfilerState applied) =>
+        actual.Level == applied.Level && actual.Options.FilterJson == applied.Options.FilterJson;
 
     private static void Validate(ProfilerApplyRequest request)
     {

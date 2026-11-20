@@ -29,12 +29,12 @@ public sealed class MongoDiagnosticsTests(MongoFixture fixture) : IClassFixture<
             var request = ExplainQuerySource.TryCreate(context, ExplainVerbosity.ExecutionStats)!;
             var raw = await gateway.ExplainAsync(target, request, CancellationToken.None);
             raw.Contains("queryPlanner").Should().BeTrue();
-            var rows = await gateway.ReadProfilerAsync(target, database, null, TimeSpan.Zero, 100, CancellationToken.None);
+            var rows = await gateway.ReadProfilerAsync(target, database, new(), 100, CancellationToken.None);
             rows.Should().NotBeNull();
         }
         finally
         {
-            await gateway.RestoreProfilerAsync(target, original, CancellationToken.None);
+            await gateway.RestoreProfilerAsync(target, original, original.Options, CancellationToken.None);
             await driver.DropDatabaseAsync(target, DatabaseName.Create(database), CancellationToken.None);
         }
     }
@@ -60,7 +60,7 @@ public sealed class MongoDiagnosticsTests(MongoFixture fixture) : IClassFixture<
         }
         finally
         {
-            await gateway.RestoreProfilerAsync(target, original, CancellationToken.None);
+            await gateway.RestoreProfilerAsync(target, original, original.Options, CancellationToken.None);
             await driver.DropDatabaseAsync(target, DatabaseName.Create(database), CancellationToken.None);
         }
     }

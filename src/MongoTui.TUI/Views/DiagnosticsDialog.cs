@@ -31,7 +31,7 @@ public sealed class DiagnosticsDialog : DiagnosticDialogBase
     {
         _services = services; _target = target; _databases = databases;
         _page.Labels = new[] { "Overview", "SlowQueries", "Database", "Server", "Profiler" }.Select(name => localizer.Get("Diagnostics." + name)).ToList();
-        _page.Value = 0; _source.Labels = new[] { localizer.Get("Diagnostics.All") }.Concat(Enum.GetNames<QuerySource>().Select(name => localizer.Get("Diagnostics.Source." + name))).ToList(); _source.Value = 0;
+        _page.Value = 0; _source.Labels = new[] { localizer.Get("Diagnostics.Client") }.Concat(Enum.GetNames<QuerySource>().Select(name => localizer.Get("Diagnostics.Source." + name))).ToList(); _source.Value = 0;
         Field("Database", _database, database, 2, 1); Field("Collection", _collection, "", 2, 38);
         Field("Period", _minutes, "60", 3, 1); Field("Minimum", _minimum, "0", 4, 1);
         Field("RowLimit", _limit, "1000", 4, 38);
@@ -108,8 +108,9 @@ public sealed class DiagnosticsDialog : DiagnosticDialogBase
             IReadOnlyList<QueryObservation> observations;
             if (filter.Source == QuerySource.ServerProfiler)
             {
-                var rows = await _services.Server.ReadProfilerAsync(_target, database, filter.Since, filter.MinimumDuration ?? TimeSpan.Zero, limit, token).ConfigureAwait(false);
-                observations = ProfilerObservations.Select(rows, _target.ConnectionId!, filter, _services.Settings.Current.SlowThresholdMs);
+                var threshold = _services.Settings.Current.SlowThresholdMs;
+                var rows = await _services.Server.ReadProfilerAsync(_target, database, ProfilerObservations.ReadFilter(filter, threshold), limit, token).ConfigureAwait(false);
+                observations = ProfilerObservations.Select(rows, _target.ConnectionId!, filter, threshold);
             }
             else observations = await _services.Insights.ReadAsync(filter, token).ConfigureAwait(false);
             _observations = observations.Take(limit).ToArray();

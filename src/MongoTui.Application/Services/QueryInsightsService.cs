@@ -10,11 +10,15 @@ public sealed class QueryInsightsService(IQueryMetricsStore memory, IQueryMetric
 {
     public async Task<IReadOnlyList<QueryObservation>> ReadAsync(QueryMetricsFilter filter, CancellationToken cancellationToken)
     {
-        var live = memory.GetRecent(filter, QueryMetricsStore.Capacity);
-        if (!settings.Current.PersistMetrics) return live;
+        if (filter.Source == QuerySource.ServerProfiler) return [];
+        var live = memory.GetRecent(filter, QueryMetricsStore.Capacity).Where(IsClientObservation);
+        if (!settings.Current.PersistMetrics) return live.ToArray();
         var saved = await repository.QueryAsync(filter, settings.Current.MaximumPersistentRows, cancellationToken).ConfigureAwait(false);
-        return live.Concat(saved).DistinctBy(item => item.ObservationId).OrderByDescending(item => item.StartedAt).ToArray();
+        return live.Concat(saved.Where(IsClientObservation)).DistinctBy(item => item.ObservationId)
+            .OrderByDescending(item => item.StartedAt).ToArray();
     }
+
+    private static bool IsClientObservation(QueryObservation observation) => observation.Source is QuerySource.Driver or QuerySource.Shell;
     public QueryMetricsSummary Summarize(IReadOnlyList<QueryObservation> observations) => QueryMetricsMath.Summarize(observations);
     public IReadOnlyList<QueryMetricGroup> Group(IReadOnlyList<QueryObservation> observations) => observations
         .GroupBy(row => (row.Database, row.Collection, row.Operation, row.Source))

@@ -5,6 +5,10 @@ namespace MongoTui.Application.Diagnostics;
 
 public static class ProfilerObservations
 {
+    public static ProfilerReadFilter ReadFilter(QueryMetricsFilter filter, int slowThresholdMs) =>
+        new(filter.Since, filter.MinimumDuration ?? TimeSpan.Zero, filter.Collection, filter.Operation,
+            filter.SlowOnly ? slowThresholdMs : null);
+
     public static IReadOnlyList<QueryObservation> Select(IEnumerable<ProfilerEntry> entries, ConnectionId connectionId,
         QueryMetricsFilter filter, int slowThresholdMs) => entries
         .Where(row => (filter.Database is null || row.Database == filter.Database)

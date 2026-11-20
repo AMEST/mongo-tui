@@ -27,8 +27,8 @@ public sealed class DiagnosticsPageTests
         var gateway = A.Fake<IMongoDiagnosticsGateway>();
         var row = new ProfilerEntry { Timestamp = DateTimeOffset.UtcNow, Database = "demo", Collection = "slowOnly",
             Operation = QueryOperationKind.Find, Duration = TimeSpan.FromMilliseconds(300) };
-        A.CallTo(() => gateway.ReadProfilerAsync(A<MongoConnectionTarget>._, "demo", A<DateTimeOffset?>._,
-            A<TimeSpan>._, A<int>._, A<CancellationToken>._)).Returns(new[] { row, row with { Collection = "fastOnly", Duration = TimeSpan.FromMilliseconds(20) } });
+        A.CallTo(() => gateway.ReadProfilerAsync(A<MongoConnectionTarget>._, "demo", A<ProfilerReadFilter>._,
+            A<int>._, A<CancellationToken>._)).Returns(new[] { row, row with { Collection = "fastOnly", Duration = TimeSpan.FromMilliseconds(20) } });
         using var services = Services(fixture, gateway);
         await using var renderer = new ComponentTestRenderer(services);
         await renderer.MountAsync<DiagnosticsPage>([]);
@@ -38,6 +38,9 @@ public sealed class DiagnosticsPageTests
 
         var text = await renderer.TextAsync();
         text.Should().Contain("slowOnly").And.NotContain("fastOnly");
+        A.CallTo(() => gateway.ReadProfilerAsync(A<MongoConnectionTarget>._, "demo",
+            A<ProfilerReadFilter>.That.Matches(filter => filter.SlowThresholdMs == 100), 1000, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
     }
 
     [Theory]

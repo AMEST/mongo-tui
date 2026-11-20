@@ -41,7 +41,7 @@
         <ResultViewer Tab="tab" OnSelect="Inspect" />
         <div class="results-footer"><span>@L.Format(LocalizationKeys.Query.Page, tab.Page + 1)<span class="separator">·</span>@L[tab.Browse ? LocalizationKeys.Query.Driver : LocalizationKeys.Query.Shell]</span><div class="row-actions"><button class="button secondary compact" disabled="@(tab.Page == 0)" aria-disabled="@(tab.Page == 0 || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.Page > 0 ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, -1)">@L[LocalizationKeys.Common.Previous]</button><button class="button secondary compact" disabled="@(!tab.HasNext)" aria-disabled="@(!tab.HasNext || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.HasNext ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, 1)">@L[LocalizationKeys.Common.Next]<Icon Name="@IconNames.Chevron" Size="12" /></button></div></div>
         @if (_document is not null) { <DocumentDialog Document="_document" Tab="tab" Insert="_insert" OnClose="() => _document = null" OnSaved="() => DocumentSavedAsync(tab)" /> }
-        @if (_showCollection && tab.Collection is not null) { <CollectionPanel Tab="tab" OnExplain="OpenExplainAsync" OnClose="() => _showCollection = false" /> }
+        @if (_showCollection && tab.Collection is not null) { <CollectionPanel Tab="tab" OnExplain="() => OpenCollectionExplain(tab)" OnClose="() => _showCollection = false" /> }
         @if (_showTransfer && tab.Collection is not null) { <TransferDialog Tab="tab" OnClose="() => _showTransfer = false" OnImported="ImportedAsync" /> }
         @if (_showSaveFile && !tab.Browse) { <SaveQueryFileDialog @key="tab.Id" Tab="tab" OnSaved="SaveFileSaved" OnClose="() => _showSaveFile = false" /> }
         @if (_explainContext is not null) { <ExplainDialog Context="_explainContext" OnClose="() => _explainContext = null" /> }
@@ -129,11 +129,23 @@
     }
     private async Task OpenExplainAsync()
     {
-        await SaveDraftAsync();
         if (Workspace.Selected is not { Busy: false } tab) return;
-        var script = tab.Browse ? "db.getCollection(" + System.Text.Json.JsonSerializer.Serialize(tab.Collection)
-            + ").find(" + (string.IsNullOrWhiteSpace(tab.Filter) ? "{}" : tab.Filter) + ")" : tab.Script;
-        if (!tab.Browse && _editor is not null) { var execution = await _editor.GetExecutionAsync(); script = execution.Selection ?? execution.Script; }
+        if (tab.Browse) { OpenCollectionExplain(tab); return; }
+
+        var execution = _editor is { } editor ? await editor.GetExecutionAsync() : new EditorExecution(tab.Script, null);
+        if (_disposed || Workspace.Selected != tab || tab.Browse || tab.Busy) return;
+        tab.Script = execution.Script;
+        ShowExplain(tab, execution.Selection ?? execution.Script);
+    }
+    private void OpenCollectionExplain(WebTab tab)
+    {
+        if (_disposed || Workspace.Selected != tab || tab.Busy || tab.Collection is null) return;
+        var collection = System.Text.Json.JsonSerializer.Serialize(tab.Collection);
+        var filter = string.IsNullOrWhiteSpace(tab.Filter) ? "{}" : tab.Filter;
+        ShowExplain(tab, $"db.getCollection({collection}).find({filter})");
+    }
+    private void ShowExplain(WebTab tab, string script)
+    {
         var target = Catalog.Get(tab.ConnectionId).Target;
         _explainContext = new QueryExecutionContext { TabId = tab.Id, ConnectionId = tab.ConnectionId,
             Target = target, Database = tab.Database ?? ConnectionUriParser.Parse(target.ConnectionString).Database

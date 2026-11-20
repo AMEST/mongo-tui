@@ -6,14 +6,21 @@ using MongoTui.Domain.Primitives;
 
 namespace MongoTui.Infrastructure.Persistence.Sqlite;
 
-public sealed class SqliteQueryMetricsRepository(SqliteDatabase database) : IQueryMetricsRepository
+public sealed class SqliteQueryMetricsRepository(SqliteDatabase database, TimeProvider clock) : IQueryMetricsRepository
 {
     public async Task AddBatchAsync(IReadOnlyList<QueryObservation> observations, CancellationToken cancellationToken)
     {
         await using var db = database.CreateConnection();
         await using var transaction = await db.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        var cutoffs = await db.QueryObservationClears.ToDictionaryAsync(row => row.Scope, row => row.ClearedAt,
+            cancellationToken).ConfigureAwait(false);
+        var globalCutoff = cutoffs.GetValueOrDefault(string.Empty, long.MinValue);
         foreach (var observation in observations)
-            await db.InsertOrReplaceAsync(QueryObservationMapper.ToRow(observation), token: cancellationToken).ConfigureAwait(false);
+        {
+            var row = QueryObservationMapper.ToRow(observation);
+            if (row.StartedAt > Math.Max(globalCutoff, cutoffs.GetValueOrDefault(row.ConnectionId, long.MinValue)))
+                await db.InsertOrReplaceAsync(row, token: cancellationToken).ConfigureAwait(false);
+        }
         await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -27,6 +34,7 @@ public sealed class SqliteQueryMetricsRepository(SqliteDatabase database) : IQue
         if (filter.Collection is { } collection) query = query.Where(row => row.Collection == collection);
         if (filter.Operation is { } operation) query = query.Where(row => row.Operation == (int)operation);
         if (filter.Source is { } source) query = query.Where(row => row.Source == (int)source);
+        else query = query.Where(row => row.Source == (int)QuerySource.Driver || row.Source == (int)QuerySource.Shell);
         if (filter.Since is { } since) query = query.Where(row => row.StartedAt >= since.UtcTicks);
         if (filter.MinimumDuration is { } duration) query = query.Where(row => row.DurationTicks >= duration.Ticks);
         if (filter.SlowOnly) query = query.Where(row => row.IsSlow);
@@ -38,9 +46,17 @@ public sealed class SqliteQueryMetricsRepository(SqliteDatabase database) : IQue
     public async Task ClearAsync(ConnectionId? connectionId, CancellationToken cancellationToken)
     {
         await using var db = database.CreateConnection();
+        await using var transaction = await db.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         var query = db.QueryObservations.AsQueryable();
-        if (connectionId is not null) query = query.Where(row => row.ConnectionId == connectionId.ToString());
+        var scope = connectionId?.ToString() ?? string.Empty;
+        if (connectionId is not null) query = query.Where(row => row.ConnectionId == scope);
+        var cutoff = clock.GetUtcNow().UtcTicks;
+        var previous = await db.QueryObservationClears.Where(row => row.Scope == scope)
+            .Select(row => row.ClearedAt).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        await db.InsertOrReplaceAsync(new QueryObservationClearRow { Scope = scope, ClearedAt = Math.Max(cutoff, previous) },
+            token: cancellationToken).ConfigureAwait(false);
         await query.DeleteAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task PruneAsync(DateTimeOffset olderThan, int maximumRows, CancellationToken cancellationToken)

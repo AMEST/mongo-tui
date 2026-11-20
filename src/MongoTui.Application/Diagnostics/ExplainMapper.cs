@@ -9,11 +9,14 @@ public static class ExplainMapper
     {
         var stats = Statistics(raw);
         var planner = raw.GetValue("queryPlanner", new BsonDocument()).AsBsonDocument;
-        var source = raw.Contains("stages") ? raw : stats.GetValue("executionStages", planner.GetValue("winningPlan", raw));
-        var plan = Node(source, "PLAN", 0);
-        var nodes = Flatten(plan).ToArray();
+        var winningPlan = planner.GetValue("winningPlan", BsonNull.Value) as BsonDocument;
+        var plan = BuildPlan(raw, stats, winningPlan);
+        var planNodes = Flatten(plan).ToArray();
+        var nodes = winningPlan is not null && stats.Contains("executionStages")
+            ? planNodes.Concat(Flatten(Node(winningPlan, "PLAN", 0))).ToArray()
+            : planNodes;
         var warnings = new List<ExplainWarning>();
-        Add(nodes.Length == 1 && nodes[0].Stage == "PLAN", ExplainWarningKind.UnknownPlan);
+        Add(planNodes.Length == 1 && nodes.All(node => node.Stage == "PLAN"), ExplainWarningKind.UnknownPlan);
         Add(nodes.Any(n => n.Stage == "COLLSCAN"), ExplainWarningKind.CollectionScan);
         Add(nodes.Any(n => n.Stage is "SORT" or "$sort"), ExplainWarningKind.InMemorySort);
         Add(nodes.Any(n => n.Stage is "$group" or "$sort" or "$lookup" or "$facet"), ExplainWarningKind.BlockingStage);
@@ -27,6 +30,17 @@ public static class ExplainMapper
             Plan = plan, ExecutionTimeMs = Number(stats, "executionTimeMillis"), DocumentsExamined = docs, KeysExamined = keys,
             Returned = returned, Warnings = warnings, Raw = raw };
         void Add(bool condition, ExplainWarningKind kind) { if (condition) warnings.Add(new(kind, null)); }
+    }
+
+    private static ExplainNode BuildPlan(BsonDocument raw, BsonDocument stats, BsonDocument? winningPlan)
+    {
+        if (raw.Contains("stages")) return Node(raw, "PLAN", 0);
+        if (!stats.TryGetValue("executionStages", out var execution)) return Node(winningPlan ?? raw, "PLAN", 0);
+
+        var executed = Node(execution, "PLAN", 0);
+        if (winningPlan is null || !winningPlan.TryGetValue("queryPlan", out var logical)) return executed;
+
+        return new ExplainNode { Stage = "PLAN", Children = [Node(logical, "queryPlan", 0), executed] };
     }
 
     private static BsonDocument Statistics(BsonDocument raw)
