@@ -3,6 +3,8 @@ namespace MongoTui.Domain.Queries;
 /// <summary>Paging and timeout knobs for a query execution.</summary>
 public sealed record QueryExecutionOptions
 {
+    public QueryPurpose Purpose { get; init; } = QueryPurpose.User;
+
     public int Skip { get; init; }
 
     public int Limit { get; init; } = 50;

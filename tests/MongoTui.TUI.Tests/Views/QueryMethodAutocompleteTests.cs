@@ -70,10 +70,10 @@ public sealed class QueryMethodAutocompleteTests
     [Theory]
     [InlineData("db.ge", 't', "getSiblingDB,getCollection")]
     [InlineData("db.get", 'C', "getCollection")]
-    [InlineData("db.getCollection('items')", '.', "find,findOne,countDocuments,estimatedDocumentCount")]
-    [InlineData("db.items.find({})", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
-    [InlineData("db.items.find({}).limit(5)", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
-    [InlineData("db.items.find({}).maxTimeMS(1000)", '.', "limit,skip,maxTimeMS,sort,toArray,count")]
+    [InlineData("db.getCollection('items')", '.', "find,findOne,countDocuments,estimatedDocumentCount,explain")]
+    [InlineData("db.items.find({})", '.', "limit,skip,maxTimeMS,sort,toArray,count,explain")]
+    [InlineData("db.items.find({}).limit(5)", '.', "limit,skip,maxTimeMS,sort,toArray,count,explain")]
+    [InlineData("db.items.find({}).maxTimeMS(1000)", '.', "limit,skip,maxTimeMS,sort,toArray,count,explain")]
     [InlineData("db.items.find({}).max", 'T', "maxTimeMS")]
     public void Should_OpenPopupAutomatically_WhenTypingMethodPrefixOrDot(string script, char character, string methods)
     {

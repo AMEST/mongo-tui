@@ -48,3 +48,7 @@ The following literals deliberately remain close to their use:
 
 No database migration or new operation-logging abstraction is required. Log files
 continue to be read in full; the existing viewer behavior is unchanged.
+
+## Diagnostics limits
+
+Memory: 10,000 observations; pending SQLite queue: 4096; flush: 2 seconds; settings reload: 3 seconds. SQLite defaults: 7 days / 50,000 observations, opt-in. Default slow threshold: 100 ms. Explain fallback timeout: 30 seconds. Profiler default restore deadline: 15 minutes. Wire vocabulary: MongoWireNames.Diagnostics.

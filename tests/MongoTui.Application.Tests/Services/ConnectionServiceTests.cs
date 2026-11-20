@@ -195,6 +195,18 @@ public sealed class ConnectionServiceTests
     }
 
     [Fact]
+    public async Task Should_PreserveProfileIdentity_WhenResolvingTarget()
+    {
+        var profile = NewProfile();
+        A.CallTo(() => _repository.GetAsync(profile.Id, A<CancellationToken>._))
+            .Returns(new StoredConnection(profile, null));
+
+        var target = await _sut.ResolveTargetAsync(profile.Id, CancellationToken.None);
+
+        target.ConnectionId.Should().Be(profile.Id);
+    }
+
+    [Fact]
     public async Task ShouldThrow_DomainException_When_ResolvingUnknownConnection()
     {
         A.CallTo(() => _repository.GetAsync(A<ConnectionId>._, A<CancellationToken>._))

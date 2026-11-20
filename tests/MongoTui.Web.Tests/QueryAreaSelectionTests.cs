@@ -2,7 +2,9 @@ using AwesomeAssertions;
 using FakeItEasy;
 using Microsoft.JSInterop;
 using MongoDB.Bson;
+using MongoTui.Application.Abstractions.Mongo;
 using MongoTui.Application.Models;
+using MongoTui.Domain.Diagnostics;
 using MongoTui.Domain.Queries;
 using MongoTui.Web.Components.Panels;
 using MongoTui.Web.Components.Shared;
@@ -61,6 +63,37 @@ public sealed class QueryAreaSelectionTests
         tab.Script.Should().Be(execution.Script);
         A.CallTo(() => fixture.Shell.EvaluateAsync(selected ?? execution.Script, "demo", A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Should_ExplainTheRequestedContext_WhenOpeningFromEditorOrCollection(bool fromCollection)
+    {
+        await using var fixture = new WorkspaceFixture();
+        await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
+        const string selection = "db.getSiblingDB('other').customers.find({status:'new'})";
+        var execution = new EditorExecution("db.orders.find({});\n" + selection, selection);
+        var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", execution.Script);
+        tab.Filter = "{\"status\":\"new\"}";
+        var diagnostics = A.Fake<IMongoDiagnosticsGateway>();
+        A.CallTo(() => diagnostics.ExplainAsync(A<MongoConnectionTarget>._, A<ExplainRequest>._, A<CancellationToken>._))
+            .Returns(new BsonDocument());
+        using var services = QueryAreaTests.CreateServices(fixture, Runtime(execution), diagnostics);
+        await using var renderer = new ComponentTestRenderer(services);
+        await renderer.MountAsync<QueryArea>(new());
+        if (fromCollection) await renderer.ClickAsync("text-button");
+
+        if (fromCollection) await renderer.ClickAsync("#collection-explain");
+        else await renderer.InvokeAsync<CodeEditor>(editor => editor.ExplainAsync());
+
+        var database = fromCollection ? "demo" : "other";
+        var collection = fromCollection ? "orders" : "customers";
+        A.CallTo(() => diagnostics.ExplainAsync(A<MongoConnectionTarget>._,
+            A<ExplainRequest>.That.Matches(request => request.Collection.Database.Value == database
+                && request.Collection.Collection.Value == collection && request.Filter!["status"].AsString == "new"),
+            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.History.AddAsync(A<QueryHistoryEntry>._, A<CancellationToken>._)).MustNotHaveHappened();
     }
 
     private static IJSRuntime Runtime(EditorExecution execution)

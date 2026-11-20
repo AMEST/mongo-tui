@@ -1,0 +1,17 @@
+@inject WebText L
+@inject QueryInsightsService Insights
+@using MongoTui.Domain.Diagnostics
+<table class="data-table"><thead><tr>
+    <th>@L["Diagnostics.Database"] / @L["Diagnostics.Collection"]</th><th>@L["Diagnostics.Operation"]</th><th>@L["Diagnostics.Source"]</th><th>@L["Diagnostics.ErrorPercent"]</th>
+    @foreach (var heading in new[] { "count", "avg", "p95", "slow" }) { <th><button @onclick="() => _sort = heading">@L[heading switch { "avg" => "Diagnostics.Average", "p95" => "Diagnostics.P95", "slow" => "Diagnostics.Slow", _ => "Diagnostics.Count" }]</button></th> }
+</tr></thead><tbody>
+@foreach (var group in Groups())
+{ <tr @ondblclick="() => OnSelect.InvokeAsync(group)"><td><button class="text-button" @onclick="() => OnSelect.InvokeAsync(group)">@group.Database.@group.Collection</button></td><td>@L["Diagnostics.Operation." + group.Operation]</td><td>@L["Diagnostics.Source." + group.Source]</td><td>@((100d * group.Failed / group.Count).ToString("0.0"))</td><td>@group.Count</td><td>@group.AverageDurationMs.ToString("0.0")</td><td>@group.P95Ms.ToString("0.0")</td><td>@group.Slow</td></tr> }
+</tbody></table>
+@code {
+    [Parameter] public IReadOnlyList<QueryObservation> Observations { get; set; } = [];
+    [Parameter] public EventCallback<QueryMetricGroup> OnSelect { get; set; }
+    private string _sort = "count";
+    private IEnumerable<QueryMetricGroup> Groups() => Insights.Group(Observations)
+        .OrderByDescending(group => _sort switch { "avg" => group.AverageDurationMs, "p95" => group.P95Ms, "slow" => group.Slow, _ => group.Count });
+}

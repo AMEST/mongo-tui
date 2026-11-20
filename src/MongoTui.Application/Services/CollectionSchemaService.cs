@@ -31,13 +31,13 @@ public sealed class CollectionSchemaService
         var databaseName = DatabaseName.Create(database);
         var collectionRef = new CollectionRef(databaseName, CollectionName.Create(collection));
 
-        var collections = await _gateway.ListCollectionsAsync(target, databaseName, cancellationToken);
+        var collections = await _gateway.ListCollectionsAsync(target, databaseName, cancellationToken).ConfigureAwait(false);
         var sample = await _gateway.FindAsync(
             target,
             collectionRef,
             "{}",
-            new QueryExecutionOptions { Limit = SampleLimit },
-            cancellationToken);
+            new QueryExecutionOptions { Purpose = QueryPurpose.Internal, Limit = SampleLimit },
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         return new CollectionSchema

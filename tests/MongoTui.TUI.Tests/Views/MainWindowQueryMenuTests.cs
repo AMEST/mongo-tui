@@ -65,6 +65,8 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         services.AddLogging();
         services.AddSingleton(A.Fake<MongoTui.Application.Abstractions.Diagnostics.ILoggingSettings>());
         services.AddApplication();
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway>());
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
         services.AddTui();
         _provider = services.BuildServiceProvider();
         _provider.GetRequiredService<SecretKeyService>().SetKek(new byte[32]);
@@ -198,7 +200,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         var titles = ContextActions(Rows().First()).Select(action => action.Title);
 
         titles.Should().BeEquivalentTo(new[] { LocalizationKeys.Tree.CreateDatabase, LocalizationKeys.Tree.Refresh, LocalizationKeys.Tree.ManageUsersAdmin,
-            LocalizationKeys.Tree.Disconnect, LocalizationKeys.Connection.Edit, LocalizationKeys.Connection.Remove }.Select(_localizer.Get));
+            LocalizationKeys.Tree.Disconnect, LocalizationKeys.Connection.Edit, LocalizationKeys.Connection.Remove, LocalizationKeys.Diagnostics.Title }.Select(_localizer.Get));
     }
 
     [Fact]

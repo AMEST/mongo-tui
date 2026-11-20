@@ -249,7 +249,7 @@ public sealed class DriverMongoGateway(MongoDatabaseDiscovery databaseDiscovery)
         _clients.Clear();
     }
 
-    private IMongoClient GetClient(MongoConnectionTarget target) =>
+    internal IMongoClient GetClient(MongoConnectionTarget target) =>
         _clients.GetOrAdd(target.ConnectionString, static connectionString => new MongoClient(connectionString));
 
     private IMongoCollection<BsonDocument> GetCollection(MongoConnectionTarget target, CollectionRef collection) =>

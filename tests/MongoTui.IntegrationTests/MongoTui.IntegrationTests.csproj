@@ -29,4 +29,8 @@
     <Compile Include="../MongoTui.Web.Tests/DocumentDialogFixture.cs" Link="Support/DocumentDialogFixture.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="../TestQueryMetrics.cs" Link="Support/TestQueryMetrics.cs" />
+  </ItemGroup>
+
 </Project>

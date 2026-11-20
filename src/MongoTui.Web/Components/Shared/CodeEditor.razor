@@ -6,6 +6,8 @@
     [Parameter] public string Value { get; set; } = string.Empty;
     [Parameter] public string Language { get; set; } = JavaScriptCalls.Editor.JavaScript;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public EventCallback OnExplain { get; set; }
+    [JSInvokable] public Task ExplainAsync() => OnExplain.InvokeAsync();
     [Parameter] public EventCallback<EditorExecution> OnRun { get; set; }
     [Parameter] public Func<string, Task<string[]>>? Complete { get; set; }
     private ElementReference _element;

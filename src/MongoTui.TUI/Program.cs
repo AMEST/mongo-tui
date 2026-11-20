@@ -79,10 +79,14 @@ try
         return await new MongoTui.Web.Bootstrap.WebHost().RunAsync(webOptions, AddCoreServices);
 
     await using var provider = BuildServiceProvider();
-    var monitor = provider.GetServices<IHostedService>().OfType<LoggingSettingsMonitor>().Single();
-    await monitor.StartAsync(CancellationToken.None);
-    try { return await provider.GetRequiredService<AppHost>().RunAsync(); }
-    finally { await monitor.StopAsync(CancellationToken.None); }
+    var monitors = provider.GetServices<IHostedService>().ToArray();
+    foreach (var monitor in monitors) await monitor.StartAsync(CancellationToken.None);
+    try { return provider.GetRequiredService<AppHost>().Run(); }
+    finally
+    {
+        // Profiler restoration uses the SSH tunnels owned by the service provider.
+        foreach (var monitor in monitors.Reverse()) await monitor.StopAsync(CancellationToken.None);
+    }
 }
 catch (Exception ex)
 {

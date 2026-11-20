@@ -1,4 +1,7 @@
 using AwesomeAssertions;
+using MongoTui.Application.Services;
+using MongoTui.Domain.Diagnostics;
+using MongoTui.Domain.Primitives;
 using MongoTui.Infrastructure.Persistence.Sqlite;
 
 namespace MongoTui.Infrastructure.Tests.Persistence;
@@ -65,5 +68,22 @@ public sealed class SqliteSettingsStoreTests : IDisposable
         all.Should().HaveCount(2);
         all["a"].Should().Be("1");
         all["b"].Should().Be("2");
+    }
+
+    [Fact]
+    public async Task Should_RestoreProfilerFormDefaults_WhenDatabaseAndServicesAreReopened()
+    {
+        var id = ConnectionId.New();
+        var expected = new ProfilerPreferences { Mode = SlowQueryMode.ServerSlow, Databases = ["shop"], SlowMs = 275,
+            SampleRate = .25, RestoreOnExit = false, AutoDisableMinutes = 0 };
+        await new DiagnosticsSettingsService(_sut).SaveProfilerFormAsync(id, expected, true, CancellationToken.None);
+        var reopened = new DiagnosticsSettingsService(new SqliteSettingsStore(new SqliteDatabase(_databasePath)));
+        await reopened.ReloadAsync(CancellationToken.None);
+
+        var actual = await reopened.GetProfilerPreferencesAsync(id, CancellationToken.None);
+
+        actual.Should().BeEquivalentTo(expected); reopened.Current.SlowThresholdMs.Should().Be(275);
+        reopened.Current.MirrorServerSlowToApplicationLog.Should().BeTrue(); reopened.Current.LogSlowQueries.Should().BeFalse();
+        (await reopened.GetProfilerPreferencesAsync(ConnectionId.New(), CancellationToken.None)).Should().BeNull();
     }
 }

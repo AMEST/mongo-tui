@@ -1,0 +1,15 @@
+@inject WebText L
+@using MongoTui.Domain.Diagnostics
+<table class="data-table"><thead><tr><th>@L["Diagnostics.Timestamp"]</th><th>@L["Diagnostics.Database"] / @L["Diagnostics.Collection"]</th><th>@L["Diagnostics.Operation"]</th><th>@L["Diagnostics.Source"]</th><th>@L["Diagnostics.Duration"]</th><th>@L["Explain.Metrics"]</th></tr></thead><tbody>
+@foreach (var row in Rows)
+{ <tr @onclick="() => _selected = row"><td>@row.StartedAt.ToString("HH:mm:ss.fff")</td><td>@row.Database.@row.Collection</td><td>@L["Diagnostics.Operation." + row.Operation]</td><td>@L["Diagnostics.Source." + row.Source]</td><td>@row.Duration.TotalMilliseconds.ToString("0.0")</td><td>@(row.ReturnedCount?.ToString() ?? "—") / @(row.DocumentsExamined?.ToString() ?? "—") / @(row.KeysExamined?.ToString() ?? "—") @row.PlanSummary</td></tr> }
+</tbody></table>
+@if (_selected is { } selected) { <pre>@selected.StartedAt.ToString("O") @selected.Database.@selected.Collection @selected.Operation
+@L["Diagnostics.Duration"]: @selected.Duration.TotalMilliseconds
+@L["Diagnostics.Failed"]: @(!selected.Success) @L["Diagnostics.Timeouts"]: @selected.TimedOut @L["Diagnostics.Cancelled"]: @selected.Cancelled
+@selected.ErrorCode</pre> }
+@code {
+    [Parameter] public IReadOnlyList<QueryObservation> Rows { get; set; } = [];
+    private QueryObservation? _selected;
+    protected override void OnParametersSet() => _selected = null;
+}

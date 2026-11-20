@@ -23,6 +23,8 @@ public sealed class SettingsPanelLocalizationTests
         var registrations = new ServiceCollection();
         registrations.AddLogging();
         registrations.AddApplication();
+        registrations.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway>());
+        registrations.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
         registrations.AddSingleton(A.Fake<ISettingsStore>());
         registrations.AddSingleton(A.Fake<ICryptoService>());
         registrations.AddSingleton(A.Fake<IMongoGateway>());

@@ -41,6 +41,8 @@ internal sealed class WebHostFixture(WebApplication application, MemorySettingsS
         var app = new WebHost().Build(new WebOptions(0), services =>
         {
             services.AddApplication();
+            services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Mongo.IMongoDiagnosticsGateway>());
+            services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
             services.AddSingleton<ISettingsStore>(store);
             services.AddSingleton(source);
             services.AddSingleton(A.Fake<ICryptoService>());

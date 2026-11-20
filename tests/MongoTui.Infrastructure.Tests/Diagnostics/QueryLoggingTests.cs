@@ -102,7 +102,7 @@ public sealed class QueryLoggingTests
     {
         var sessions = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => sessions.CreateAsync(Target, A<CancellationToken>._)).Returns(_shell);
-        return new(sessions, A.Fake<IQueryHistoryRepository>(), _gateway, new SettingsService(_settings), loggerFactory.CreateLogger<QueryService>());
+        return new(sessions, A.Fake<IQueryHistoryRepository>(), _gateway, new SettingsService(_settings), loggerFactory.CreateLogger<QueryService>(), TestQueryMetrics.Create());
     }
 
     private static Task<QueryResult> ExecuteAsync(QueryService queries, bool driver) => driver

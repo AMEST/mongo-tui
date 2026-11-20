@@ -6,7 +6,7 @@ import {autocompletion} from '@codemirror/autocomplete';
 import {oneDark} from '@codemirror/theme-one-dark';
 import {executionKeys, readExecution} from './editor-execution.js';
 const editors = new WeakMap();
-const methods = ['find', 'findOne', 'aggregate', 'countDocuments', 'getCollection', 'getSiblingDB', 'getCollectionNames', 'limit', 'skip', 'sort', 'toArray', 'insertOne', 'updateOne', 'deleteOne'];
+const methods = ['explain', 'find', 'findOne', 'aggregate', 'countDocuments', 'getCollection', 'getSiblingDB', 'getCollectionNames', 'limit', 'skip', 'sort', 'toArray', 'insertOne', 'updateOne', 'deleteOne'];
 export function create(element, value, language, label, dotnet) {
   let timer;
   const theme = new Compartment();
@@ -19,7 +19,7 @@ export function create(element, value, language, label, dotnet) {
     try { fields = await dotnet.invokeMethodAsync('CompleteAsync', prefix); } catch {}
     if (context.aborted) return null;
     return {from: context.pos - prefix.length, options: [
-      ...methods.filter(name => name.startsWith(prefix)).map(label => ({label, type: 'function', apply: `${label}()`})),
+      ...methods.filter(name => name.startsWith(prefix)).map(label => ({label, type: 'function', apply: label === 'explain' ? 'explain("executionStats")' : `${label}()`})),
       ...fields.map(label => ({label, type: 'property'}))
     ]};
   };
@@ -28,7 +28,7 @@ export function create(element, value, language, label, dotnet) {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({'aria-label': label}),
     EditorView.theme({'&': {height: '100%', fontSize: '13px'}, '.cm-scroller': {fontFamily: 'var(--mono)', overflow: 'auto'}, '.cm-content': {padding: '16px 0'}, '.cm-gutters': {background: 'transparent', border: '0', color: 'var(--muted)'}, '.cm-line': {padding: '0 20px'}}),
-    executionKeys(run),
+    executionKeys(run, () => { dotnet.invokeMethodAsync('ExplainAsync').catch(() => {}); return true; }),
     ...(language === 'json' ? [] : [autocompletion({override: [complete]})]),
     EditorView.updateListener.of(update => {
       if (!update.docChanged) return;

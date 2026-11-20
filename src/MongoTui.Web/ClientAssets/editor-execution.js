@@ -1,8 +1,8 @@
 import {Prec} from '@codemirror/state';
 import {keymap} from '@codemirror/view';
 
-export function executionKeys(run) {
-  return Prec.highest(keymap.of([{key: 'Mod-Enter', run}, {key: 'F5', run}]));
+export function executionKeys(run, explain = () => false) {
+  return Prec.highest(keymap.of([{key: 'Mod-Enter', run}, {key: 'F5', run}, {key: 'F8', run: explain}, {key: 'Mod-Shift-Enter', run: explain}]));
 }
 
 export function readExecution(state, textarea) {

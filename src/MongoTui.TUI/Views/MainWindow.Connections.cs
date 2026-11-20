@@ -79,21 +79,30 @@ public sealed partial class MainWindow
 
     private async Task DisconnectAsync(ActiveConnection connection)
     {
+        var application = Application;
         _tree.Remove(connection.Profile.Id);
+        var closeTabs = _queryTabs.CloseForConnectionAsync(connection.Profile.Id, application);
         try
         {
-            await _queryTabs.CloseForConnectionAsync(connection.Profile.Id);
+            if (_diagnostics is not null)
+            {
+                using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                try { await _diagnostics.Server.DisconnectAsync(connection.Target, deadline.Token).ConfigureAwait(false); }
+                catch (Exception) { _logger.LogWarning("Could not restore profiler during disconnect"); }
+            }
+            await closeTabs.ConfigureAwait(false);
         }
         finally
         {
-            if (connection.Tunnel is not null)
-            {
-                await connection.Tunnel.DisposeAsync();
-            }
+            if (connection.Tunnel is not null) await connection.Tunnel.DisposeAsync().ConfigureAwait(false);
         }
-
-        RebuildTree();
-        _logger.LogInformation("Connection {ConnectionId} closed", connection.Profile.Id.Value);
-        SetStatus(_localizer.Format(LocalizationKeys.Status.Disconnected, connection.Profile.Name));
+        void Update()
+        {
+            RebuildTree();
+            _logger.LogInformation("Connection {ConnectionId} closed", connection.Profile.Id.Value);
+            SetStatus(_localizer.Format(LocalizationKeys.Status.Disconnected, connection.Profile.Name));
+        }
+        if (application is not null) await application.InvokeAsync(Update).ConfigureAwait(false);
+        else Update();
     }
 }

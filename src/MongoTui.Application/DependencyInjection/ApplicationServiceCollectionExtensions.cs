@@ -1,5 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using MongoTui.Application.Services;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using MongoTui.Application.Abstractions.Diagnostics;
+using MongoTui.Application.Diagnostics;
 
 namespace MongoTui.Application.DependencyInjection;
 
@@ -9,6 +12,17 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<DiagnosticsSettingsService>();
+        services.AddSingleton<QueryMetricsQueue>();
+        services.AddSingleton<QueryInsightsService>();
+        services.AddSingleton<ExplainService>();
+        services.AddSingleton<DiagnosticsService>();
+        services.AddSingleton<DiagnosticsServices>();
+        services.AddSingleton<IQueryMetricsStore, QueryMetricsStore>();
+        services.AddSingleton<SlowQueryLogger>();
+        services.AddSingleton<IQueryMetricsRecorder, QueryMetricsRecorder>();
 
         services.AddSingleton<SecretKeyService>();
         services.AddSingleton<ConnectionService>();

@@ -24,6 +24,7 @@ internal sealed class TuiFeatureTestHost : IAsyncDisposable
     public QueryTabsView Tabs { get; }
     public IQueryFileStore QueryFiles { get; } = A.Fake<IQueryFileStore>();
     public IMongoGateway Gateway { get; } = A.Fake<IMongoGateway>();
+    public IMongoDiagnosticsGateway Diagnostics { get; } = A.Fake<IMongoDiagnosticsGateway>();
     public IMongoShellSession Session { get; } = A.Fake<IMongoShellSession>();
     public IConnectionRepository Connections { get; } = A.Fake<IConnectionRepository>();
     public ILocalizer Localizer { get; }
@@ -50,6 +51,8 @@ internal sealed class TuiFeatureTestHost : IAsyncDisposable
         services.AddSingleton(A.Fake<ILoggingSettings>());
         services.AddLogging();
         services.AddApplication();
+        services.AddSingleton(Diagnostics);
+        services.AddSingleton(FakeItEasy.A.Fake<MongoTui.Application.Abstractions.Persistence.IQueryMetricsRepository>());
         services.AddTui();
         services.AddSingleton<QueryTabsView>();
         _provider = services.BuildServiceProvider();

@@ -1,3 +1,4 @@
+using MongoTui.Testing;
 using Microsoft.Extensions.Logging.Abstractions;
 using MongoTui.Application.Abstractions.Diagnostics;
 using FakeItEasy;
@@ -10,5 +11,5 @@ namespace MongoTui.TUI.Tests;
 internal static class QueryTestServices
 {
     public static QueryService Create(IMongoShellSessionFactory factory, IQueryHistoryRepository history) =>
-        new(factory, history, A.Fake<IMongoGateway>(), new SettingsService(A.Fake<ISettingsStore>()), NullLogger<QueryService>.Instance);
+        new(factory, history, A.Fake<IMongoGateway>(), new SettingsService(A.Fake<ISettingsStore>()), NullLogger<QueryService>.Instance, TestQueryMetrics.Create());
 }

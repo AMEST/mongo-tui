@@ -34,3 +34,17 @@ test('run shortcuts take precedence over the default insert-blank-line command',
   assert.equal(runs, 2);
   assert.equal(state.doc.toString(), 'find();');
 });
+
+test('explain shortcuts dispatch explain without running the query', () => {
+  let runs = 0;
+  let explains = 0;
+  const state = EditorState.create({doc: 'find();', extensions: [
+    basicSetup, executionKeys(() => {runs++; return true;}, () => {explains++; return true;})
+  ]});
+  for (const key of ['F8', 'Mod-Shift-Enter']) {
+    const binding = state.facet(keymap).flat().find(binding => binding.key === key);
+    assert.equal(binding.run({state}), true);
+  }
+  assert.equal(runs, 0);
+  assert.equal(explains, 2);
+});

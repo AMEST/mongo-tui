@@ -55,3 +55,7 @@ or command output in logging calls at any level. Exception diagnostics contain t
 and stack frames without exception messages, `Data` or MongoDB responses.
 `ExceptionDiagnostics` is a pure formatter, not an operation runner or logger.
 Shell scripts remain in the separately managed query history.
+
+## Slow query diagnostics
+
+Client slow logging is opt-in under Diagnostics settings. Only namespace, operation, source, latency and counters are logged. Server mirroring is independent and polls owned profiler scopes. Neither command/filter/pipeline nor raw explain responses are logged. Profiler level is per database; slowms/sampleRate affect the entire MongoDB process.

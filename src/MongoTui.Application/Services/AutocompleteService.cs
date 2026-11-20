@@ -29,10 +29,10 @@ public sealed class AutocompleteService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var candidates = database is null
-            ? (await _gateway.ListDatabasesAsync(target, cancellationToken)).Select(database => database.Name).ToList()
+            ? (await _gateway.ListDatabasesAsync(target, cancellationToken).ConfigureAwait(false)).Select(database => database.Name).ToList()
             : collection is null
-                ? await _gateway.ListCollectionsAsync(target, DatabaseName.Create(database), cancellationToken)
-                : await GetFieldsAsync(target, database, collection, cancellationToken);
+                ? await _gateway.ListCollectionsAsync(target, DatabaseName.Create(database), cancellationToken).ConfigureAwait(false)
+                : await GetFieldsAsync(target, database, collection, cancellationToken).ConfigureAwait(false);
 
         return candidates
             .Where(candidate => candidate.Length > 0 && candidate.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -61,8 +61,8 @@ public sealed class AutocompleteService
             target,
             collectionRef,
             "{}",
-            new QueryExecutionOptions { Limit = FieldSampleLimit },
-            cancellationToken);
+            new QueryExecutionOptions { Purpose = QueryPurpose.Internal, Limit = FieldSampleLimit },
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         var names = new HashSet<string>(StringComparer.Ordinal);

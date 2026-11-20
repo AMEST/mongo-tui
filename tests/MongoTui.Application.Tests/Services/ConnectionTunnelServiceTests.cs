@@ -44,11 +44,12 @@ public sealed class ConnectionTunnelServiceTests
     [Fact]
     public async Task Should_StartTunnelAndReplaceProxy_WhenEnabled()
     {
-        var target = new MongoConnectionTarget(_profile.Uri);
+        var target = new MongoConnectionTarget(_profile.Uri) { ConnectionId = _profile.Id };
 
         var connection = await _sut.OpenAsync(_profile, target, CancellationToken.None);
 
         connection.Target.ConnectionString.Should().Be(_profile.Uri + "&proxyHost=127.0.0.1&proxyPort=1080");
+        connection.Target.ConnectionId.Should().Be(_profile.Id);
         _profile.Uri.Should().NotContain("proxyHost");
         A.CallTo(() => _factory.StartAsync(_profile.Ssh, _prompt, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }

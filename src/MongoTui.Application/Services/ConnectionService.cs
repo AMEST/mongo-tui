@@ -157,7 +157,7 @@ public sealed class ConnectionService
 
         var secret = stored.Secret is null ? null : _secrets.Unprotect(stored.Secret);
 
-        return new MongoConnectionTarget(BuildConnectionString(stored.Profile, secret));
+        return new MongoConnectionTarget(BuildConnectionString(stored.Profile, secret)) { ConnectionId = stored.Profile.Id };
     }
 
     public async Task TestConnectionAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
@@ -178,7 +178,7 @@ public sealed class ConnectionService
 
     private async Task TestConnectionCoreAsync(ConnectionProfile profile, string? secret, CancellationToken cancellationToken)
     {
-        var target = new MongoConnectionTarget(BuildConnectionString(profile, secret));
+        var target = new MongoConnectionTarget(BuildConnectionString(profile, secret)) { ConnectionId = profile.Id };
         await using var connection = await _tunnels.OpenAsync(profile, target, cancellationToken).ConfigureAwait(false);
         await _gateway.ListDatabasesAsync(connection.Target, cancellationToken).ConfigureAwait(false);
     }
