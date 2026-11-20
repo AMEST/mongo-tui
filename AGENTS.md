@@ -39,6 +39,7 @@
 - Один `Act` на тест.
 - Интеграционные тесты — в `MongoTui.IntegrationTests` с Testcontainers.
 - Покрытие: Domain ≥ 90%, Application ≥ 80%, Infrastructure — по критичным местам.
+- Живые проверки терминального интерфейса описаны в [инструкции по тестированию TUI через tmux](docs/tui-testing.md).
 
 ## Логирование
 - Serilog, только в файл `~/.mongotui/logs/app-.log`.
