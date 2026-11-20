@@ -13,7 +13,7 @@ Install the tools on the machine **running MongoTui**; a local MongoDB server is
 
 | Component | When needed |
 |---|---|
-| MongoDB Shell (`mongosh`) | JavaScript queries in TUI/Web. Web Browse mode and document operations use the bundled driver. |
+| MongoDB Shell (`mongosh`) | JavaScript queries in TUI/Web. Included in the Windows release archive (`thirdparty`); install manually on other platforms. Web Browse mode and document operations use the bundled driver. |
 | MongoDB Database Tools (`mongoimport`, `mongoexport`) | Collection import and export. Separate from `mongosh`. |
 | OpenSSH client 8.4+ (`ssh`) | SSH/TPAM connections, including interactive 2FA. |
 | .NET 10 and ASP.NET Core 10 runtimes | Framework-dependent builds only, including TUI mode. Release archives and self-contained builds include both. |
@@ -21,9 +21,10 @@ Install the tools on the machine **running MongoTui**; a local MongoDB server is
 | Docker | Integration tests only; MongoDB and `mongosh` run in disposable containers. |
 | Node.js/npm | Rebuilding the Web editor bundle only; normal .NET builds use the checked-in bundle. |
 
-External tools must be in the `PATH` used by MongoTui. Standalone MongoDB packages do not
-require Node.js/npm. Extract the entire MongoTui archive: SQLite and Oniguruma native
-libraries must stay alongside the executable.
+External tools must be in the `PATH` used by MongoTui or in the `thirdparty` directory next to
+the executable; on Windows, `thirdparty` wins over `PATH`. Standalone MongoDB packages do not
+require Node.js/npm. Extract the entire MongoTui archive: SQLite and Oniguruma native libraries
+must stay alongside the executable.
 
 ## macOS
 
@@ -164,8 +165,10 @@ chmod +x ./mongo-tui
 
 ### MongoDB tools and PATH
 
-1. Download the **Windows x64 ZIP** from [MongoDB Shell](https://www.mongodb.com/try/download/shell).
-   Extract it so that `mongosh.exe` is at `C:\Tools\mongosh\bin\mongosh.exe`.
+1. Skip this step for release archives: `mongosh.exe` is already in `thirdparty` next to
+   `mongo-tui.exe`, and MongoTui looks there before `PATH`. For other builds, download the
+   **Windows x64 ZIP** from [MongoDB Shell](https://www.mongodb.com/try/download/shell)
+   and extract it so that `mongosh.exe` is at `C:\Tools\mongosh\bin\mongosh.exe`.
 2. For import/export, download the **Windows x86_64 ZIP** from
    [Database Tools](https://www.mongodb.com/try/download/database-tools). Extract it so that
    `mongoimport.exe` and `mongoexport.exe` are in `C:\Tools\mongodb-database-tools\bin`.
@@ -314,6 +317,8 @@ Distribute the **whole output directory**. Run `./mongo-tui` on macOS/Linux or
 `.\mongo-tui.exe` on Windows from that directory. The runtime is included; external MongoDB
 tools and Linux system libraries still need to be installed. Web assets are embedded; no separate
 `wwwroot` directory is needed. The output includes `LICENSE` and `THIRD-PARTY-LICENSES.md`.
+Only the Windows release job downloads the latest `mongosh` from MongoDB's official manifest
+and adds it with its notices to `thirdparty`; a local `dotnet publish` does not.
 
 For a framework-dependent build, use the matching RID and install both the .NET 10 and
 ASP.NET Core 10 runtimes on the target:

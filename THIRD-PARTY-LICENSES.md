@@ -135,7 +135,9 @@ These package/version pairs occur only in test projects' dependency graphs. Appl
 - **TextMateSharp.Grammars** bundles third-party language grammars. Their individual notices and licenses are retained in the [upstream grammar sources](https://github.com/danipen/TextMateSharp/tree/622d1b240a5be474939857c0b2780249022f14a3); the MIT entry above describes the NuGet package.
 - **Microsoft packages** can include additional `THIRD-PARTY-NOTICES.TXT` / `ThirdPartyNotices.txt` files. Retain the notices applicable to redistributed components, including the [.NET runtime notices](https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT) for self-contained builds and [VSTest notices](https://github.com/microsoft/vstest/blob/490850ae3fdc1b470e3804ceab4f6a41cf89ae51/ThirdPartyNotices.txt) when redistributing test tooling. This NuGet inventory does not enumerate every component embedded in those distributions.
 
-MongoDB Server, MongoDB Shell (`mongosh`), MongoDB Database Tools, OpenSSH, Docker and operating-system libraries are installed separately. Their own licenses apply; they are outside this NuGet inventory.
+MongoDB Server, MongoDB Database Tools, OpenSSH, Docker and operating-system libraries are installed separately. Their own licenses apply; they are outside this NuGet inventory.
+
+Windows release archives include MongoDB Shell (`mongosh`) under the Apache-2.0 license in the `thirdparty` directory. The upstream `LICENSE-mongosh`, `LICENSE-crypt-library` and `THIRD_PARTY_NOTICES` files are shipped unchanged alongside it.
 
 ## License texts
 
