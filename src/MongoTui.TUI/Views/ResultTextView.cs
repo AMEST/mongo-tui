@@ -18,6 +18,17 @@ internal sealed class ResultTextView : TextView
     /// <summary>Row the last context menu was opened on, or the caret when opened from the keyboard.</summary>
     public int DocumentRow => _contextRow ?? CurrentRow;
 
+    internal void ShowOutput(string text, bool reset)
+    {
+        if (!reset && Text == text) return;
+        var position = Viewport.Location;
+        var follow = reset || position.Y + Viewport.Height >= GetContentSize().Height;
+        Text = text;
+        var bottom = Math.Max(0, GetContentSize().Height - Viewport.Height);
+        ScrollTo(new Point(reset ? 0 : position.X, follow ? bottom : Math.Min(bottom, position.Y)));
+        SetNeedsDraw();
+    }
+
     protected override bool OnKeyDown(Key key)
     {
         if (key == Key.CursorUp) return ScrollBy(0, -1);

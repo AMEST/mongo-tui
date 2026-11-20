@@ -1,15 +1,13 @@
+using MongoTui.Application.Models;
 using MongoTui.Domain.Queries;
 
 namespace MongoTui.Application.Abstractions.Mongo;
 
-/// <summary>An interactive <c>mongosh</c> session bound to a single tab.</summary>
+/// <summary>A <c>mongosh</c> evaluator bound to a single tab.</summary>
 public interface IMongoShellSession : IAsyncDisposable
 {
     bool IsRunning { get; }
 
-    /// <summary>Evaluates the script with the selected database; null keeps the connection's default database.</summary>
-    Task<QueryResult> EvaluateAsync(string script, string? database, CancellationToken cancellationToken);
-
-    /// <summary>Evaluates the script with native shell rendering, preserving stdout verbatim.</summary>
-    Task<QueryResult> EvaluateRawAsync(string script, string? database, CancellationToken cancellationToken);
+    /// <summary>Evaluates the script and streams its output to the run's transcript, when provided.</summary>
+    Task<QueryResult> EvaluateAsync(string script, string? database, ScriptOutput? output, CancellationToken cancellationToken);
 }

@@ -175,3 +175,7 @@ button[data-pending=true]{opacity:1;cursor:progress}
 .results-toolbar>.row-actions{min-width:0;flex-wrap:wrap;justify-content:flex-end}
 .query-area{overflow-y:auto;scrollbar-gutter:stable}
 @media(max-width:540px){.modal-actions{flex-wrap:wrap}.modal-actions>.spacer{display:none}}
+
+.raw-output-scroll { position: absolute; inset: 0; overflow: auto; }
+.raw-output-notice { position: sticky; top: 0; padding: 8px 24px; background: var(--surface); color: var(--muted); font-size: 12px; }
+.query-error #open-query-output { flex: none; margin-left: auto; }

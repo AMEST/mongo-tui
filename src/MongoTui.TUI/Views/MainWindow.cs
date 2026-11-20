@@ -114,6 +114,7 @@ public sealed partial class MainWindow : Window
         _queryTabs.OpenQueryFileRequested += (_, _) => Safe(OpenQueryFileAsync);
         _queryTabs.SaveQueryFileRequested += (_, _) => Safe(SaveActiveQueryFileAsync);
         _queryTabs.ExportRequested += (_, _) => OpenExport();
+        _queryTabs.SaveOutputRequested += (_, _) => _ = SaveQueryOutputAsync();
         _queryTabs.EditDocumentRequested += (_, _) => EditDocument();
         _queryTabs.DeleteDocumentRequested += (_, _) => DeleteDocument();
 
@@ -509,7 +510,8 @@ public sealed partial class MainWindow : Window
             await application.InvokeAsync(() =>
             {
                 if (_queryTabs.ActiveTab == tab)
-                    SetStatus(_localizer.Format(LocalizationKeys.Status.QueryResult, result.DocumentCount, result.Elapsed.TotalMilliseconds));
+                    SetStatus(result.Error?.Split('\n', 2)[0] ??
+                        _localizer.Format(LocalizationKeys.Status.QueryResult, result.DocumentCount, result.Elapsed.TotalMilliseconds));
             }).ConfigureAwait(false);
         }
     }

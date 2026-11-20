@@ -36,8 +36,17 @@
         {
             <div class="editor-panel"><CodeEditor @key="tab.Id" @ref="_editor" Value="@tab.Script" ValueChanged="value => tab.Script = value" OnRun="execution => RunEditorAsync(tab, execution)" Complete="CompleteAsync" /></div>
         }
-        @if (tab.Error is not null) { <div class="query-error" role="alert"><Icon Name="@IconNames.Info" Size="16" /><pre>@tab.Error</pre></div> }
-        <div class="results-toolbar"><div class="result-title"><strong>@L[LocalizationKeys.Query.Results]</strong>@if (tab.Result is not null) { <span class="badge subtle">@tab.Result.Documents.Count@(tab.HasNext && tab.Browse ? "+" : "")</span><span class="muted">@tab.Result.Elapsed.TotalMilliseconds.ToString("0") ms</span> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="icon-button" title="@L[LocalizationKeys.Transfer.Title]" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => _showTransfer = true"><Icon Name="@IconNames.Upload" Size="16" /></button> }<button class="icon-button" title="@L[LocalizationKeys.Query.ExportResults]" disabled="@(tab.Result is null)" @onclick="ExportResultsAsync"><Icon Name="@IconNames.Download" Size="16" /></button>@if (tab.EditableCollection is not null) { <button class="button secondary compact" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="Insert"><Icon Name="@IconNames.Plus" Size="14" />@L[LocalizationKeys.Document.Add]</button> }<div class="segmented small">@foreach (var view in new[] { (ResultViewMode.Table, IconNames.Grid, LocalizationKeys.View.Table), (ResultViewMode.Tree, IconNames.Tree, LocalizationKeys.View.Tree), (ResultViewMode.Json, IconNames.Code, LocalizationKeys.View.Json), (ResultViewMode.Raw, IconNames.Code, LocalizationKeys.Result.Raw) }.Where(view => !tab.Browse || view.Item1 != ResultViewMode.Raw)) { <button id="@(view.Item1 == ResultViewMode.Raw ? "result-raw" : null)" class="@(tab.View == view.Item1 ? "active" : "")" title="@L[view.Item3]" @onclick="() => tab.View = view.Item1"><Icon Name="@view.Item2" Size="14" /><span>@L[view.Item3]</span></button> }</div></div></div>
+        @if (tab.Error is not null)
+        {
+            <div class="query-error" role="alert">
+                <Icon Name="@IconNames.Info" Size="16" /><pre>@tab.Error</pre>
+                @if (!tab.Browse && tab.View != ResultViewMode.Raw && tab.Output is { Length: > 0 })
+                {
+                    <button class="button compact secondary" id="open-query-output" @onclick="() => tab.View = ResultViewMode.Raw">@L[LocalizationKeys.Result.OpenOutput]</button>
+                }
+            </div>
+        }
+        <div class="results-toolbar"><div class="result-title"><strong>@L[LocalizationKeys.Query.Results]</strong>@if (tab.Result is not null) { <span class="badge subtle">@tab.Result.Documents.Count@(tab.HasNext && tab.Browse ? "+" : "")</span><span class="muted">@tab.Result.Elapsed.TotalMilliseconds.ToString("0") ms</span> }</div><div class="row-actions">@if (tab.Collection is not null) { <button class="icon-button" title="@L[LocalizationKeys.Transfer.Title]" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="() => _showTransfer = true"><Icon Name="@IconNames.Upload" Size="16" /></button> }<button id="export-query-results" class="icon-button" title="@L[LocalizationKeys.Query.ExportResults]" disabled="@(!CanExport(tab))" @onclick="ExportResultsAsync"><Icon Name="@IconNames.Download" Size="16" /></button>@if (tab.EditableCollection is not null) { <button class="button secondary compact" disabled="@tab.Busy" data-pending="@(tab.Busy ? "true" : "false")" @onclick="Insert"><Icon Name="@IconNames.Plus" Size="14" />@L[LocalizationKeys.Document.Add]</button> }<div class="segmented small">@foreach (var view in new[] { (ResultViewMode.Table, IconNames.Grid, LocalizationKeys.View.Table), (ResultViewMode.Tree, IconNames.Tree, LocalizationKeys.View.Tree), (ResultViewMode.Json, IconNames.Code, LocalizationKeys.View.Json), (ResultViewMode.Raw, IconNames.Code, LocalizationKeys.Result.Raw) }.Where(view => !tab.Browse || view.Item1 != ResultViewMode.Raw)) { <button id="@($"result-{view.Item1.ToString().ToLowerInvariant()}")" class="@(tab.View == view.Item1 ? "active" : "")" title="@L[view.Item3]" @onclick="() => tab.View = view.Item1"><Icon Name="@view.Item2" Size="14" /><span>@L[view.Item3]</span></button> }</div></div></div>
         <ResultViewer Tab="tab" OnSelect="Inspect" />
         <div class="results-footer"><span>@L.Format(LocalizationKeys.Query.Page, tab.Page + 1)<span class="separator">·</span>@L[tab.Browse ? LocalizationKeys.Query.Driver : LocalizationKeys.Query.Shell]</span><div class="row-actions"><button class="button secondary compact" disabled="@(tab.Page == 0)" aria-disabled="@(tab.Page == 0 || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.Page > 0 ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, -1)">@L[LocalizationKeys.Common.Previous]</button><button class="button secondary compact" disabled="@(!tab.HasNext)" aria-disabled="@(!tab.HasNext || tab.Busy ? "true" : "false")" data-pending="@(tab.Busy && tab.HasNext ? "true" : "false")" @onclick="() => Workspace.PageAsync(tab, 1)">@L[LocalizationKeys.Common.Next]<Icon Name="@IconNames.Chevron" Size="12" /></button></div></div>
         @if (_document is not null) { <DocumentDialog Document="_document" Tab="tab" Insert="_insert" OnClose="() => _document = null" OnSaved="() => DocumentSavedAsync(tab)" /> }
@@ -127,11 +136,19 @@
     }
     private async Task ExportResultsAsync()
     {
-        if (Workspace.Selected?.Result is not { } result) return;
-        var raw = Workspace.Selected.View == ResultViewMode.Raw || result.Kind == QueryResultKind.Raw;
-        await JS.InvokeVoidAsync(JavaScriptCalls.DownloadText, raw ? "query-results.txt" : "query-results.json",
-            raw ? result.RawOutput : BsonTextCodec.Format(result.Documents));
+        if (Workspace.Selected is not { } tab || !CanExport(tab)) return;
+        if (tab.View == ResultViewMode.Raw && tab.Output is { } output)
+        {
+            await using var source = await output.OpenReadAsync(CancellationToken.None);
+            using var reference = new DotNetStreamReference(source, leaveOpen: true);
+            await JS.InvokeVoidAsync(JavaScriptCalls.DownloadStream, "query-results.txt", reference);
+        }
+        else if (tab.Result is { } result)
+            await JS.InvokeVoidAsync(JavaScriptCalls.DownloadText, "query-results.json", BsonTextCodec.Format(result.Documents));
     }
+
+    private static bool CanExport(WebTab tab) => tab.View == ResultViewMode.Raw
+        ? !tab.Busy && tab.Output is { Length: > 0 } : tab.Result is not null;
     private async Task UseSuggestionAsync(string script)
     {
         if (Workspace.Selected is not { } tab) return;

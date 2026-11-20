@@ -59,8 +59,8 @@ public sealed class QueryWorkspaceTests
     {
         await using var fixture = new WorkspaceFixture();
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string>._, A<CancellationToken>._))
-            .ReturnsLazily(async (string _, string? _, CancellationToken token) =>
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .ReturnsLazily(async (string _, string? _, ScriptOutput? _, CancellationToken token) =>
             { await Task.Delay(Timeout.Infinite, token); return QueryResult.Empty(QueryResultKind.Documents); });
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", null);
         var running = fixture.Workspace.ExecuteAsync(tab);
@@ -82,7 +82,7 @@ public sealed class QueryWorkspaceTests
     {
         await using var fixture = new WorkspaceFixture();
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string>._, A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] });
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
 
@@ -101,7 +101,7 @@ public sealed class QueryWorkspaceTests
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var response = new TaskCompletionSource<QueryResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .Invokes(() => started.TrySetResult()).Returns(response.Task);
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
 
@@ -113,7 +113,7 @@ public sealed class QueryWorkspaceTests
 
         (tab.EditableCollection?.Collection.Value).Should().Be(collection);
         tab.Result!.Documents.Should().ContainSingle();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed class QueryWorkspaceTests
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
         const string script = "db.orders.find({}).toArray()";
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", script);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] });
         await fixture.Limiter.EnterAsync(CancellationToken.None);
         await fixture.Limiter.EnterAsync(CancellationToken.None);
@@ -135,7 +135,7 @@ public sealed class QueryWorkspaceTests
         finally { fixture.Limiter.Exit(); }
 
         tab.EditableCollection!.Collection.Value.Should().Be("orders");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(script, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -191,9 +191,13 @@ public sealed class QueryWorkspaceTests
         fixture.Text.SetLanguage("ru");
         A.CallTo(() => fixture.Settings.GetAsync("query.timeoutSeconds", A<CancellationToken>._)).Returns("1");
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .ReturnsLazily(async (string _, string? _, CancellationToken token) =>
-            { await Task.Delay(Timeout.InfiniteTimeSpan, token); return QueryResult.Empty(QueryResultKind.Documents); });
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .ReturnsLazily(async (string _, string? _, ScriptOutput? output, CancellationToken token) =>
+            {
+                await output!.AppendAsync(new("before timeout\n", false));
+                await Task.Delay(Timeout.InfiniteTimeSpan, token);
+                return QueryResult.Empty(QueryResultKind.Documents);
+            });
         A.CallTo(() => fixture.Gateway.FindAsync(A<MongoConnectionTarget>._, A<CollectionRef>._, A<string>._,
             A<QueryExecutionOptions>._, A<CancellationToken>._))
             .ReturnsLazily(async (MongoConnectionTarget _, CollectionRef _, string _, QueryExecutionOptions _, CancellationToken token) =>
@@ -204,5 +208,7 @@ public sealed class QueryWorkspaceTests
 
         tab.Error.Should().Be("Превышено время выполнения запроса (1 с).");
         tab.Busy.Should().BeFalse();
+        if (browse) tab.Output.Should().BeNull();
+        else tab.Output!.ReadPreview().Text.Should().Be("before timeout\n");
     }
 }

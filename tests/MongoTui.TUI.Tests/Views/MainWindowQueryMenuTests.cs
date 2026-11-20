@@ -42,7 +42,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
     {
         A.CallTo(() => _sessions.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_session);
         A.CallTo(() => _session.IsRunning).Returns(true);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("loaded", "automatically")] });
         _gateway = A.Fake<IMongoGateway>();
         A.CallTo(() => _gateway.ListCollectionsAsync(Target, A<DatabaseName>._, A<CancellationToken>._))
@@ -120,7 +120,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         tabs.ActiveTab.Script.Should().Be("db.getCollection(\"c1\").find({}).limit(50).toArray()");
         tabs.ActiveTab.Script.Should().NotContain("getSiblingDB");
         tabs.ActiveResultView!.Text.Should().Contain("automatically");
-        A.CallTo(() => _session.EvaluateAsync(tabs.ActiveTab.Script, "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(tabs.ActiveTab.Script, "app", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Theory]
@@ -140,7 +140,7 @@ public sealed class MainWindowQueryMenuTests : IDisposable
         var tabs = (QueryTabsView)Field(_window, "_queryTabs");
         tabs.ActiveResultView!.Text.Should().Contain("automatically");
         A.CallTo(() => _session.EvaluateAsync($"db.getCollection({literal}).find({{}}).limit(50).toArray()",
-            "app", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+            "app", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]

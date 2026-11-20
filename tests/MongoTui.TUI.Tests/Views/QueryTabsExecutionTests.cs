@@ -27,12 +27,14 @@ public sealed class QueryTabsExecutionTests : IDisposable
     private readonly IMongoShellSession _session = A.Fake<IMongoShellSession>();
     private readonly IQueryHistoryRepository _history = A.Fake<IQueryHistoryRepository>();
     private readonly TaskCompletionSource<QueryResult> _response = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _liveOutput = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly QueryTabsView _tabs;
     private readonly MongoConnectionTarget _target = new("mongodb://localhost");
     private Task<QueryRunSummary?>? _operation;
     private Task? _close;
     private QueryTabViewModel? _original;
     private CancellationToken _token;
+    private ScriptOutput? _output;
     private bool _rendered;
 
     public QueryTabsExecutionTests()
@@ -40,10 +42,9 @@ public sealed class QueryTabsExecutionTests : IDisposable
         var sessions = A.Fake<IMongoShellSessionFactory>();
         A.CallTo(() => sessions.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._)).Returns(_session);
         A.CallTo(() => _session.IsRunning).Returns(true);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .Invokes((string script, string? database, CancellationToken token) => _token = token).Returns(_response.Task);
-        A.CallTo(() => _session.EvaluateRawAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .Invokes((string script, string? database, CancellationToken token) => _token = token).Returns(_response.Task);
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .Invokes((string _, string? _, ScriptOutput? output, CancellationToken token) => { _output = output; _token = token; })
+            .Returns(_response.Task);
         _tabs = new QueryTabsView(QueryTestServices.Create(sessions, _history),
             _localizer, new AutocompleteService(A.Fake<IMongoGateway>())) { Width = Dim.Fill(), Height = Dim.Fill() };
         _dialog.Add(_tabs);
@@ -76,7 +77,6 @@ public sealed class QueryTabsExecutionTests : IDisposable
         string language, bool switchTab, bool closeTab, bool fails, bool raw = false)
     {
         _localizer.SetLanguage(language);
-        if (raw) _tabs.SetResultViewMode(ResultViewMode.Raw);
         ScheduleExecution(switchTab, closeTab, fails, raw: raw);
 
         _app.Run(_parent);
@@ -84,14 +84,13 @@ public sealed class QueryTabsExecutionTests : IDisposable
         _operation.Should().NotBeNull();
         _operation!.IsCompleted.Should().BeTrue();
         var summary = await _operation;
-        if (raw)
+        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app",
+            A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        if (raw && !closeTab)
         {
-            A.CallTo(() => _session.EvaluateRawAsync("db.orders.find({}).limit(50).toArray()", "app",
-                A<CancellationToken>._)).MustHaveHappenedOnceExactly();
-            _original!.ResultCollection.Should().BeNull();
+            _liveOutput.Task.IsCompletedSuccessfully.Should().BeTrue();
+            _original!.Result.HasError.Should().Be(fails);
         }
-        else A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app",
-            A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         _original!.IsExecuting.Should().BeFalse();
         if (closeTab)
         {
@@ -111,7 +110,7 @@ public sealed class QueryTabsExecutionTests : IDisposable
         string language, bool switchTab, bool closeTab)
     {
         _localizer.SetLanguage(language);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .ReturnsNextFromSequence(Task.FromResult(new QueryResult { Kind = QueryResultKind.Documents,
                 Documents = [new BsonDocument("_id", 1)] }), _response.Task);
         ScheduleExecution(switchTab, closeTab, false, refresh: true);
@@ -119,9 +118,9 @@ public sealed class QueryTabsExecutionTests : IDisposable
         _app.Run(_parent);
 
         await _operation!;
-        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<ScriptOutput?>._, A<CancellationToken>._))
             .MustHaveHappenedTwiceExactly();
-        A.CallTo(() => _session.EvaluateAsync("db.orders.deleteMany({})", A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync("db.orders.deleteMany({})", A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
         _original!.Script.Should().Be("db.orders.deleteMany({})");
         if (closeTab) _tabs.TabCount.Should().Be(0);
@@ -140,9 +139,9 @@ public sealed class QueryTabsExecutionTests : IDisposable
         _app.Run(_parent);
 
         await _operation!;
-        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync("db.orders.find({}).limit(50).toArray()", "app", A<ScriptOutput?>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
-        A.CallTo(() => _session.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
         _original!.Script.Should().StartWith("db.orders.deleteMany({});\n");
         _original.ResultCollection!.Collection.Value.Should().Be("orders");
@@ -157,15 +156,18 @@ public sealed class QueryTabsExecutionTests : IDisposable
         _app.AddTimeout(TimeSpan.FromMilliseconds(40), () =>
         {
             StartExecution(refresh, selection);
+            if (raw) _tabs.SetResultViewMode(ResultViewMode.Raw);
             if (switchTab) _tabs.AddTab(ConnectionId.New(), _target, "other", script: "db.unrelated.find({})");
             if (closeTab) _close = _tabs.CloseActiveAsync();
-            _ = CompleteAsync(fails, raw);
+            _ = CompleteAsync(fails, raw && !closeTab);
             return false;
         });
         _app.AddTimeout(TimeSpan.FromMilliseconds(30), () =>
         {
+            if (raw && !closeTab && _operation is { IsCompleted: false } && ScreenText().Contains("live-progress"))
+                _liveOutput.TrySetResult();
             if (_operation?.IsCompleted != true || _close is { IsCompleted: false }) return true;
-            _rendered = ScreenText().Contains(fails ? "Automatic query failed." : "automatically", StringComparison.Ordinal);
+            _rendered = ScreenText().Contains(raw ? "live-progress" : fails ? "Automatic query failed." : "automatically", StringComparison.Ordinal);
             if (!switchTab && !closeTab && !_rendered) return true;
             _app.RequestStop(_dialog);
             return false;
@@ -196,9 +198,16 @@ public sealed class QueryTabsExecutionTests : IDisposable
     private async Task CompleteAsync(bool fails, bool raw)
     {
         await Task.Delay(80).ConfigureAwait(false);
+        if (raw)
+        {
+            await _output!.AppendAsync(new("  live-progress\n", false)).ConfigureAwait(false);
+            if (await Task.WhenAny(_liveOutput.Task, Task.Delay(1800)).ConfigureAwait(false) != _liveOutput.Task)
+            {
+                _response.TrySetException(new TimeoutException("Live output was not rendered."));
+                return;
+            }
+        }
         if (fails) _response.SetException(new DomainException("Automatic query failed."));
-        else if (raw) _response.SetResult(new QueryResult { Kind = QueryResultKind.Raw, Documents = [],
-            RawOutput = "  {automatically}\n[not JSON]\n" });
         else _response.SetResult(new QueryResult { Kind = QueryResultKind.Documents,
             Documents = [new BsonDocument { { "_id", 1 }, { "loaded", "automatically" } }] });
     }

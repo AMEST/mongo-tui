@@ -40,9 +40,11 @@ public sealed class QueryTabsViewContextMenuTests
             .Select(item => item.Title)
             .ToList();
 
-        menuItems.TakeLast(5).Should().Equal(
+        menuItems.TakeLast(7).Should().Equal(
             LocalizationKeys.Result.CopyAll,
             LocalizationKeys.Result.CopyDocument,
+            LocalizationKeys.Result.OpenOutput,
+            LocalizationKeys.Result.SaveOutput,
             LocalizationKeys.Result.Export,
             LocalizationKeys.Menu.DocumentEdit,
             LocalizationKeys.Menu.DocumentDelete);

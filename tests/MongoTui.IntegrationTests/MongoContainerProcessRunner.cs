@@ -16,6 +16,11 @@ internal sealed class MongoContainerProcessRunner(MongoDbContainer container) : 
         };
         var result = await container.ExecAsync(
             [Path.GetFileName(request.FileName), prefix + connection, .. request.Arguments.Skip(1)], cancellationToken).ConfigureAwait(false);
+        if (request.OnOutput is { } onOutput)
+        {
+            await onOutput(new(result.Stdout, false)).ConfigureAwait(false);
+            await onOutput(new(result.Stderr, true)).ConfigureAwait(false);
+        }
         return new ProcessResult(checked((int)(result.ExitCode ?? -1)), result.Stdout, result.Stderr);
     }
 }

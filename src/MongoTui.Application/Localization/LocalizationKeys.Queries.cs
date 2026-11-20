@@ -151,7 +151,11 @@ public static partial class LocalizationKeys
         public const string CopyDocument = "Result.CopyDocument";
         public const string Export = "Result.Export";
         public const string Json = "Result.Json";
+        public const string OpenOutput = "Result.OpenOutput";
+        public const string OutputPreview = "Result.OutputPreview";
+        public const string OutputSaved = "Result.OutputSaved";
         public const string Raw = "Result.Raw";
+        public const string SaveOutput = "Result.SaveOutput";
         public const string Table = "Result.Table";
         public const string Tree = "Result.Tree";
     }

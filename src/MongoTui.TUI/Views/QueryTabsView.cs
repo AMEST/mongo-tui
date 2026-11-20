@@ -50,6 +50,8 @@ public sealed class QueryTabsView : View
     /// <summary>Raised when the user requests exporting the active result from its context menu.</summary>
     public event EventHandler? ExportRequested;
 
+    internal event EventHandler? SaveOutputRequested;
+
     /// <summary>Raised when the user requests editing the document under the result cursor.</summary>
     public event EventHandler? EditDocumentRequested;
 
@@ -167,12 +169,22 @@ public sealed class QueryTabsView : View
             InvalidateCompletions();
             pane.ShowResult();
             if (!refresh && CurrentPane() == pane) pane.FocusResult();
-            summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed);
+            summary = new QueryRunSummary(pane.Model.Result.Documents.Count, pane.Model.Result.Elapsed, pane.Model.Result.Error);
             Log.Debug("RunActive: tab {TabId} finished with {DocumentCount} documents, error={Error}",
                 pane.Model.Id, pane.Model.Result.Documents.Count, pane.Model.Result.HasError);
         });
-        await (refresh ? pane.Model.RefreshAsync(UpdateAsync, cancellationToken)
-            : pane.Model.ExecuteAsync(script, UpdateAsync, cancellationToken)).ConfigureAwait(false);
+        void RefreshOutput(object? sender, Terminal.Gui.App.EventArgs<IApplication?> args) =>
+            pane.RefreshLiveOutput(cancellationToken);
+
+        application.Iteration += RefreshOutput;
+        try
+        {
+            var execution = refresh ? pane.Model.RefreshAsync(UpdateAsync, cancellationToken)
+                : pane.Model.ExecuteAsync(script, UpdateAsync, cancellationToken);
+            if (!execution.IsCompleted) pane.ShowResult();
+            await execution.ConfigureAwait(false);
+        }
+        finally { application.Iteration -= RefreshOutput; }
 
         return summary;
     }
@@ -187,33 +199,23 @@ public sealed class QueryTabsView : View
             pane.Editor.CancelCompletion();
     }
 
-    public async Task CloseForConnectionAsync(ConnectionId connectionId)
+    public Task CloseForConnectionAsync(ConnectionId connectionId)
     {
         InvalidateCompletions();
-        foreach (var pane in _panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToList())
-        {
-            pane.Cancel();
-            pane.Editor.CancelCompletion();
-            await pane.Model.CloseAsync(CancellationToken.None);
-            _panes.Remove(pane.Container);
-            _tabs.Remove(pane.Container);
-            pane.Container.Dispose();
-        }
+        return Task.WhenAll(_panes.Values.Where(pane => pane.Model.ConnectionId == connectionId).ToArray().Select(CloseAsync));
     }
 
-    public async Task CloseActiveAsync()
-    {
-        if (CurrentPane() is not { } pane)
-        {
-            return;
-        }
+    public Task CloseActiveAsync() => CurrentPane() is { } pane ? CloseAsync(pane) : Task.CompletedTask;
 
+    private Task CloseAsync(QueryTabPane pane)
+    {
         pane.Cancel();
         pane.Editor.CancelCompletion();
-        await pane.Model.CloseAsync(CancellationToken.None);
         _panes.Remove(pane.Container);
         _tabs.Remove(pane.Container);
+        var close = pane.Model.CloseAsync(CancellationToken.None);
         pane.Container.Dispose();
+        return close;
     }
 
     internal void RaiseRunRequested() => RunRequested?.Invoke(this, EventArgs.Empty);
@@ -223,6 +225,8 @@ public sealed class QueryTabsView : View
     internal void RaiseSaveQueryFileRequested() => SaveQueryFileRequested?.Invoke(this, EventArgs.Empty);
 
     internal void RaiseExportRequested() => ExportRequested?.Invoke(this, EventArgs.Empty);
+
+    internal void RaiseSaveOutputRequested() => SaveOutputRequested?.Invoke(this, EventArgs.Empty);
 
     internal void RaiseEditDocumentRequested() => EditDocumentRequested?.Invoke(this, EventArgs.Empty);
 

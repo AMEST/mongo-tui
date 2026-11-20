@@ -22,7 +22,7 @@ public sealed class QueryServiceTests
     public QueryServiceTests()
     {
         A.CallTo(() => _session.IsRunning).Returns(true);
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(QueryResult.Empty(QueryResultKind.Documents));
         A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .Returns(_session);
@@ -69,7 +69,7 @@ public sealed class QueryServiceTests
     [Fact]
     public async Task Should_WrapQueryExecutionException_When_SessionThrows()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new InvalidOperationException("boom"));
 
         var act = async () => await _sut.ExecuteAsync(CreateContext(), CancellationToken.None);
@@ -84,7 +84,7 @@ public sealed class QueryServiceTests
     [Fact]
     public async Task Should_PropagateCancellation_When_Cancelled()
     {
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Throws(new OperationCanceledException());
 
         var act = async () => await _sut.ExecuteAsync(CreateContext(), CancellationToken.None);
@@ -113,7 +113,7 @@ public sealed class QueryServiceTests
 
         await _sut.ExecuteAsync(context, CancellationToken.None);
 
-        A.CallTo(() => _session.EvaluateAsync(context.Script, database, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, database, A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _history.AddAsync(
             A<QueryHistoryEntry>.That.Matches(entry => entry.Database == database && entry.Script == context.Script),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -129,20 +129,19 @@ public sealed class QueryServiceTests
 
         A.CallTo(() => _sessionFactory.CreateAsync(A<MongoConnectionTarget>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
-        A.CallTo(() => _session.EvaluateAsync(context.Script, "other", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, "other", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
-    public async Task Should_ExecuteRawAndRecordHistory_WhenRawOutputRequested()
+    public async Task Should_ForwardTranscriptAndRecordHistory_WhenScriptRuns()
     {
-        var context = CreateContext() with { UseRawOutput = true };
-        A.CallTo(() => _session.EvaluateRawAsync(context.Script, context.Database, A<CancellationToken>._))
-            .Returns(new QueryResult { Kind = QueryResultKind.Raw, Documents = [], RawOutput = "{not JSON}\n" });
+        var context = CreateContext();
+        await using var output = new ScriptOutput();
 
-        var result = await _sut.ExecuteAsync(context, CancellationToken.None);
+        await _sut.ExecuteAsync(context, output, CancellationToken.None);
 
-        result.RawOutput.Should().Be("{not JSON}\n");
-        A.CallTo(() => _session.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).MustNotHaveHappened();
+        A.CallTo(() => _session.EvaluateAsync(context.Script, context.Database, output, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
         A.CallTo(() => _history.AddAsync(A<QueryHistoryEntry>.That.Matches(entry => entry.Success),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }

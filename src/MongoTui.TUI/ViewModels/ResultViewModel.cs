@@ -14,7 +14,6 @@ public sealed class ResultViewModel : ObservableObject
     private IReadOnlyList<string> _columns = [];
     private IReadOnlyList<IReadOnlyList<string>> _rows = [];
     private string _json = string.Empty;
-    private string _raw = string.Empty;
     private string? _error;
     private TimeSpan _elapsed;
     private ResultViewMode _mode = ResultViewMode.Table;
@@ -49,12 +48,7 @@ public sealed class ResultViewModel : ObservableObject
         private set => SetProperty(ref _json, value);
     }
 
-    /// <summary>Verbatim stdout from the shell, shown by the raw view.</summary>
-    public string Raw
-    {
-        get => _raw;
-        private set => SetProperty(ref _raw, value);
-    }
+    public ScriptOutput? Output { get; internal set; }
 
     public string? Error
     {
@@ -87,7 +81,6 @@ public sealed class ResultViewModel : ObservableObject
         Kind = result.Kind;
         Documents = result.Documents;
         Elapsed = result.Elapsed;
-        Raw = result.RawOutput;
         Error = null;
 
         Rebuild();
@@ -98,10 +91,15 @@ public sealed class ResultViewModel : ObservableObject
         Kind = QueryResultKind.Scalar;
         Documents = [];
         Elapsed = TimeSpan.Zero;
-        Raw = string.Empty;
         Error = message;
 
         Rebuild();
+    }
+
+    internal void BeginOutput(ScriptOutput output)
+    {
+        Output = output;
+        Error = null;
     }
 
     /// <summary>
@@ -144,17 +142,16 @@ public sealed class ResultViewModel : ObservableObject
     /// <summary>Renders the current result using <see cref="Mode"/>.</summary>
     public string Render()
     {
+        if (Mode == ResultViewMode.Raw) return Output?.ReadPreview().Text ?? string.Empty;
+
         if (HasError)
         {
             return Error!;
         }
 
-        if (Kind == QueryResultKind.Raw) return Raw;
-
         return Mode switch
         {
             ResultViewMode.Json => Json,
-            ResultViewMode.Raw => Raw,
             ResultViewMode.Tree => string.Join("\n", Documents.Select(document => BsonTextCodec.Format(document))),
             _ => RenderTable(),
         };

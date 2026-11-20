@@ -15,6 +15,7 @@ public static class JavaScriptCalls
     public const string CopyText = "mongoTuiFiles.copy";
     public const string DownloadText = "mongoTuiFiles.downloadText";
     public const string DownloadStream = "mongoTuiFiles.downloadStream";
+    public const string FollowOutput = "mongoTuiOutput.follow";
 
     public static class Editor
     {

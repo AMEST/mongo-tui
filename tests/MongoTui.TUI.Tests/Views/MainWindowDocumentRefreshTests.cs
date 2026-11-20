@@ -43,14 +43,14 @@ public sealed class MainWindowDocumentRefreshTests
             state.Operation().Status, host.Tabs.ActiveResultView!.Text, ScreenText(host));
         await state.Operation();
         tab.Script.Should().Be("db.items.deleteMany({})");
-        A.CallTo(() => host.Session.EvaluateAsync(Read, "app", A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
-        A.CallTo(() => host.Session.EvaluateAsync("db.items.deleteMany({})", A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => host.Session.EvaluateAsync(Read, "app", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedTwiceExactly();
+        A.CallTo(() => host.Session.EvaluateAsync("db.items.deleteMany({})", A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
     }
 
     private static void Configure(TuiFeatureTestHost host, TaskCompletionSource<long> mutation)
     {
-        A.CallTo(() => host.Session.EvaluateAsync(Read, "app", A<CancellationToken>._)).ReturnsNextFromSequence(
+        A.CallTo(() => host.Session.EvaluateAsync(Read, "app", A<ScriptOutput?>._, A<CancellationToken>._)).ReturnsNextFromSequence(
             Task.FromResult(Result("before")), Task.FromResult(Result("refreshed")));
         A.CallTo(() => host.Gateway.FindAsync(Target, Collection, A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._))
             .Returns(Result("before"));

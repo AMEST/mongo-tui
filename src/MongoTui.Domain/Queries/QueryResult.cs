@@ -13,9 +13,6 @@ public sealed record QueryResult
 
     public long? AffectedCount { get; init; }
 
-    /// <summary>Verbatim stdout captured from the shell, exposed for the raw view.</summary>
-    public string RawOutput { get; init; } = string.Empty;
-
     public static QueryResult Empty(QueryResultKind kind) =>
         new() { Kind = kind, Documents = [] };
 }

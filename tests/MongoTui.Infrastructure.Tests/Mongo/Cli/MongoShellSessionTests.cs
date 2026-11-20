@@ -17,32 +17,32 @@ public sealed class MongoShellSessionTests
     [InlineData("  { progress: 1 }\n[not JSON]\nfinished\n\n")]
     [InlineData("[{\"_id\": 1}]\n")]
     [InlineData("")]
-    public async Task Should_PreserveUnparsedOutput_WhenRawModeRequested(string output)
+    public async Task Should_PreserveExactOutput_WhenScriptIsEvaluated(string stdout)
     {
         const string script = "console.log('{ progress: 1 }'); console.log('[not JSON]');";
         var captured = new List<ProcessRequest>();
-        var session = CreateSession(new ProcessResult(0, output, string.Empty), captured);
+        var session = CreateSession(new ProcessResult(0, stdout, string.Empty), captured);
+        await using var output = new ScriptOutput();
 
-        var result = await session.EvaluateRawAsync(script, "app", CancellationToken.None);
+        await session.EvaluateAsync(script, "app", output, CancellationToken.None);
 
-        result.Kind.Should().Be(QueryResultKind.Raw);
-        result.RawOutput.Should().Be(output);
-        result.Documents.Should().BeEmpty();
+        output.ReadPreview().Text.Should().Be(stdout);
         captured.Should().ContainSingle().Subject.Arguments.Should().Equal(
-            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--eval", "db = db.getSiblingDB(\"app\")", "--eval", script);
+            "mongodb://127.0.0.1:27017", "--quiet", "--norc", "--json=canonical", "--eval", "db = db.getSiblingDB(\"app\")", "--eval", script);
     }
 
     [Fact]
-    public async Task Should_PreserveOutputAndError_WhenRawScriptFails()
+    public async Task Should_PreserveOutputAndExtractCause_WhenScriptLogsBeforeFailure()
     {
-        const string output = "[migration started]\n";
-        const string error = "Error: migration failed\n";
-        var session = CreateSession(new ProcessResult(1, output, error));
+        const string stdout = "[migration started]{\"message\":\"migration \\\"failed\\\" }\",\"name\":\"Error\",\"stack\":\"at eval\",\"extra\":{\"key\":\"value\"}}\n";
+        const string stderr = "warning\n";
+        var session = CreateSession(new ProcessResult(1, stdout, stderr));
+        await using var output = new ScriptOutput();
 
-        var act = () => session.EvaluateRawAsync("console.log('[migration started]'); throw Error('migration failed');",
-            null, CancellationToken.None);
+        var act = () => session.EvaluateAsync("throw Error('migration failed');", null, output, CancellationToken.None);
 
-        (await act.Should().ThrowAsync<QueryExecutionException>()).Which.Message.Should().Be(output + error);
+        (await act.Should().ThrowAsync<QueryExecutionException>()).Which.Message.Should().Be("migration \"failed\" }");
+        output.ReadPreview().Text.Should().Be(stdout + "[stderr] " + stderr);
     }
 
     [Fact]
@@ -79,7 +79,6 @@ public sealed class MongoShellSessionTests
         var result = await session.EvaluateAsync("db.items.countDocuments()", null, CancellationToken.None);
 
         result.Documents.Should().ContainSingle().Subject["output"].AsString.Should().Be(expected);
-        result.RawOutput.Should().Be(stdout);
     }
 
     [Theory]
@@ -97,16 +96,6 @@ public sealed class MongoShellSessionTests
         document["_id"].AsObjectId.Should().Be(ObjectId.Parse("507f1f77bcf86cd799439011"));
         document["count"].BsonType.Should().Be(BsonType.Int64);
         document["count"].AsInt64.Should().Be(9007199254740993L);
-    }
-
-    [Fact]
-    public async Task Should_CaptureRawStdout_When_MongoshPrintsText()
-    {
-        var session = CreateSession(new ProcessResult(0, "migration complete\n", string.Empty));
-
-        var result = await session.EvaluateAsync("print('migration complete')", null, CancellationToken.None);
-
-        result.RawOutput.Should().Be("migration complete\n");
     }
 
     [Fact]
@@ -167,11 +156,15 @@ public sealed class MongoShellSessionTests
     {
         var runner = A.Fake<IProcessRunner>();
         A.CallTo(() => runner.RunAsync(A<ProcessRequest>._, A<CancellationToken>._))
-            .ReturnsLazily((ProcessRequest request, CancellationToken _) =>
+            .ReturnsLazily(async (ProcessRequest request, CancellationToken _) =>
             {
                 captured?.Add(request);
-
-                return Task.FromResult(result);
+                if (request.OnOutput is { } onOutput)
+                {
+                    await onOutput(new(result.StandardOutput, false));
+                    await onOutput(new(result.StandardError, true));
+                }
+                return result;
             });
 
         var tools = new MongoToolsLocator(new MongoToolsOptions());

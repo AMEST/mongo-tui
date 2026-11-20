@@ -1,12 +1,12 @@
 @inject WebText L
 <div class="result-content" aria-busy="@(Tab.Busy ? "true" : "false")">
-    @if (Tab.Result is null)
+    @if (Tab.View == ResultViewMode.Raw && Tab.Output is { } output)
+    {
+        <RawOutputView @key="output" Output="output" Busy="Tab.Busy" />
+    }
+    else if (Tab.Result is null)
     {
         <div class="result-empty"><Icon Name="@IconNames.Play" Size="30" /><h3>@L[LocalizationKeys.Query.Ready]</h3><p>@L[LocalizationKeys.Query.ReadyHint]</p></div>
-    }
-    else if (Tab.View == ResultViewMode.Raw || Tab.Result.Kind == QueryResultKind.Raw)
-    {
-        <pre class="json-result mono raw-result">@Tab.Result.RawOutput</pre>
     }
     else if (Tab.Result.Documents.Count == 0)
     {

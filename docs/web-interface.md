@@ -76,11 +76,10 @@ call the API directly. Do not expose this server through a proxy or port forward
   Results have no size cap. Paging uses the last applied filter, preserving any unsubmitted draft;
   a failed or cancelled page load keeps the previous page and documents.
 - Script mode uses installed `mongosh` and supports cancellation.
-  Shell stdout/stderr are collected in memory without a size cap.
   Cancelling a write does not undo changes already accepted by MongoDB.
-- Select **Raw (stdout)** before running a script to see native mongosh output, including
-  `console.log` and `print`, without JSON parsing or document pagination. Whitespace is preserved;
-  downloading saves the output as `.txt`. Choose Table/Tree/JSON and rerun for structured documents.
+- Switch to **Raw (stdout/stderr)** while a script is running or after it finishes. The log
+  updates as output arrives. For large logs the pane shows the latest output and downloading
+  saves the full transcript as `.txt`. The shell formats returned values as Extended JSON.
 - **Settings → Queries** configures the query timeout shared with the TUI (default: 30 seconds).
   Set it to `0` to disable the timeout. The value is stored as `query.timeoutSeconds` in SQLite
   and is read for each new query. Running queries retain the value they started with.

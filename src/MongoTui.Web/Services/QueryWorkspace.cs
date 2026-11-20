@@ -46,11 +46,11 @@ public sealed class QueryWorkspace(
 
     /// <summary>Executes the editor draft at the requested page, committing the page only when the query succeeds.</summary>
     public Task ExecuteAsync(WebTab tab, int page = 0) =>
-        ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page, tab.View == ResultViewMode.Raw));
+        ExecuteAsync(tab, new QueryRequest(tab.Script, tab.Browse, tab.Filter, page));
 
     /// <summary>Executes a captured editor selection without replacing the full draft.</summary>
     public Task ExecuteScriptAsync(WebTab tab, string script) =>
-        ExecuteAsync(tab, new QueryRequest(script, false, tab.Filter, 0, tab.View == ResultViewMode.Raw));
+        ExecuteAsync(tab, new QueryRequest(script, false, tab.Filter, 0));
 
     /// <summary>Reloads the displayed results using their successful query snapshot, preserving the editor draft.</summary>
     public Task RefreshAsync(WebTab tab) => tab.Result is not null && _resultRequests.TryGetValue(tab.Id, out var request)
@@ -59,11 +59,13 @@ public sealed class QueryWorkspace(
     private async Task ExecuteAsync(WebTab tab, QueryRequest request)
     {
         if (tab.Busy || !_tabs.Contains(tab)) return;
+        var previous = tab.Output;
+        tab.Output = request.Browse ? null : new ScriptOutput();
         tab.Cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         tab.Busy = true;
         tab.Error = null;
         Changed?.Invoke();
-        tab.Operation = ExecuteCoreAsync(tab, request, tab.Cancellation.Token);
+        tab.Operation = ExecuteCoreAsync(tab, request, previous, tab.Cancellation.Token);
         try { await tab.Operation; }
         finally
         {
@@ -82,6 +84,8 @@ public sealed class QueryWorkspace(
         Cancel(tab);
         if (tab.Operation is { } operation) await operation;
         await queries.CloseTabAsync(tab.Id, CancellationToken.None);
+        if (tab.Output is { } output) await output.DisposeAsync();
+        tab.Output = null;
         _tabs.Remove(tab);
         _resultRequests.Remove(tab.Id);
         tab.Result = null;
@@ -116,7 +120,7 @@ public sealed class QueryWorkspace(
         _lifetime.Dispose();
     }
 
-    private async Task ExecuteCoreAsync(WebTab tab, QueryRequest request, CancellationToken cancellationToken)
+    private async Task ExecuteCoreAsync(WebTab tab, QueryRequest request, ScriptOutput? previous, CancellationToken cancellationToken)
     {
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
@@ -124,6 +128,7 @@ public sealed class QueryWorkspace(
         });
         try
         {
+            if (previous is not null) await previous.DisposeAsync();
             await limiter.EnterAsync(cancellationToken);
             try
             {
@@ -159,9 +164,8 @@ public sealed class QueryWorkspace(
         {
             TabId = tab.Id, ConnectionId = tab.ConnectionId, Target = connection.Target,
             Database = tab.Database, Collection = tab.Collection, Script = request.Script,
-            UseRawOutput = request.UseRawOutput,
         };
-        var scriptResult = await queries.ExecuteAsync(context, cancellationToken);
+        var scriptResult = await queries.ExecuteAsync(context, tab.Output, cancellationToken);
         var source = DocumentQuerySource.Resolve(context, scriptResult);
         tab.Result = scriptResult;
         tab.Page = 0;
@@ -169,5 +173,5 @@ public sealed class QueryWorkspace(
         tab.EditableCollection = source;
     }
 
-    private sealed record QueryRequest(string Script, bool Browse, string Filter, int Page, bool UseRawOutput);
+    private sealed record QueryRequest(string Script, bool Browse, string Filter, int Page);
 }

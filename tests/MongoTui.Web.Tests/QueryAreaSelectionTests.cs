@@ -22,7 +22,7 @@ public sealed class QueryAreaSelectionTests
         const string selected = "db.getSiblingDB('other').customers.find({}).toArray()";
         var execution = new EditorExecution("db.orders.deleteMany({});\n" + selected, selected);
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", "stale draft");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("_id", 1)] });
         using var services = QueryAreaTests.CreateServices(fixture, Runtime(execution));
         await using var renderer = new ComponentTestRenderer(services);
@@ -34,8 +34,8 @@ public sealed class QueryAreaSelectionTests
         tab.Script.Should().Be(execution.Script);
         tab.EditableCollection!.Database.Value.Should().Be("other");
         tab.EditableCollection.Collection.Value.Should().Be("customers");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<CancellationToken>._)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected, "demo", A<ScriptOutput?>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>.That.Contains("deleteMany"), A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .MustNotHaveHappened();
         A.CallTo(() => fixture.History.AddAsync(A<QueryHistoryEntry>.That.Matches(entry => entry.Script == selected),
             A<CancellationToken>._)).MustHaveHappenedOnceExactly();
@@ -50,7 +50,7 @@ public sealed class QueryAreaSelectionTests
         await fixture.Catalog.ConnectAsync(fixture.Profile, CancellationToken.None);
         var execution = new EditorExecution("db.orders.find({}).toArray()", selected);
         var tab = fixture.Workspace.Open(fixture.Profile.Id, "demo", "orders", "stale draft");
-        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
             .Returns(QueryResult.Empty(QueryResultKind.Documents));
         using var services = QueryAreaTests.CreateServices(fixture, Runtime(execution));
         await using var renderer = new ComponentTestRenderer(services);
@@ -59,7 +59,7 @@ public sealed class QueryAreaSelectionTests
         await renderer.ClickAsync("primary");
 
         tab.Script.Should().Be(execution.Script);
-        A.CallTo(() => fixture.Shell.EvaluateAsync(selected ?? execution.Script, "demo", A<CancellationToken>._))
+        A.CallTo(() => fixture.Shell.EvaluateAsync(selected ?? execution.Script, "demo", A<ScriptOutput?>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 

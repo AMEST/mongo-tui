@@ -32,7 +32,7 @@ public sealed class QueryLoggingTests
         using var factory = _sink.CreateFactory();
         var expected = new QueryResult { Kind = QueryResultKind.Documents, Documents = [new BsonDocument("secret", Sensitive)] };
         A.CallTo(() => _gateway.FindAsync(Target, Collection, A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._)).Returns(expected);
-        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).Returns(expected);
+        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).Returns(expected);
         await using var queries = CreateQueries(factory);
 
         await ExecuteAsync(queries, driver);
@@ -52,8 +52,8 @@ public sealed class QueryLoggingTests
     {
         using var factory = _sink.CreateFactory();
         A.CallTo(() => _settings.GetAsync("query.timeoutSeconds", A<CancellationToken>._)).Returns("1");
-        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._))
-            .ReturnsLazily(call => WaitAsync(call.GetArgument<CancellationToken>(2)));
+        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._))
+            .ReturnsLazily(call => WaitAsync(call.GetArgument<CancellationToken>(3)));
         A.CallTo(() => _gateway.FindAsync(Target, Collection, A<string>._, A<QueryExecutionOptions>._, A<CancellationToken>._))
             .ReturnsLazily(call => WaitAsync(call.GetArgument<CancellationToken>(4)));
         await using var queries = CreateQueries(factory);
@@ -72,7 +72,7 @@ public sealed class QueryLoggingTests
     {
         using var factory = _sink.CreateFactory();
         var error = new QueryExecutionException(Sensitive, new InvalidOperationException("mongodb://user:secret@host " + Sensitive));
-        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<CancellationToken>._)).ThrowsAsync(error);
+        A.CallTo(() => _shell.EvaluateAsync(A<string>._, A<string?>._, A<ScriptOutput?>._, A<CancellationToken>._)).ThrowsAsync(error);
         await using var queries = CreateQueries(factory);
 
         var act = () => ExecuteAsync(queries, false);

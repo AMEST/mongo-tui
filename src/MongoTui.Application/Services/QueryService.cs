@@ -34,7 +34,10 @@ public sealed class QueryService : IAsyncDisposable
         _logger = logger;
     }
 
-    public async Task<QueryResult> ExecuteAsync(QueryExecutionContext context, CancellationToken cancellationToken)
+    public Task<QueryResult> ExecuteAsync(QueryExecutionContext context, CancellationToken cancellationToken) =>
+        ExecuteAsync(context, null, cancellationToken);
+
+    public async Task<QueryResult> ExecuteAsync(QueryExecutionContext context, ScriptOutput? output, CancellationToken cancellationToken)
     {
         using var scope = _logger.BeginScope(new Dictionary<string, object?>
         {
@@ -42,7 +45,7 @@ public sealed class QueryService : IAsyncDisposable
             [LogPropertyNames.Database] = context.Database, [LogPropertyNames.Collection] = context.Collection,
         });
         _logger.LogDebug("Executing shell query ({ScriptLength} characters)", context.Script.Length);
-        return await ExecuteWithTimeoutAsync((_, token) => ExecuteScriptAsync(context, cancellationToken, token),
+        return await ExecuteWithTimeoutAsync((_, token) => ExecuteScriptAsync(context, output, cancellationToken, token),
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -94,7 +97,7 @@ public sealed class QueryService : IAsyncDisposable
         }
     }
 
-    private async Task<QueryResult> ExecuteScriptAsync(QueryExecutionContext context,
+    private async Task<QueryResult> ExecuteScriptAsync(QueryExecutionContext context, ScriptOutput? output,
         CancellationToken historyCancellationToken, CancellationToken cancellationToken)
     {
         var session = await GetOrCreateSessionAsync(context.TabId, context.Target, cancellationToken).ConfigureAwait(false);
@@ -104,9 +107,7 @@ public sealed class QueryService : IAsyncDisposable
 
         try
         {
-            var result = await (context.UseRawOutput
-                ? session.EvaluateRawAsync(context.Script, context.Database, cancellationToken)
-                : session.EvaluateAsync(context.Script, context.Database, cancellationToken)).ConfigureAwait(false);
+            var result = await session.EvaluateAsync(context.Script, context.Database, output, cancellationToken).ConfigureAwait(false);
             success = true;
 
             return result with { Elapsed = stopwatch.Elapsed };

@@ -24,4 +24,17 @@
     async downloadStream(name, stream) { download(name, new Blob([await stream.arrayBuffer()], {type: jsonContentType})); },
     copy(text) { return navigator.clipboard.writeText(text); }
   };
+  window.mongoTuiOutput = {
+    follow(container) {
+      let following = true;
+      const scrollToEnd = () => { container.scrollTop = container.scrollHeight; };
+      container.addEventListener('scroll', () => {
+        following = container.scrollHeight - container.clientHeight - container.scrollTop < 4;
+      }, { passive: true });
+      new MutationObserver(() => { if (following) scrollToEnd(); }).observe(container, {
+        childList: true, characterData: true, subtree: true
+      });
+      scrollToEnd();
+    }
+  };
 })();
