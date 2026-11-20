@@ -55,6 +55,44 @@ jobs:
           -p:DebugSymbols=false \
           -o publish/${{ matrix.artifact_name }}
         find publish/${{ matrix.artifact_name }} -name '*.pdb' -delete
+
+    - name: Bundle mongosh (Windows only)
+      if: matrix.rid == 'win-x64'
+      shell: bash
+      run: |
+        python - <<'PY'
+        import hashlib
+        import io
+        import json
+        import pathlib
+        import urllib.request
+        import zipfile
+
+        with urllib.request.urlopen("https://downloads.mongodb.com/compass/mongosh.json", timeout=60) as response:
+            manifest = json.load(response)
+
+        latest = manifest["versions"][0]
+        download = next(item for item in latest["downloads"] if item["distro"] == "win32" and item["arch"] == "x86_64")
+        archive = download["archive"]
+        with urllib.request.urlopen(archive["url"], timeout=300) as response:
+            data = response.read()
+
+        checksum = hashlib.sha256(data).hexdigest()
+        if checksum != archive["sha256"]:
+            raise SystemExit(f"mongosh checksum mismatch: {checksum}")
+
+        target = pathlib.Path("publish/${{ matrix.artifact_name }}/thirdparty")
+        target.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(io.BytesIO(data)) as bundle:
+            for item in bundle.infolist():
+                if not item.is_dir():
+                    (target / pathlib.PurePosixPath(item.filename).name).write_bytes(bundle.read(item))
+        print(f"Bundled mongosh {latest['version']} into {target}")
+        PY
+
+    - name: Package archive
+      shell: bash
+      run: |
         tar -czf ${{ matrix.artifact_name }}.tar.gz -C publish/${{ matrix.artifact_name }} .
 
     - name: Upload artifact

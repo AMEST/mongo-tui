@@ -44,7 +44,8 @@ with English and Russian interfaces.
 ## Installation
 
 Download the archive for your platform from [Releases](https://github.com/AMEST/mongo-tui/releases)
-and extract it in full. The .NET runtime is included.
+and extract it in full. The .NET runtime is included. The Windows archive also includes
+`mongosh` in `thirdparty`, so no separate MongoDB Shell setup is needed there.
 
 Run `mongo-tui --version` to check the build version, license and author credits.
 

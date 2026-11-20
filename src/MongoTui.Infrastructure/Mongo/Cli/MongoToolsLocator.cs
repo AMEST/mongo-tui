@@ -6,28 +6,39 @@ namespace MongoTui.Infrastructure.Mongo.Cli;
 public sealed class MongoToolsLocator
 {
     private readonly string? _configuredDirectory;
+    private readonly string _bundledDirectory;
 
-    public MongoToolsLocator(MongoToolsOptions options) => _configuredDirectory = options.Directory;
+    public MongoToolsLocator(MongoToolsOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _configuredDirectory = options.Directory;
+        _bundledDirectory = options.BundledDirectory;
+    }
 
     /// <summary>Returns the best-known path for <paramref name="toolName"/>, falling back to its bare name.</summary>
     public string Resolve(string toolName)
     {
         var executable = ExecutableName(toolName);
 
-        if (!string.IsNullOrWhiteSpace(_configuredDirectory))
-        {
-            var candidate = Path.Combine(_configuredDirectory, executable);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return FindOnPath(executable) ?? toolName;
+        return FindInDirectory(_configuredDirectory, executable)
+            ?? (OperatingSystem.IsWindows() ? FindInDirectory(_bundledDirectory, executable) : null)
+            ?? FindOnPath(executable)
+            ?? toolName;
     }
 
     private static string ExecutableName(string toolName) =>
         OperatingSystem.IsWindows() ? toolName + ".exe" : toolName;
+
+    private static string? FindInDirectory(string? directory, string executable)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return null;
+        }
+
+        var candidate = Path.Combine(directory, executable);
+        return File.Exists(candidate) ? candidate : null;
+    }
 
     private static string? FindOnPath(string executable)
     {
@@ -39,13 +50,8 @@ public sealed class MongoToolsLocator
 
         foreach (var directory in path.Split(Path.PathSeparator))
         {
-            if (string.IsNullOrWhiteSpace(directory))
-            {
-                continue;
-            }
-
-            var candidate = Path.Combine(directory, executable);
-            if (File.Exists(candidate))
+            var candidate = FindInDirectory(directory, executable);
+            if (candidate is not null)
             {
                 return candidate;
             }
