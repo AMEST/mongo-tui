@@ -6,11 +6,26 @@
 @foreach (var connection in Catalog.Active)
 {
     @foreach (var state in Diagnostics.States(connection.Target).Where(state => state.Level != ProfilingLevel.Off))
-    { <div class="profiler-banner">@L["Diagnostics.ProfilerOn"] @connection.Profile.Name / @state.Database: @state.Level, @state.Options.SlowMs ms
-        <button @onclick="OnOpen">@L["Diagnostics.Title"]</button><button @onclick="() => _disable = (connection.Target, state.Database)">@L["Diagnostics.Disable"]</button></div> }
+    {
+        <div class="profiler-banner">
+            <span>@L["Diagnostics.ProfilerOn"] @connection.Profile.Name / @state.Database: @state.Level, @state.Options.SlowMs ms</span>
+            <div class="diagnostics-actions">
+                <button @onclick="OnOpen">@L["Diagnostics.Title"]</button>
+                <button @onclick="() => _disable = (connection.Target, state.Database)">@L["Diagnostics.Disable"]</button>
+            </div>
+        </div>
+    }
 }
 @if (_disable is { } selected)
-{ <div class="profiler-banner">@L["Diagnostics.Disable"]: @selected.Database <button @onclick="DisableAsync">@L["Diagnostics.Confirm"]</button><button @onclick="() => _disable = null">@L["Common.Cancel"]</button></div> }
+{
+    <div class="profiler-banner">
+        <span>@L["Diagnostics.Disable"]: @selected.Database</span>
+        <div class="diagnostics-actions">
+            <button @onclick="DisableAsync">@L["Diagnostics.Confirm"]</button>
+            <button @onclick="() => _disable = null">@L["Common.Cancel"]</button>
+        </div>
+    </div>
+}
 @if (_error) { <p role="alert">@L["Diagnostics.Error.Command"]</p> }
 @code {
     [Parameter] public EventCallback OnOpen { get; set; }

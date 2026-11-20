@@ -2,25 +2,53 @@
 @inject DiagnosticsServices Services
 @inject WebText L
 @using MongoTui.Domain.Diagnostics
-<div class="settings-card">
-    <h2>@L["Diagnostics.Profiler"]</h2>
-    <p>@L["Diagnostics.ProfilerWarningPersistent"]</p>
+<div class="settings-card diagnostics-panel">
+    <header>
+        <h2>@L["Diagnostics.Profiler"]</h2>
+        <p class="muted">@L["Diagnostics.ProfilerWarningPersistent"]</p>
+    </header>
     <fieldset class="profiler-fields" disabled="@_busy">
-    <label>@L["Diagnostics.ProfilerLevel"]<select id="profiler-mode" @bind="_mode" @bind:after="ModeChanged">@foreach (var mode in Enum.GetValues<SlowQueryMode>()) { <option value="@mode">@L["Diagnostics." + mode]</option> }</select></label>
-    <label>@L["Diagnostics.Scope"]<input id="profiler-scope" @bind="_scope" /></label><button @onclick="SelectAll">@L["Diagnostics.ScopeAll"]</button>
-    <label>@L["Diagnostics.Threshold"]<input id="profiler-threshold" type="number" min="0" max="600000" @bind="_threshold" /></label>
-    <label>@L["Diagnostics.SampleRate"]<input id="profiler-sample" type="number" min="0" max="1" step="0.01" @bind="_sample" /></label>
-    <label>@L["Diagnostics.FilterAction"]<select @bind="_filterAction">@foreach (var action in Enum.GetValues<ProfilerFilterAction>()) { <option value="@action">@L["Diagnostics.Filter" + action]</option> }</select></label>
-    <label>@L["Diagnostics.Filter"]<input id="profiler-filter" class="mono" @bind="_filter" /></label>
-    <label><input id="profiler-restore" type="checkbox" @bind="_restore" />@L["Diagnostics.Restore"]</label>
-    <label><input type="checkbox" @bind="_mirror" />@L["Diagnostics.Mirror"]</label>
-    <label>@L["Diagnostics.AutoDisable"]<input id="profiler-minutes" type="number" min="0" max="1440" @bind="_minutes" /></label>
+        <div class="diagnostics-fields profiler-grid">
+            <label><span>@L["Diagnostics.ProfilerLevel"]</span>
+                <select id="profiler-mode" @bind="_mode" @bind:after="ModeChanged">
+                    @foreach (var mode in Enum.GetValues<SlowQueryMode>()) { <option value="@mode">@L["Diagnostics." + mode]</option> }
+                </select>
+            </label>
+            <div class="diagnostics-fields profiler-scope">
+                <label><span>@L["Diagnostics.Scope"]</span><input id="profiler-scope" @bind="_scope" /></label>
+                <button class="button secondary" @onclick="SelectAll">@L["Diagnostics.ScopeAll"]</button>
+            </div>
+            <label><span>@L["Diagnostics.Threshold"]</span><input id="profiler-threshold" type="number" min="0" max="600000" @bind="_threshold" /></label>
+            <label><span>@L["Diagnostics.SampleRate"]</span><input id="profiler-sample" type="number" min="0" max="1" step="0.01" @bind="_sample" /></label>
+            <label><span>@L["Diagnostics.AutoDisable"]</span><input id="profiler-minutes" type="number" min="0" max="1440" @bind="_minutes" /></label>
+            <label><span>@L["Diagnostics.FilterAction"]</span>
+                <select @bind="_filterAction">
+                    @foreach (var action in Enum.GetValues<ProfilerFilterAction>()) { <option value="@action">@L["Diagnostics.Filter" + action]</option> }
+                </select>
+            </label>
+            <label class="profiler-filter"><span>@L["Diagnostics.Filter"]</span><input id="profiler-filter" class="mono" @bind="_filter" /></label>
+        </div>
+        <div class="diagnostics-options">
+            <label><input id="profiler-restore" type="checkbox" @bind="_restore" />@L["Diagnostics.Restore"]</label>
+            <label><input type="checkbox" @bind="_mirror" />@L["Diagnostics.Mirror"]</label>
+        </div>
     </fieldset>
-    <button id="profiler-apply" class="button" disabled="@_busy" @onclick="RequestApplyAsync">@L["Diagnostics.Apply"]</button>
-    <button id="profiler-refresh" class="button" disabled="@_busy" @onclick="LoadAsync">@L["Diagnostics.Refresh"]</button>
-    @if (_confirm) { <p role="alert">@L["Diagnostics.ProfilerWarningAll"] <button id="profiler-confirm" disabled="@_busy" @onclick="() => ApplyAsync(true)">@L["Diagnostics.Confirm"]</button><button @onclick="() => _confirm = false">@L["Common.Cancel"]</button></p> }
-    @if (_error is not null) { <p role="alert">@_error</p> }
-    <pre>@_actual</pre>
+    <div class="diagnostics-actions">
+        <button id="profiler-apply" class="button primary" disabled="@_busy" @onclick="RequestApplyAsync">@L["Diagnostics.Apply"]</button>
+        <button id="profiler-refresh" class="button secondary" disabled="@_busy" @onclick="LoadAsync">@L["Diagnostics.Refresh"]</button>
+    </div>
+    @if (_confirm)
+    {
+        <div class="inline-confirm" role="alert">
+            <p>@L["Diagnostics.ProfilerWarningAll"]</p>
+            <div class="diagnostics-actions">
+                <button id="profiler-confirm" class="button danger" disabled="@_busy" @onclick="() => ApplyAsync(true)">@L["Diagnostics.Confirm"]</button>
+                <button class="button secondary" @onclick="() => _confirm = false">@L["Common.Cancel"]</button>
+            </div>
+        </div>
+    }
+    @if (_error is not null) { <p class="error-message" role="alert">@_error</p> }
+    @if (_actual.Length > 0) { <pre class="diagnostic-data">@_actual</pre> }
 </div>
 @code {
     [Parameter, EditorRequired] public MongoConnectionTarget Target { get; set; } = null!;

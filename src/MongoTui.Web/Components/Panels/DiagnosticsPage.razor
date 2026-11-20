@@ -4,32 +4,68 @@
 @inject WebText L
 @using MongoTui.Domain.Diagnostics
 <section class="settings-page diagnostics-page">
-    <h1>@L["Diagnostics.Title"]</h1>
+    <header class="diagnostics-heading">
+        <h1>@L["Diagnostics.Title"]</h1>
+        @if (Catalog.Active.Count > 0)
+        {
+            <div class="diagnostics-actions">
+                <button class="button secondary" aria-expanded="@(_settings ? "true" : "false")" @onclick="() => _settings = !_settings">@L["Diagnostics.Settings"]</button>
+                <button id="diagnostics-refresh" class="button primary" disabled="@_busy" @onclick="RefreshAsync">@L["Diagnostics.Refresh"]</button>
+            </div>
+        }
+    </header>
     @if (Catalog.Active.Count == 0) { <p>@L["Diagnostics.NoConnection"]</p> }
     else
     {
-        <div class="row-actions">
-            <select id="diagnostics-connection" aria-label="@L["Diagnostics.Connections"]" value="@_connection" @onchange="ChangeConnectionAsync">
-                @foreach (var connection in Catalog.Active) { <option value="@connection.Profile.Id">@connection.Profile.Name</option> }
-            </select>
-            <label>@L["Diagnostics.Database"] <input id="diagnostics-database" list="diagnostics-databases" @bind="_database" /></label>
+        <div class="diagnostics-panel">
+            <div class="diagnostics-fields">
+                <label><span>@L["Diagnostics.Connections"]</span>
+                    <select id="diagnostics-connection" value="@_connection" @onchange="ChangeConnectionAsync">
+                        @foreach (var connection in Catalog.Active) { <option value="@connection.Profile.Id">@connection.Profile.Name</option> }
+                    </select>
+                </label>
+                <label><span>@L["Diagnostics.Database"]</span><input id="diagnostics-database" list="diagnostics-databases" @bind="_database" /></label>
+                <label><span>@L["Diagnostics.Collection"]</span><input id="diagnostics-collection" @bind="_collection" /></label>
+                <label><span>@L["Diagnostics.Source"]</span>
+                    <select id="diagnostics-source" @bind="_source">
+                        <option value="">@L["Diagnostics.Client"]</option>
+                        @foreach (var source in Enum.GetValues<QuerySource>()) { <option value="@source">@L["Diagnostics.Source." + source]</option> }
+                    </select>
+                </label>
+                <label><span>@L["Diagnostics.Operation"]</span>
+                    <select id="diagnostics-operation" @bind="_operation">
+                        <option value="">@L["Diagnostics.All"]</option>
+                        @foreach (var op in Enum.GetNames<QueryOperationKind>()) { <option value="@op">@L["Diagnostics.Operation." + op]</option> }
+                    </select>
+                </label>
+                <label><span>@L["Diagnostics.Period"]</span><input type="number" min="0" @bind="_minutes" /></label>
+                <label><span>@L["Diagnostics.Minimum"]</span><input type="number" min="0" @bind="_minimum" /></label>
+                <label><span>@L["Diagnostics.RowLimit"]</span><input id="diagnostics-limit" type="number" min="1" max="10000" @bind="_limit" /></label>
+            </div>
             <datalist id="diagnostics-databases">@foreach (var database in Current?.Databases ?? []) { <option value="@database.Name" /> }</datalist>
-            <label>@L["Diagnostics.Collection"] <input @bind="_collection" /></label>
-            <label>@L["Diagnostics.Period"] <input type="number" min="0" @bind="_minutes" /></label>
-            @foreach (var minutes in new[] { 5, 60, 1440, 0 }) { <button class="button" @onclick="() => SelectPeriodAsync(minutes)">@(minutes == 0 ? L["Diagnostics.All"] : minutes.ToString())</button> }
-            <label>@L["Diagnostics.Minimum"] <input type="number" min="0" @bind="_minimum" /></label>
-            <label>@L["Diagnostics.RowLimit"] <input type="number" min="1" max="10000" @bind="_limit" /></label>
-            <select id="diagnostics-source" aria-label="@L["Diagnostics.Source"]" @bind="_source"><option value="">@L["Diagnostics.Client"]</option>@foreach (var source in Enum.GetValues<QuerySource>()) { <option value="@source">@L["Diagnostics.Source." + source]</option> }</select>
-            <select aria-label="@L["Diagnostics.Operation"]" @bind="_operation"><option value="">@L["Diagnostics.All"]</option>@foreach (var op in Enum.GetNames<QueryOperationKind>()) { <option value="@op">@L["Diagnostics.Operation." + op]</option> }</select>
-            <label><input type="checkbox" @bind="_follow" /> @L["Diagnostics.Follow"]</label>
-            <label><input type="checkbox" @bind="_slowOnly" /> @L["Diagnostics.SlowOnly"]</label>
-            <button id="diagnostics-refresh" class="button" disabled="@_busy" @onclick="RefreshAsync">@L["Diagnostics.Refresh"]</button>
-            <button class="button" @onclick="() => _settings = !_settings">@L["Diagnostics.Settings"]</button>
+            <div class="diagnostics-filter-actions">
+                <div class="segmented diagnostics-periods" role="group" aria-label="@L["Diagnostics.Period"]">
+                    @foreach (var minutes in new[] { 5, 60, 1440, 0 })
+                    {
+                        <button class="@(_minutes == minutes ? "active" : null)" aria-pressed="@(_minutes == minutes ? "true" : "false")" @onclick="() => SelectPeriodAsync(minutes)">
+                            @(minutes == 0 ? L["Diagnostics.All"] : minutes.ToString())
+                        </button>
+                    }
+                </div>
+                <div class="diagnostics-options">
+                    <label><input type="checkbox" @bind="_follow" />@L["Diagnostics.Follow"]</label>
+                    <label><input type="checkbox" @bind="_slowOnly" />@L["Diagnostics.SlowOnly"]</label>
+                </div>
+            </div>
         </div>
         @if (_settings) { <DiagnosticsSettingsPanel /> }
-        <div class="segmented">@foreach (var page in new[] { "Overview", "SlowQueries", "Database", "Server", "Profiler" })
-        { <button id="@("diagnostics-" + page)" class="@(_page == page ? "active" : "")" @onclick="() => SelectPageAsync(page)">@L["Diagnostics." + page]</button> }</div>
-        @if (_error is not null) { <p role="alert">@_error</p> }
+        <div class="segmented diagnostics-tabs" role="group" aria-label="@L["Diagnostics.Title"]">
+            @foreach (var page in new[] { "Overview", "SlowQueries", "Database", "Server", "Profiler" })
+            {
+                <button id="@("diagnostics-" + page)" class="@(_page == page ? "active" : null)" aria-pressed="@(_page == page ? "true" : "false")" @onclick="() => SelectPageAsync(page)">@L["Diagnostics." + page]</button>
+            }
+        </div>
+        @if (_error is not null) { <p class="error-message" role="alert">@_error</p> }
         @if (_page == "Profiler" && Current is { } current) { <ProfilerPanel @key="(_connection, _database)" Target="current.Target" Database="@_database" Databases="current.Databases.Select(db => db.Name).ToArray()" /> }
         else if (_page == "Overview")
         {
@@ -40,14 +76,25 @@
                 { <div class="diagnostic-card"><span>@(card.Item1.StartsWith("Diagnostics.") ? L[card.Item1] : card.Item1)</span><strong>@card.Item2</strong></div> }</div>
                 <LatencyHistogram Buckets="summary.Histogram" />
             }
-            <QueryInsightsPanel Observations="_observations" OnSelect="SelectGroupAsync" />
-            <button class="button" @onclick="ClearMemoryAsync">@L["Diagnostics.ClearMemory"]</button>
-            <button class="button danger" @onclick="() => _confirmClear = true">@L["Diagnostics.ClearHistory"]</button>
-            @if (_confirmClear) { <p>@L["Diagnostics.ClearConfirm"] <button @onclick="ClearHistoryAsync">@L["Diagnostics.Confirm"]</button><button @onclick="() => _confirmClear = false">@L["Common.Cancel"]</button></p> }
+            <div class="diagnostics-table"><QueryInsightsPanel Observations="_observations" OnSelect="SelectGroupAsync" /></div>
+            <div class="diagnostics-actions">
+                <button class="button secondary" @onclick="ClearMemoryAsync">@L["Diagnostics.ClearMemory"]</button>
+                <button class="button danger" @onclick="() => _confirmClear = true">@L["Diagnostics.ClearHistory"]</button>
+            </div>
+            @if (_confirmClear)
+            {
+                <div class="inline-confirm">
+                    <p>@L["Diagnostics.ClearConfirm"]</p>
+                    <div class="diagnostics-actions">
+                        <button class="button danger" @onclick="ClearHistoryAsync">@L["Diagnostics.Confirm"]</button>
+                        <button class="button secondary" @onclick="() => _confirmClear = false">@L["Common.Cancel"]</button>
+                    </div>
+                </div>
+            }
         }
-        else if (_page == "SlowQueries") { <QueryObservationTable Rows="_observations" /> }
+        else if (_page == "SlowQueries") { <div class="diagnostics-table"><QueryObservationTable Rows="_observations" /></div> }
         else { <pre class="diagnostic-data">@_text</pre> }
-        <p>@L["Diagnostics.Lost"]: @Services.Queue.Lost</p>
+        <p class="muted diagnostics-status">@L["Diagnostics.Lost"]: @Services.Queue.Lost</p>
     }
 </section>
 @code {
